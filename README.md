@@ -29,6 +29,14 @@ Individual HEC-22 chapters extracted for easy reference:
 - **HEC22 Chapter 3.pdf** - Roadside and Median Channels
 - **HEC22 Chapter 4.pdf** - Gutter Flow and Inlet Design
 - **HEC22 Chapter 5.pdf** - Storm Drain Systems
+- **HEC22 Chapter 6.pdf** - Roadside and Median Channels (Advanced)
+  - Open channel flow concepts (energy, Froude number, flow regimes)
+  - Manning's equation for channel design
+  - Channel design parameters (geometry, slope, freeboard)
+  - Stable channel design using shear stress approach
+  - Channel lining materials (flexible vs. rigid)
+  - Superelevation in bends
+  - Complete design procedure with worked examples
 - **HEC22 Chapter 7.pdf** - Storage Design
 - **HEC22 Chapter 8.pdf** - Water Quality
 - **HEC22 Chapter 9.pdf** - Green Infrastructure
@@ -69,6 +77,15 @@ Core hydraulic and hydrologic equations for drainage design:
   - Time of concentration methods
   - Rainfall intensity (IDF curves)
   - Frequency adjustment factors
+
+- **`open_channel_flow.md`** - Open channel flow for roadside/median channels
+  - Energy equation and specific energy
+  - Froude number and flow classification
+  - Shear stress analysis (straight and bends)
+  - Superelevation in channel bends
+  - Channel geometry equations
+  - Stable channel design criteria
+  - Manning's n values for channel linings
 
 ### Constants (`reference/constants/`)
 
@@ -310,6 +327,7 @@ hec22/
 │   │   ├── HEC22 Chapter 3.pdf
 │   │   ├── HEC22 Chapter 4.pdf
 │   │   ├── HEC22 Chapter 5.pdf
+│   │   ├── HEC22 Chapter 6.pdf
 │   │   ├── HEC22 Chapter 7.pdf
 │   │   ├── HEC22 Chapter 8.pdf
 │   │   ├── HEC22 Chapter 9.pdf
@@ -322,7 +340,8 @@ hec22/
 │   │   ├── manning_equation.md
 │   │   ├── gutter_flow.md
 │   │   ├── inlet_design.md
-│   │   └── rational_method.md
+│   │   ├── rational_method.md
+│   │   └── open_channel_flow.md
 │   ├── constants/                     # Design constants
 │   │   └── manning_n_values.md
 │   ├── guidance/                      # Design procedures
