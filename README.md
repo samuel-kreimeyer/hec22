@@ -21,6 +21,93 @@ Data can be input in tabular form (spreadsheets, CSV files, or databases) for ef
 
 The `reference/` directory contains comprehensive technical documentation based on HEC-22:
 
+### Chapters (`reference/chapters/`)
+
+Individual HEC-22 chapters extracted for easy reference:
+
+- **HEC22 Chapter 2.pdf** - Hydrologic Analysis
+- **HEC22 Chapter 3.pdf** - Roadside and Median Channels
+- **HEC22 Chapter 4.pdf** - Gutter Flow and Inlet Design
+- **HEC22 Chapter 5.pdf** - Storm Drain Systems
+- **HEC22 Chapter 6.pdf** - Roadside and Median Channels (Advanced)
+  - Open channel flow concepts (energy, Froude number, flow regimes)
+  - Manning's equation for channel design
+  - Channel design parameters (geometry, slope, freeboard)
+  - Stable channel design using shear stress approach
+  - Channel lining materials (flexible vs. rigid)
+  - Superelevation in bends
+  - Complete design procedure with worked examples
+- **HEC22 Chapter 7.pdf** - Inlet Design
+  - Inlet types and selection (grate, curb-opening, combination, slotted)
+  - Hydraulic efficiency and bicycle/pedestrian/ADA safety
+  - Grate inlet types and performance (P-1-7/8, curved vane, tilt-bar, reticuline)
+  - Interception capacity on continuous grades
+  - Grate inlet equations (frontal flow, side flow, splash-over velocity)
+  - Curb-opening inlet design (weir and orifice flow)
+  - Depressed gutter sections and local depression
+  - Combination inlets and sweeper configurations
+  - Inlet interception in sag locations
+  - Inlet spacing and location criteria
+  - Flanking inlets for sag vertical curves
+  - Median and roadside ditch inlet design
+  - Embankment inlets with downdrains
+  - Clogging considerations and debris handling
+- **HEC22 Chapter 8.pdf** - Storm Drain Structures
+  - Inlet structures (catch basins) - types and configuration
+  - Drop inlets, inlets with sumps, curb inlets, combination inlets
+  - Inlet materials (cast-in-place and pre-cast concrete)
+  - Inlet location and spacing based on hydraulic effectiveness
+  - Access holes (manholes) for inspection and maintenance
+  - Access hole configuration (circular, 24" minimum shaft, 4-5 ft bottom chamber)
+  - Concentric vs. eccentric cone designs
+  - Benching and flow channels to reduce energy losses
+  - Access hole depth (typically 5-13 ft) and safety features
+  - Access hole spacing criteria by pipe size (300-1000 ft)
+  - Placement at junctions, pipe changes, and alignment changes
+  - Junction chambers for large storm drain connections
+  - Rectangular, circular, or irregular chamber shapes
+  - Transitions between pipe sizes and shapes
+  - Transition ratios (5:1 to 20:1) to minimize energy loss
+  - Flow splitters for diverting high flows
+  - Inverted siphons (depressed pipes) under obstructions
+  - Multi-barrel siphon design and sediment flushing
+  - Flap gates to prevent back-flooding from receiving waters
+  - Materials selection and structural considerations
+  - Maintenance access and safety requirements
+- **HEC22 Chapter 9.pdf** - Storm Drain Conduits
+  - Storm drainage system components (inlets, conduits, outfalls)
+  - Flow type assumptions (steady and uniform flow)
+  - Open channel vs. pressure flow design philosophies
+  - Hydraulic capacity using Manning's equation for conduits
+  - Manning's roughness coefficients for various pipe materials
+  - Conduit shape alternatives (circular, oval, arch, box)
+  - Energy Grade Line (EGL) and Hydraulic Grade Line (HGL) concepts
+  - Storm drain outfalls and tailwater elevation considerations
+  - Energy losses: pipe friction, exit losses, bend losses, transition losses
+  - Junction losses using momentum equations
+  - Approximate method for inlet and access hole energy loss
+  - FHWA comprehensive method for access hole energy losses
+  - Inlet control (weir and orifice) and outlet control conditions
+  - Benching, angled inflow, and plunging flow adjustments
+  - Design storm frequency selection (0.1 to 0.02 AEP)
+  - Time of concentration and discharge determination
+  - Minimum velocity (3 ft/s) and self-cleansing requirements
+  - Minimum pipe grades and cover requirements
+  - Location, alignment, and curved storm drain considerations
+  - Maintenance considerations and inspection requirements
+  - Preliminary design procedure (9-step process)
+  - Hydraulic grade line evaluation methodology
+  - Complete worked example with EGL/HGL calculations
+  - Supercritical and subcritical flow identification
+  - Debris and clogging prevention strategies
+- **HEC22 Chapter 10.pdf** - Subsurface Drainage
+- **HEC22 Chapter 11.pdf** - Economic Analysis
+- **HEC22 Appendix A.pdf** - Design Charts and Nomographs
+- **HEC22 Appendix B.pdf** - Design Examples
+- **HEC22 Appendix C.pdf** - Equations and Formulas
+
+These chapters are automatically extracted from the complete HEC-22 PDF using `extract_chapters.py`.
+
 ### Equations (`reference/equations/`)
 
 Core hydraulic and hydrologic equations for drainage design:
@@ -50,6 +137,15 @@ Core hydraulic and hydrologic equations for drainage design:
   - Time of concentration methods
   - Rainfall intensity (IDF curves)
   - Frequency adjustment factors
+
+- **`open_channel_flow.md`** - Open channel flow for roadside/median channels
+  - Energy equation and specific energy
+  - Froude number and flow classification
+  - Shear stress analysis (straight and bends)
+  - Superelevation in channel bends
+  - Channel geometry equations
+  - Stable channel design criteria
+  - Manning's n values for channel linings
 
 ### Constants (`reference/constants/`)
 
@@ -92,6 +188,21 @@ Worked examples demonstrating the methodology:
   - Pipe sizing and layout
   - HGL analysis
   - Design summary tables
+
+### Test Cases (`reference/TEST_CASE_REFERENCE.md`)
+
+Comprehensive test case documentation for automated testing:
+
+- **`TEST_CASE_REFERENCE.md`** - Formula validation and test cases
+  - 20+ detailed test cases with known inputs and expected outputs
+  - Complete worked example integrating all formulas
+  - Step-by-step calculations for validation
+  - All key formulas: rational method, gutter flow, inlet design, Manning's equation
+  - Design constants and validation criteria
+  - Ready-to-use format for unit, integration, and regression testing
+  - Basis for future automated test suite development
+
+This document consolidates all formulas and the worked example into a format specifically designed for creating automated test cases. Each test case includes inputs, expected outputs, and detailed calculation steps for verification.
 
 ## Key Design Equations
 
@@ -237,24 +348,69 @@ This project is based on:
 - HEC-17: Highways in the River Environment
 - HEC-RAS: River Analysis System
 
+## Utilities
+
+### Chapter Extraction Script
+
+The `extract_chapters.py` script automatically extracts individual chapters and appendices from the complete HEC-22 PDF manual into separate files for easier reference.
+
+**Usage:**
+
+```bash
+# Analyze the PDF and show chapter page ranges (dry run)
+python extract_chapters.py
+
+# Extract chapters to reference/chapters/ directory
+python extract_chapters.py --extract
+```
+
+**Features:**
+- Automatically detects chapter and appendix boundaries
+- Extracts each section to a separate PDF file
+- Requires PyPDF2 (auto-installs if missing)
+- Skips front matter and table of contents
+- Creates descriptive filenames (e.g., "HEC22 Chapter 4.pdf")
+
+**Output:**
+- Individual chapter PDFs saved to `reference/chapters/`
+- Console output shows page ranges for verification
+
 ## Project Structure
 
 ```
 hec22/
 ├── README.md                          # This file
+├── extract_chapters.py                # Script to extract PDF chapters
 ├── reference/                         # Reference materials
+│   ├── chapters/                      # Individual HEC-22 chapters (PDFs)
+│   │   ├── HEC22 Chapter 2.pdf
+│   │   ├── HEC22 Chapter 3.pdf
+│   │   ├── HEC22 Chapter 4.pdf
+│   │   ├── HEC22 Chapter 5.pdf
+│   │   ├── HEC22 Chapter 6.pdf
+│   │   ├── HEC22 Chapter 7.pdf
+│   │   ├── HEC22 Chapter 8.pdf
+│   │   ├── HEC22 Chapter 9.pdf
+│   │   ├── HEC22 Chapter 10.pdf
+│   │   ├── HEC22 Chapter 11.pdf
+│   │   ├── HEC22 Appendix A.pdf
+│   │   ├── HEC22 Appendix B.pdf
+│   │   └── HEC22 Appendix C.pdf
 │   ├── equations/                     # Hydraulic equations
 │   │   ├── manning_equation.md
 │   │   ├── gutter_flow.md
 │   │   ├── inlet_design.md
-│   │   └── rational_method.md
+│   │   ├── rational_method.md
+│   │   └── open_channel_flow.md
 │   ├── constants/                     # Design constants
 │   │   └── manning_n_values.md
 │   ├── guidance/                      # Design procedures
 │   │   ├── component_definitions.md
-│   │   └── design_workflow.md
-│   └── examples/                      # Worked examples
-│       └── example_problem_1.md
+│   │   ├── design_workflow.md
+│   │   └── hif24006.pdf               # Complete HEC-22 manual
+│   ├── examples/                      # Worked examples
+│   │   └── example_problem_1.md
+│   └── TEST_CASE_REFERENCE.md         # Comprehensive test cases for formulas
 └── LICENSE                            # Project license
 ```
 
