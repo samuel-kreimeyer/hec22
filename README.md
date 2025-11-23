@@ -21,6 +21,25 @@ Data can be input in tabular form (spreadsheets, CSV files, or databases) for ef
 
 The `reference/` directory contains comprehensive technical documentation based on HEC-22:
 
+### Chapters (`reference/chapters/`)
+
+Individual HEC-22 chapters extracted for easy reference:
+
+- **HEC22 Chapter 2.pdf** - Hydrologic Analysis
+- **HEC22 Chapter 3.pdf** - Roadside and Median Channels
+- **HEC22 Chapter 4.pdf** - Gutter Flow and Inlet Design
+- **HEC22 Chapter 5.pdf** - Storm Drain Systems
+- **HEC22 Chapter 7.pdf** - Storage Design
+- **HEC22 Chapter 8.pdf** - Water Quality
+- **HEC22 Chapter 9.pdf** - Green Infrastructure
+- **HEC22 Chapter 10.pdf** - Subsurface Drainage
+- **HEC22 Chapter 11.pdf** - Economic Analysis
+- **HEC22 Appendix A.pdf** - Design Charts and Nomographs
+- **HEC22 Appendix B.pdf** - Design Examples
+- **HEC22 Appendix C.pdf** - Equations and Formulas
+
+These chapters are automatically extracted from the complete HEC-22 PDF using `extract_chapters.py`.
+
 ### Equations (`reference/equations/`)
 
 Core hydraulic and hydrologic equations for drainage design:
@@ -237,12 +256,53 @@ This project is based on:
 - HEC-17: Highways in the River Environment
 - HEC-RAS: River Analysis System
 
+## Utilities
+
+### Chapter Extraction Script
+
+The `extract_chapters.py` script automatically extracts individual chapters and appendices from the complete HEC-22 PDF manual into separate files for easier reference.
+
+**Usage:**
+
+```bash
+# Analyze the PDF and show chapter page ranges (dry run)
+python extract_chapters.py
+
+# Extract chapters to reference/chapters/ directory
+python extract_chapters.py --extract
+```
+
+**Features:**
+- Automatically detects chapter and appendix boundaries
+- Extracts each section to a separate PDF file
+- Requires PyPDF2 (auto-installs if missing)
+- Skips front matter and table of contents
+- Creates descriptive filenames (e.g., "HEC22 Chapter 4.pdf")
+
+**Output:**
+- Individual chapter PDFs saved to `reference/chapters/`
+- Console output shows page ranges for verification
+
 ## Project Structure
 
 ```
 hec22/
 ├── README.md                          # This file
+├── extract_chapters.py                # Script to extract PDF chapters
 ├── reference/                         # Reference materials
+│   ├── chapters/                      # Individual HEC-22 chapters (PDFs)
+│   │   ├── HEC22 Chapter 2.pdf
+│   │   ├── HEC22 Chapter 3.pdf
+│   │   ├── HEC22 Chapter 4.pdf
+│   │   ├── HEC22 Chapter 5.pdf
+│   │   ├── HEC22 Chapter 7.pdf
+│   │   ├── HEC22 Chapter 8.pdf
+│   │   ├── HEC22 Chapter 9.pdf
+│   │   ├── HEC22 Chapter 10.pdf
+│   │   ├── HEC22 Chapter 11.pdf
+│   │   ├── HEC22 Appendix A.pdf
+│   │   ├── HEC22 Appendix B.pdf
+│   │   └── HEC22 Appendix C.pdf
 │   ├── equations/                     # Hydraulic equations
 │   │   ├── manning_equation.md
 │   │   ├── gutter_flow.md
@@ -252,7 +312,8 @@ hec22/
 │   │   └── manning_n_values.md
 │   ├── guidance/                      # Design procedures
 │   │   ├── component_definitions.md
-│   │   └── design_workflow.md
+│   │   ├── design_workflow.md
+│   │   └── hif24006.pdf               # Complete HEC-22 manual
 │   └── examples/                      # Worked examples
 │       └── example_problem_1.md
 └── LICENSE                            # Project license
