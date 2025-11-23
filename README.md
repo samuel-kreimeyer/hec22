@@ -37,7 +37,21 @@ Individual HEC-22 chapters extracted for easy reference:
   - Channel lining materials (flexible vs. rigid)
   - Superelevation in bends
   - Complete design procedure with worked examples
-- **HEC22 Chapter 7.pdf** - Storage Design
+- **HEC22 Chapter 7.pdf** - Inlet Design
+  - Inlet types and selection (grate, curb-opening, combination, slotted)
+  - Hydraulic efficiency and bicycle/pedestrian/ADA safety
+  - Grate inlet types and performance (P-1-7/8, curved vane, tilt-bar, reticuline)
+  - Interception capacity on continuous grades
+  - Grate inlet equations (frontal flow, side flow, splash-over velocity)
+  - Curb-opening inlet design (weir and orifice flow)
+  - Depressed gutter sections and local depression
+  - Combination inlets and sweeper configurations
+  - Inlet interception in sag locations
+  - Inlet spacing and location criteria
+  - Flanking inlets for sag vertical curves
+  - Median and roadside ditch inlet design
+  - Embankment inlets with downdrains
+  - Clogging considerations and debris handling
 - **HEC22 Chapter 8.pdf** - Water Quality
 - **HEC22 Chapter 9.pdf** - Green Infrastructure
 - **HEC22 Chapter 10.pdf** - Subsurface Drainage
