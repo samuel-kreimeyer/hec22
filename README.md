@@ -52,7 +52,28 @@ Individual HEC-22 chapters extracted for easy reference:
   - Median and roadside ditch inlet design
   - Embankment inlets with downdrains
   - Clogging considerations and debris handling
-- **HEC22 Chapter 8.pdf** - Water Quality
+- **HEC22 Chapter 8.pdf** - Storm Drain Structures
+  - Inlet structures (catch basins) - types and configuration
+  - Drop inlets, inlets with sumps, curb inlets, combination inlets
+  - Inlet materials (cast-in-place and pre-cast concrete)
+  - Inlet location and spacing based on hydraulic effectiveness
+  - Access holes (manholes) for inspection and maintenance
+  - Access hole configuration (circular, 24" minimum shaft, 4-5 ft bottom chamber)
+  - Concentric vs. eccentric cone designs
+  - Benching and flow channels to reduce energy losses
+  - Access hole depth (typically 5-13 ft) and safety features
+  - Access hole spacing criteria by pipe size (300-1000 ft)
+  - Placement at junctions, pipe changes, and alignment changes
+  - Junction chambers for large storm drain connections
+  - Rectangular, circular, or irregular chamber shapes
+  - Transitions between pipe sizes and shapes
+  - Transition ratios (5:1 to 20:1) to minimize energy loss
+  - Flow splitters for diverting high flows
+  - Inverted siphons (depressed pipes) under obstructions
+  - Multi-barrel siphon design and sediment flushing
+  - Flap gates to prevent back-flooding from receiving waters
+  - Materials selection and structural considerations
+  - Maintenance access and safety requirements
 - **HEC22 Chapter 9.pdf** - Green Infrastructure
 - **HEC22 Chapter 10.pdf** - Subsurface Drainage
 - **HEC22 Chapter 11.pdf** - Economic Analysis
