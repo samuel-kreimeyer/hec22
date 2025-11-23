@@ -100,7 +100,36 @@ Individual HEC-22 chapters extracted for easy reference:
   - Complete worked example with EGL/HGL calculations
   - Supercritical and subcritical flow identification
   - Debris and clogging prevention strategies
-- **HEC22 Chapter 10.pdf** - Subsurface Drainage
+- **HEC22 Chapter 10.pdf** - Detention and Retention
+  - Design objectives (peak flow attenuation, volume control, multiple storm events)
+  - Design challenges (release timing, downstream impacts, hydrograph synchronization)
+  - Safety considerations (public access control, emergency escape, velocity hazards)
+  - Maintenance requirements (inspections, mowing, sediment/debris control, structural repairs)
+  - Detention facilities (dry ponds) - temporary storage with controlled release
+  - Retention facilities (wet ponds) - permanent pool with water quality benefits
+  - Preliminary storage volume estimation methods:
+    - Loss-of-natural-storage method
+    - Actual inflow/estimated release method
+    - Rational Method triangular hydrograph method
+    - NRCS TR-55 procedure
+  - Stage-storage relationships for various basin geometries:
+    - Rectangular basins
+    - Trapezoidal basins
+    - Circular pipes and conduits (prismoidal formula)
+    - Irregular basins (average-end area and conic section methods)
+  - Dead storage vs. active storage concepts
+  - Stage-discharge relationships (performance curves):
+    - Discharge pipes (single-stage and multi-stage)
+    - Orifice flow equations and coefficients
+    - Weir flow (sharp-crested, broad-crested, V-notch, proportional)
+    - Composite stage-discharge curves
+    - Emergency spillways
+  - Single-stage and multi-stage riser design procedures
+  - Water budgets for wet ponds (rainfall, runoff, evaporation, infiltration)
+  - Storage routing using modified Puls (storage-indication) method
+  - Complete detention design procedure with iterative approach
+  - Landlocked storage analysis (mass routing for karst areas)
+  - Worked examples with detailed calculations
 - **HEC22 Chapter 11.pdf** - Economic Analysis
 - **HEC22 Appendix A.pdf** - Design Charts and Nomographs
 - **HEC22 Appendix B.pdf** - Design Examples
