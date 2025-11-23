@@ -112,6 +112,21 @@ Worked examples demonstrating the methodology:
   - HGL analysis
   - Design summary tables
 
+### Test Cases (`reference/TEST_CASE_REFERENCE.md`)
+
+Comprehensive test case documentation for automated testing:
+
+- **`TEST_CASE_REFERENCE.md`** - Formula validation and test cases
+  - 20+ detailed test cases with known inputs and expected outputs
+  - Complete worked example integrating all formulas
+  - Step-by-step calculations for validation
+  - All key formulas: rational method, gutter flow, inlet design, Manning's equation
+  - Design constants and validation criteria
+  - Ready-to-use format for unit, integration, and regression testing
+  - Basis for future automated test suite development
+
+This document consolidates all formulas and the worked example into a format specifically designed for creating automated test cases. Each test case includes inputs, expected outputs, and detailed calculation steps for verification.
+
 ## Key Design Equations
 
 ### Pipe Flow (Manning's Equation)
@@ -314,8 +329,9 @@ hec22/
 │   │   ├── component_definitions.md
 │   │   ├── design_workflow.md
 │   │   └── hif24006.pdf               # Complete HEC-22 manual
-│   └── examples/                      # Worked examples
-│       └── example_problem_1.md
+│   ├── examples/                      # Worked examples
+│   │   └── example_problem_1.md
+│   └── TEST_CASE_REFERENCE.md         # Comprehensive test cases for formulas
 └── LICENSE                            # Project license
 ```
 
