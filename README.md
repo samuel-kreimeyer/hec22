@@ -74,7 +74,32 @@ Individual HEC-22 chapters extracted for easy reference:
   - Flap gates to prevent back-flooding from receiving waters
   - Materials selection and structural considerations
   - Maintenance access and safety requirements
-- **HEC22 Chapter 9.pdf** - Green Infrastructure
+- **HEC22 Chapter 9.pdf** - Storm Drain Conduits
+  - Storm drainage system components (inlets, conduits, outfalls)
+  - Flow type assumptions (steady and uniform flow)
+  - Open channel vs. pressure flow design philosophies
+  - Hydraulic capacity using Manning's equation for conduits
+  - Manning's roughness coefficients for various pipe materials
+  - Conduit shape alternatives (circular, oval, arch, box)
+  - Energy Grade Line (EGL) and Hydraulic Grade Line (HGL) concepts
+  - Storm drain outfalls and tailwater elevation considerations
+  - Energy losses: pipe friction, exit losses, bend losses, transition losses
+  - Junction losses using momentum equations
+  - Approximate method for inlet and access hole energy loss
+  - FHWA comprehensive method for access hole energy losses
+  - Inlet control (weir and orifice) and outlet control conditions
+  - Benching, angled inflow, and plunging flow adjustments
+  - Design storm frequency selection (0.1 to 0.02 AEP)
+  - Time of concentration and discharge determination
+  - Minimum velocity (3 ft/s) and self-cleansing requirements
+  - Minimum pipe grades and cover requirements
+  - Location, alignment, and curved storm drain considerations
+  - Maintenance considerations and inspection requirements
+  - Preliminary design procedure (9-step process)
+  - Hydraulic grade line evaluation methodology
+  - Complete worked example with EGL/HGL calculations
+  - Supercritical and subcritical flow identification
+  - Debris and clogging prevention strategies
 - **HEC22 Chapter 10.pdf** - Subsurface Drainage
 - **HEC22 Chapter 11.pdf** - Economic Analysis
 - **HEC22 Appendix A.pdf** - Design Charts and Nomographs
