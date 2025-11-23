@@ -130,7 +130,76 @@ Individual HEC-22 chapters extracted for easy reference:
   - Complete detention design procedure with iterative approach
   - Landlocked storage analysis (mass routing for karst areas)
   - Worked examples with detailed calculations
-- **HEC22 Chapter 11.pdf** - Economic Analysis
+- **HEC22 Chapter 11.pdf** - Urban Stormwater Quality
+  - BMP (Best Management Practice) alternatives and selection
+  - Pollutant load estimation (Simple Method, HRDB, SELDM)
+  - Water quality volume (WQV) and first flush concepts
+  - Structural BMPs - Storage-based:
+    - Extended detention dry ponds (24-48 hour detention)
+    - Wet ponds (retention ponds with permanent pool)
+    - Water budget analysis for wet ponds
+  - Structural BMPs - Infiltration-based:
+    - Infiltration/exfiltration trenches (complete, partial, water quality systems)
+    - Infiltration basins (up to 50 acre drainage areas)
+    - Sand filters (peat-sand filters, compartment systems)
+  - Green infrastructure and Low Impact Development (LID):
+    - Bioretention areas (rain gardens)
+    - Bioswales and vegetated swales
+    - Stormwater curb extensions and planters
+    - Stormwater tree systems
+    - Permeable pavements (porous asphalt, pervious concrete, pavers)
+    - Grassed swales with check dams and level spreaders
+    - Filter strips for sheet flow treatment
+    - Constructed wetlands
+  - Pollutant removal efficiencies by BMP type
+  - Ultra-urban BMPs (small footprint, underground):
+    - Water quality inlets (oil/grit separators)
+    - Hydrodynamic devices and filter inserts
+    - Sumps and pre-treatment systems
+  - Non-structural BMPs:
+    - Storm drain cleaning and street sweeping
+    - Landscaping practices and trash management
+    - Slope stabilization and winter maintenance
+  - BMP selection criteria and site suitability
+- **HEC22 Chapter 12.pdf** - Pump Stations
+  - When to use pump stations (gravity alternatives exhausted)
+  - Pump station types:
+    - Wet-pit stations (pumps submerged in wet well)
+    - Dry-pit stations (separate wet well and dry well)
+    - Submersible vs. shaft-driven configurations
+  - Pump types and selection:
+    - Axial flow pumps (low head, high discharge, propeller-type)
+    - Radial flow pumps (high head, centrifugal force, debris handling)
+    - Mixed flow pumps (intermediate applications, multi-stage)
+  - Pump sizing and system curves:
+    - Total Dynamic Head (TDH = static + friction + velocity + minor losses)
+    - System curve development
+    - Pump performance curves (head, efficiency, power)
+    - Operating point determination
+  - Number of pumps (2-3 minimum, equal sizing, automatic alternation)
+  - Net Positive Suction Head (NPSH) requirements and cavitation prevention
+  - Pump station components:
+    - Water-level sensors (float switches, electronic probes, ultrasonic)
+    - Power systems (electric motors, fuel-driven engines, backup power)
+    - Discharge systems (force mains, piping, frost protection)
+    - Valving (flap gates, check valves, gate valves, air/vacuum valves)
+    - Trash racks and grit chambers
+    - Monitoring systems and ITS integration
+  - Site planning and hydrology:
+    - Location selection and access
+    - Design storm (typically 0.02 AEP for major highways)
+    - Drainage area considerations
+    - Collection system design
+    - Hazardous materials spill protection
+  - Storage and mass curve routing:
+    - Balancing storage volume vs. pump capacity
+    - Inflow mass curve development
+    - Stage-storage relationships
+    - Stage-discharge curves
+    - Pump cycling time requirements
+    - Iterative optimization of start/stop elevations
+  - Safety considerations (confined space, ventilation, security)
+  - Maintenance and operation requirements
 - **HEC22 Appendix A.pdf** - Design Charts and Nomographs
 - **HEC22 Appendix B.pdf** - Design Examples
 - **HEC22 Appendix C.pdf** - Equations and Formulas
@@ -205,6 +274,52 @@ Design procedures and component definitions:
   - Storm sewer system layout
   - Hydraulic analysis (HGL/EGL)
   - Quality control checklists
+
+- **`chapter_10_design_notes.md`** - Detention and Retention Design Implementation
+  - Computational implementation guidance for Chapter 10
+  - Design objectives and facility types (detention vs. retention)
+  - Preliminary storage volume estimation methods
+  - Stage-storage relationships (rectangular, trapezoidal, irregular basins)
+  - Stage-discharge relationships (orifices, weirs, composite curves)
+  - Storage routing (Modified Puls method)
+  - Single-stage and multi-stage riser design procedures
+  - Water budget analysis for wet ponds
+  - Design iteration workflows and optimization
+  - Python code examples and data structures
+  - Common pitfalls and best practices
+  - Testing strategy and validation data
+
+- **`chapter_11_design_notes.md`** - Urban Stormwater Quality Implementation
+  - Computational implementation guidance for Chapter 11
+  - BMP alternatives and selection criteria
+  - Pollutant load estimation (Simple Method, HRDB, SELDM)
+  - Water quality volume (WQV) calculations
+  - Structural BMPs (storage-based and infiltration-based)
+  - Green infrastructure and LID practices
+  - Pollutant removal efficiency databases
+  - Ultra-urban and non-structural BMPs
+  - BMP sizing and design algorithms
+  - Treatment train design
+  - Python code examples and data structures
+  - Performance monitoring and validation
+  - Testing strategy and best practices
+
+- **`chapter_12_design_notes.md`** - Pump Station Design Implementation
+  - Computational implementation guidance for Chapter 12
+  - Pump station types (wet-pit vs. dry-pit)
+  - Pump types and selection (axial, radial, mixed flow)
+  - Total Dynamic Head (TDH) calculations
+  - System curve and pump performance curve development
+  - Number of pumps and sizing optimization
+  - NPSH requirements and cavitation prevention
+  - Pump station component selection
+  - Site planning and hydrology considerations
+  - Storage and mass curve routing procedures
+  - Stage-storage and stage-discharge relationships
+  - Iterative design optimization
+  - Python code examples and data structures
+  - Safety considerations and maintenance planning
+  - Testing strategy and validation data
 
 ### Examples (`reference/examples/`)
 
