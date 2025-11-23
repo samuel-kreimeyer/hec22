@@ -1,7 +1,3 @@
-That’s a very solid architectural direction—lean, domain-driven, extensible, and aligned with how engineers actually conceptualize drainage networks. Let me reflect your thinking and expand it into a practical architecture outline so that it’s ready to drive implementation (and later PRs).
-
-⸻
-
 🌧️ Proposed Software Architecture for HEC-22 Framework
 
 1. Core Domain Model
