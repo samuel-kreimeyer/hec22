@@ -1,0 +1,287 @@
+{
+  "version": "1.0.0",
+  "project": {
+    "name": "Oak Avenue Drainage - Deficiency Analysis",
+    "description": "Existing system with known capacity issues - requires upsizing",
+    "units": {
+      "system": "US",
+      "length": "ft",
+      "elevation": "ft",
+      "flow": "cfs",
+      "area": "acres"
+    },
+    "author": "John Engineer",
+    "created": "2025-11-24T09:00:00Z"
+  },
+  "rainfall": {
+    "designStorms": [
+      {
+        "id": "storm-25yr",
+        "name": "25-Year Design Storm",
+        "returnPeriod": 25,
+        "duration": 60,
+        "peakIntensity": 4.8
+      }
+    ]
+  },
+  "drainageAreas": [
+    {
+      "id": "DA-A",
+      "area": 2.8,
+      "outlet": "IN-001",
+      "runoffCoefficient": 0.88,
+      "timeOfConcentration": 15.0
+    }
+  ],
+  "network": {
+    "nodes": [
+      {
+        "id": "IN-001",
+        "type": "inlet",
+        "invertElevation": 108.25,
+        "rimElevation": 112.00,
+        "inlet": {
+          "inletType": "grate",
+          "location": "sag",
+          "grate": {
+            "length": 2.0,
+            "width": 1.5
+          },
+          "cloggingFactor": 0.50
+        }
+      },
+      {
+        "id": "MH-001",
+        "type": "junction",
+        "invertElevation": 105.50,
+        "rimElevation": 110.20,
+        "junction": {
+          "diameter": 4.0,
+          "lossCoefficient": 0.20
+        }
+      },
+      {
+        "id": "OUT-001",
+        "type": "outfall",
+        "invertElevation": 100.00,
+        "outfall": {
+          "boundaryCondition": "fixed-stage",
+          "tailwaterElevation": 102.50
+        }
+      }
+    ],
+    "conduits": [
+      {
+        "id": "G-001",
+        "type": "gutter",
+        "fromNode": "IN-001",
+        "toNode": "IN-001",
+        "length": 500,
+        "slope": 0.008,
+        "gutter": {
+          "crossSlope": 0.02,
+          "longitudinalSlope": 0.008,
+          "width": 12,
+          "manningN": 0.016
+        }
+      },
+      {
+        "id": "P-001",
+        "type": "pipe",
+        "name": "Undersized 15-inch pipe",
+        "fromNode": "IN-001",
+        "toNode": "MH-001",
+        "length": 120,
+        "upstreamInvert": 108.10,
+        "downstreamInvert": 105.65,
+        "slope": 0.0204,
+        "pipe": {
+          "shape": "circular",
+          "diameter": 15,
+          "material": "RCP",
+          "manningN": 0.013
+        }
+      },
+      {
+        "id": "P-002",
+        "type": "pipe",
+        "fromNode": "MH-001",
+        "toNode": "OUT-001",
+        "length": 200,
+        "upstreamInvert": 105.25,
+        "downstreamInvert": 100.15,
+        "slope": 0.0255,
+        "pipe": {
+          "shape": "circular",
+          "diameter": 18,
+          "material": "CMP",
+          "manningN": 0.024
+        }
+      }
+    ]
+  },
+  "designCriteria": {
+    "gutterSpread": {
+      "maxSpread": 10.0
+    },
+    "hglCriteria": {
+      "maxHglBelowRim": 1.0,
+      "allowSurcharge": false
+    },
+    "velocity": {
+      "minVelocity": 2.5,
+      "maxVelocity": 15.0
+    }
+  },
+  "analysis": {
+    "method": "rational",
+    "designStormId": "storm-25yr",
+    "timestamp": "2025-11-24T11:15:00Z",
+    "solver": {
+      "name": "HEC22-Solver",
+      "version": "1.0.0"
+    },
+    "drainageAreaResults": [
+      {
+        "drainageAreaId": "DA-A",
+        "peakFlow": 11.83,
+        "intensity": 4.8
+      }
+    ],
+    "nodeResults": [
+      {
+        "nodeId": "IN-001",
+        "hgl": 112.45,
+        "egl": 113.28,
+        "depth": 4.20,
+        "velocity": 7.2,
+        "flooding": true,
+        "pressureHead": 4.20
+      },
+      {
+        "nodeId": "MH-001",
+        "hgl": 110.85,
+        "egl": 111.92,
+        "depth": 5.35,
+        "velocity": 8.5,
+        "flooding": true,
+        "pressureHead": 5.35
+      },
+      {
+        "nodeId": "OUT-001",
+        "hgl": 102.50,
+        "egl": 103.68,
+        "depth": 2.50,
+        "velocity": 8.6,
+        "flooding": false
+      }
+    ],
+    "conduitResults": [
+      {
+        "conduitId": "G-001",
+        "flow": 11.83,
+        "velocity": 3.2,
+        "depth": 0.68,
+        "capacityUsed": 1.85,
+        "froudeNumber": 0.45,
+        "flowRegime": "subcritical"
+      },
+      {
+        "conduitId": "P-001",
+        "flow": 11.83,
+        "velocity": 9.8,
+        "depth": 1.25,
+        "capacityUsed": 1.52,
+        "froudeNumber": 1.85,
+        "flowRegime": "supercritical",
+        "headloss": {
+          "friction": 2.85,
+          "entrance": 0.75,
+          "exit": 1.48,
+          "total": 5.08
+        }
+      },
+      {
+        "conduitId": "P-002",
+        "flow": 11.83,
+        "velocity": 8.5,
+        "depth": 1.50,
+        "capacityUsed": 1.28,
+        "froudeNumber": 1.42,
+        "flowRegime": "supercritical",
+        "headloss": {
+          "friction": 4.22,
+          "entrance": 0.88,
+          "exit": 1.12,
+          "total": 6.22
+        }
+      }
+    ],
+    "violations": [
+      {
+        "type": "spread",
+        "severity": "error",
+        "elementId": "G-001",
+        "message": "Gutter spread of 12.8 ft exceeds maximum allowable spread of 10.0 ft",
+        "value": 12.8,
+        "limit": 10.0
+      },
+      {
+        "type": "hgl",
+        "severity": "error",
+        "elementId": "IN-001",
+        "message": "HGL at 112.45 ft is 0.45 ft above rim elevation of 112.00 ft",
+        "value": 112.45,
+        "limit": 111.00
+      },
+      {
+        "type": "flooding",
+        "severity": "error",
+        "elementId": "IN-001",
+        "message": "Inlet IN-001 is flooding (HGL exceeds rim elevation)",
+        "value": 112.45,
+        "limit": 112.00
+      },
+      {
+        "type": "hgl",
+        "severity": "error",
+        "elementId": "MH-001",
+        "message": "HGL at 110.85 ft is 0.65 ft above rim elevation of 110.20 ft",
+        "value": 110.85,
+        "limit": 109.20
+      },
+      {
+        "type": "flooding",
+        "severity": "error",
+        "elementId": "MH-001",
+        "message": "Junction MH-001 is flooding (HGL exceeds rim elevation)",
+        "value": 110.85,
+        "limit": 110.20
+      },
+      {
+        "type": "capacity",
+        "severity": "error",
+        "elementId": "P-001",
+        "message": "Pipe P-001 is operating at 152% capacity (undersized)",
+        "value": 1.52,
+        "limit": 1.0
+      },
+      {
+        "type": "capacity",
+        "severity": "error",
+        "elementId": "P-002",
+        "message": "Pipe P-002 is operating at 128% capacity (undersized)",
+        "value": 1.28,
+        "limit": 1.0
+      },
+      {
+        "type": "velocity",
+        "severity": "warning",
+        "elementId": "P-001",
+        "message": "Velocity of 9.8 ft/s is high but within limits (max 15.0 ft/s)",
+        "value": 9.8,
+        "limit": 15.0
+      }
+    ]
+  }
+}
