@@ -1,0 +1,966 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://hec22.dev/schemas/drainage-network.schema.json",
+  "title": "HEC-22 Drainage Network Model",
+  "description": "Comprehensive schema for urban drainage network analysis following FHWA HEC-22 methodology",
+  "type": "object",
+  "required": ["version", "project", "network"],
+  "properties": {
+    "version": {
+      "type": "string",
+      "description": "Schema version",
+      "pattern": "^\\d+\\.\\d+\\.\\d+$",
+      "default": "1.0.0"
+    },
+    "project": {
+      "type": "object",
+      "description": "Project metadata and settings",
+      "required": ["name", "units"],
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "Project name"
+        },
+        "description": {
+          "type": "string",
+          "description": "Project description"
+        },
+        "location": {
+          "type": "object",
+          "properties": {
+            "latitude": {
+              "type": "number",
+              "minimum": -90,
+              "maximum": 90
+            },
+            "longitude": {
+              "type": "number",
+              "minimum": -180,
+              "maximum": 180
+            },
+            "datum": {
+              "type": "string",
+              "description": "Vertical datum (e.g., NAVD88, NGVD29)",
+              "default": "NAVD88"
+            }
+          }
+        },
+        "units": {
+          "type": "object",
+          "description": "Unit system for the project",
+          "required": ["system"],
+          "properties": {
+            "system": {
+              "type": "string",
+              "enum": ["US", "SI"],
+              "description": "US customary or SI metric"
+            },
+            "length": {
+              "type": "string",
+              "enum": ["ft", "m", "in", "mm"],
+              "description": "Length units"
+            },
+            "elevation": {
+              "type": "string",
+              "enum": ["ft", "m"],
+              "description": "Elevation units"
+            },
+            "flow": {
+              "type": "string",
+              "enum": ["cfs", "cms", "gpm", "lps"],
+              "description": "Flow rate units"
+            },
+            "area": {
+              "type": "string",
+              "enum": ["acres", "ha", "sqft", "sqm"],
+              "description": "Drainage area units"
+            }
+          }
+        },
+        "author": {
+          "type": "string"
+        },
+        "created": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "modified": {
+          "type": "string",
+          "format": "date-time"
+        }
+      }
+    },
+    "rainfall": {
+      "type": "object",
+      "description": "Rainfall and hydrologic event data",
+      "properties": {
+        "designStorms": {
+          "type": "array",
+          "description": "Design storm events",
+          "items": {
+            "type": "object",
+            "required": ["id", "name", "returnPeriod"],
+            "properties": {
+              "id": {
+                "type": "string",
+                "description": "Unique storm identifier"
+              },
+              "name": {
+                "type": "string",
+                "description": "Storm name (e.g., '10-Year, 24-Hour')"
+              },
+              "returnPeriod": {
+                "type": "number",
+                "description": "Return period in years",
+                "minimum": 0,
+                "exclusiveMinimum": true
+              },
+              "duration": {
+                "type": "number",
+                "description": "Storm duration in minutes",
+                "minimum": 0,
+                "exclusiveMinimum": true
+              },
+              "totalDepth": {
+                "type": "number",
+                "description": "Total rainfall depth (inches or mm)",
+                "minimum": 0
+              },
+              "distribution": {
+                "type": "string",
+                "enum": ["SCS Type I", "SCS Type IA", "SCS Type II", "SCS Type III", "Uniform", "Custom"],
+                "description": "Temporal distribution type"
+              },
+              "peakIntensity": {
+                "type": "number",
+                "description": "Peak rainfall intensity (in/hr or mm/hr)",
+                "minimum": 0
+              },
+              "hyetograph": {
+                "type": "array",
+                "description": "Time-series rainfall data for custom distributions",
+                "items": {
+                  "type": "object",
+                  "required": ["time", "intensity"],
+                  "properties": {
+                    "time": {
+                      "type": "number",
+                      "description": "Time from storm start (minutes)"
+                    },
+                    "intensity": {
+                      "type": "number",
+                      "description": "Rainfall intensity at this time step"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "idfCurves": {
+          "type": "array",
+          "description": "Intensity-Duration-Frequency curves",
+          "items": {
+            "type": "object",
+            "required": ["returnPeriod", "points"],
+            "properties": {
+              "returnPeriod": {
+                "type": "number",
+                "description": "Return period in years"
+              },
+              "equation": {
+                "type": "object",
+                "description": "IDF equation parameters",
+                "properties": {
+                  "type": {
+                    "type": "string",
+                    "enum": ["Sherman", "Talbot", "Modified Talbot", "NOAA Atlas 14"],
+                    "description": "Equation type"
+                  },
+                  "coefficients": {
+                    "type": "object",
+                    "description": "Equation coefficients (a, b, c, etc.)",
+                    "additionalProperties": {
+                      "type": "number"
+                    }
+                  }
+                }
+              },
+              "points": {
+                "type": "array",
+                "description": "Tabular IDF data points",
+                "items": {
+                  "type": "object",
+                  "required": ["duration", "intensity"],
+                  "properties": {
+                    "duration": {
+                      "type": "number",
+                      "description": "Duration in minutes"
+                    },
+                    "intensity": {
+                      "type": "number",
+                      "description": "Rainfall intensity"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "drainageAreas": {
+      "type": "array",
+      "description": "Subcatchment/drainage area definitions",
+      "items": {
+        "type": "object",
+        "required": ["id", "area", "outlet"],
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Unique drainage area identifier"
+          },
+          "name": {
+            "type": "string",
+            "description": "Descriptive name"
+          },
+          "area": {
+            "type": "number",
+            "description": "Drainage area (acres, ha, etc.)",
+            "minimum": 0,
+            "exclusiveMinimum": true
+          },
+          "outlet": {
+            "type": "string",
+            "description": "ID of the outlet node (inlet or junction)"
+          },
+          "landUse": {
+            "type": "object",
+            "description": "Land use composition",
+            "properties": {
+              "primary": {
+                "type": "string",
+                "enum": ["Commercial", "Industrial", "Residential", "Open Space", "Transportation", "Agricultural", "Mixed"]
+              },
+              "imperviousPercent": {
+                "type": "number",
+                "minimum": 0,
+                "maximum": 100,
+                "description": "Percent impervious area"
+              },
+              "composition": {
+                "type": "array",
+                "description": "Detailed land use breakdown",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "type": {
+                      "type": "string"
+                    },
+                    "area": {
+                      "type": "number",
+                      "minimum": 0
+                    },
+                    "percent": {
+                      "type": "number",
+                      "minimum": 0,
+                      "maximum": 100
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "runoffCoefficient": {
+            "type": "number",
+            "description": "Rational method C coefficient",
+            "minimum": 0,
+            "maximum": 1
+          },
+          "timeOfConcentration": {
+            "type": "number",
+            "description": "Time of concentration (minutes)",
+            "minimum": 0,
+            "exclusiveMinimum": true
+          },
+          "tcCalculation": {
+            "type": "object",
+            "description": "Breakdown of Tc calculation",
+            "properties": {
+              "sheetFlow": {
+                "type": "object",
+                "properties": {
+                  "length": {
+                    "type": "number"
+                  },
+                  "slope": {
+                    "type": "number"
+                  },
+                  "roughness": {
+                    "type": "number"
+                  },
+                  "time": {
+                    "type": "number"
+                  }
+                }
+              },
+              "shallowConcentrated": {
+                "type": "object",
+                "properties": {
+                  "length": {
+                    "type": "number"
+                  },
+                  "slope": {
+                    "type": "number"
+                  },
+                  "surfaceType": {
+                    "type": "string",
+                    "enum": ["Paved", "Unpaved"]
+                  },
+                  "time": {
+                    "type": "number"
+                  }
+                }
+              },
+              "channelFlow": {
+                "type": "object",
+                "properties": {
+                  "length": {
+                    "type": "number"
+                  },
+                  "velocity": {
+                    "type": "number"
+                  },
+                  "time": {
+                    "type": "number"
+                  }
+                }
+              }
+            }
+          },
+          "curveNumber": {
+            "type": "number",
+            "description": "SCS Curve Number for TR-55 method",
+            "minimum": 0,
+            "maximum": 100
+          },
+          "geometry": {
+            "type": "object",
+            "description": "Spatial geometry (for GIS integration)",
+            "properties": {
+              "type": {
+                "type": "string",
+                "enum": ["Polygon"]
+              },
+              "coordinates": {
+                "type": "array",
+                "description": "GeoJSON-style coordinate array"
+              }
+            }
+          }
+        }
+      }
+    },
+    "network": {
+      "type": "object",
+      "description": "Drainage network topology (nodes and edges)",
+      "required": ["nodes", "conduits"],
+      "properties": {
+        "nodes": {
+          "type": "array",
+          "description": "Network nodes (junctions, inlets, outfalls)",
+          "items": {
+            "type": "object",
+            "required": ["id", "type", "invertElevation"],
+            "properties": {
+              "id": {
+                "type": "string",
+                "description": "Unique node identifier"
+              },
+              "type": {
+                "type": "string",
+                "enum": ["junction", "inlet", "outfall"],
+                "description": "Node type"
+              },
+              "name": {
+                "type": "string",
+                "description": "Descriptive name"
+              },
+              "invertElevation": {
+                "type": "number",
+                "description": "Invert elevation of the lowest pipe"
+              },
+              "rimElevation": {
+                "type": "number",
+                "description": "Ground/rim elevation (for flooding checks)"
+              },
+              "coordinates": {
+                "type": "object",
+                "description": "Spatial location",
+                "properties": {
+                  "x": {
+                    "type": "number"
+                  },
+                  "y": {
+                    "type": "number"
+                  },
+                  "latitude": {
+                    "type": "number"
+                  },
+                  "longitude": {
+                    "type": "number"
+                  }
+                }
+              },
+              "junction": {
+                "type": "object",
+                "description": "Junction/manhole-specific properties",
+                "properties": {
+                  "diameter": {
+                    "type": "number",
+                    "description": "Manhole diameter (ft or m)",
+                    "minimum": 0,
+                    "exclusiveMinimum": true
+                  },
+                  "sumpDepth": {
+                    "type": "number",
+                    "description": "Depth below lowest invert",
+                    "minimum": 0,
+                    "default": 0
+                  },
+                  "lossCoefficient": {
+                    "type": "number",
+                    "description": "Energy loss coefficient K",
+                    "minimum": 0,
+                    "default": 0.15
+                  },
+                  "benching": {
+                    "type": "boolean",
+                    "description": "Whether benching is present",
+                    "default": false
+                  },
+                  "dropStructure": {
+                    "type": "boolean",
+                    "description": "Whether this is a drop structure",
+                    "default": false
+                  }
+                }
+              },
+              "inlet": {
+                "type": "object",
+                "description": "Inlet-specific properties",
+                "properties": {
+                  "inletType": {
+                    "type": "string",
+                    "enum": ["grate", "curb-opening", "combination", "slotted"],
+                    "description": "Type of inlet"
+                  },
+                  "location": {
+                    "type": "string",
+                    "enum": ["on-grade", "sag"],
+                    "description": "Inlet location type"
+                  },
+                  "grate": {
+                    "type": "object",
+                    "description": "Grate inlet properties",
+                    "properties": {
+                      "length": {
+                        "type": "number",
+                        "description": "Grate length (ft or m)"
+                      },
+                      "width": {
+                        "type": "number",
+                        "description": "Grate width (ft or m)"
+                      },
+                      "barConfiguration": {
+                        "type": "string",
+                        "enum": ["parallel", "perpendicular"],
+                        "description": "Bar orientation relative to flow"
+                      }
+                    }
+                  },
+                  "curbOpening": {
+                    "type": "object",
+                    "description": "Curb opening inlet properties",
+                    "properties": {
+                      "length": {
+                        "type": "number",
+                        "description": "Opening length (ft or m)"
+                      },
+                      "height": {
+                        "type": "number",
+                        "description": "Opening height (ft or m)"
+                      },
+                      "throatType": {
+                        "type": "string",
+                        "enum": ["horizontal", "inclined", "vertical"],
+                        "description": "Throat configuration"
+                      }
+                    }
+                  },
+                  "localDepression": {
+                    "type": "number",
+                    "description": "Local depression depth (in or mm)",
+                    "minimum": 0,
+                    "default": 0
+                  },
+                  "cloggingFactor": {
+                    "type": "number",
+                    "description": "Fraction of inlet area assumed clogged",
+                    "minimum": 0,
+                    "maximum": 1,
+                    "default": 0
+                  }
+                }
+              },
+              "outfall": {
+                "type": "object",
+                "description": "Outfall-specific properties",
+                "properties": {
+                  "boundaryCondition": {
+                    "type": "string",
+                    "enum": ["free", "normal-depth", "fixed-stage", "tidal"],
+                    "description": "Downstream boundary condition type"
+                  },
+                  "tailwaterElevation": {
+                    "type": "number",
+                    "description": "Fixed tailwater elevation (if applicable)"
+                  },
+                  "tidalCurve": {
+                    "type": "array",
+                    "description": "Tidal stage variation",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "time": {
+                          "type": "number"
+                        },
+                        "elevation": {
+                          "type": "number"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "conduits": {
+          "type": "array",
+          "description": "Network conduits (pipes, gutters, channels)",
+          "items": {
+            "type": "object",
+            "required": ["id", "type", "fromNode", "toNode", "length"],
+            "properties": {
+              "id": {
+                "type": "string",
+                "description": "Unique conduit identifier"
+              },
+              "type": {
+                "type": "string",
+                "enum": ["pipe", "gutter", "channel"],
+                "description": "Conduit type"
+              },
+              "name": {
+                "type": "string"
+              },
+              "fromNode": {
+                "type": "string",
+                "description": "Upstream node ID"
+              },
+              "toNode": {
+                "type": "string",
+                "description": "Downstream node ID"
+              },
+              "length": {
+                "type": "number",
+                "description": "Conduit length (ft or m)",
+                "minimum": 0,
+                "exclusiveMinimum": true
+              },
+              "upstreamInvert": {
+                "type": "number",
+                "description": "Upstream invert elevation"
+              },
+              "downstreamInvert": {
+                "type": "number",
+                "description": "Downstream invert elevation"
+              },
+              "slope": {
+                "type": "number",
+                "description": "Conduit slope (ft/ft or m/m)",
+                "minimum": 0
+              },
+              "pipe": {
+                "type": "object",
+                "description": "Pipe-specific properties",
+                "properties": {
+                  "shape": {
+                    "type": "string",
+                    "enum": ["circular", "rectangular", "elliptical", "arch"],
+                    "default": "circular"
+                  },
+                  "diameter": {
+                    "type": "number",
+                    "description": "Pipe diameter (in or mm) for circular pipes",
+                    "minimum": 0,
+                    "exclusiveMinimum": true
+                  },
+                  "width": {
+                    "type": "number",
+                    "description": "Width for rectangular/elliptical pipes"
+                  },
+                  "height": {
+                    "type": "number",
+                    "description": "Height for rectangular/elliptical pipes"
+                  },
+                  "material": {
+                    "type": "string",
+                    "enum": ["RCP", "CMP", "PVC", "HDPE", "Concrete", "Steel", "Ductile Iron"],
+                    "description": "Pipe material"
+                  },
+                  "manningN": {
+                    "type": "number",
+                    "description": "Manning's roughness coefficient",
+                    "minimum": 0,
+                    "exclusiveMinimum": true
+                  },
+                  "entranceLoss": {
+                    "type": "number",
+                    "description": "Entrance loss coefficient Ke",
+                    "minimum": 0,
+                    "default": 0.5
+                  },
+                  "exitLoss": {
+                    "type": "number",
+                    "description": "Exit loss coefficient",
+                    "minimum": 0,
+                    "default": 1.0
+                  },
+                  "bendLoss": {
+                    "type": "number",
+                    "description": "Additional loss for bends/curves",
+                    "minimum": 0,
+                    "default": 0
+                  }
+                }
+              },
+              "gutter": {
+                "type": "object",
+                "description": "Gutter-specific properties",
+                "properties": {
+                  "crossSlope": {
+                    "type": "number",
+                    "description": "Cross slope Sx (ft/ft)",
+                    "minimum": 0,
+                    "exclusiveMinimum": true
+                  },
+                  "longitudinalSlope": {
+                    "type": "number",
+                    "description": "Longitudinal slope SL (ft/ft)",
+                    "minimum": 0
+                  },
+                  "width": {
+                    "type": "number",
+                    "description": "Gutter width (ft or m)"
+                  },
+                  "manningN": {
+                    "type": "number",
+                    "description": "Manning's roughness coefficient",
+                    "default": 0.016
+                  }
+                }
+              },
+              "channel": {
+                "type": "object",
+                "description": "Open channel properties",
+                "properties": {
+                  "shape": {
+                    "type": "string",
+                    "enum": ["trapezoidal", "rectangular", "triangular", "natural"]
+                  },
+                  "bottomWidth": {
+                    "type": "number"
+                  },
+                  "sideSlope": {
+                    "type": "number",
+                    "description": "Side slope (H:V)"
+                  },
+                  "manningN": {
+                    "type": "number"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "designCriteria": {
+      "type": "object",
+      "description": "Design constraints and performance criteria",
+      "properties": {
+        "gutterSpread": {
+          "type": "object",
+          "properties": {
+            "maxSpread": {
+              "type": "number",
+              "description": "Maximum allowable gutter spread (ft or m)"
+            },
+            "maxSpreadLocalStreet": {
+              "type": "number",
+              "description": "Max spread for local streets"
+            },
+            "maxSpreadCollectorStreet": {
+              "type": "number",
+              "description": "Max spread for collector streets"
+            },
+            "maxSpreadArterialStreet": {
+              "type": "number",
+              "description": "Max spread for arterial streets"
+            }
+          }
+        },
+        "hglCriteria": {
+          "type": "object",
+          "properties": {
+            "maxHglBelowRim": {
+              "type": "number",
+              "description": "Minimum distance HGL must be below rim elevation (ft or m)",
+              "default": 0.5
+            },
+            "allowSurcharge": {
+              "type": "boolean",
+              "description": "Whether surcharge (HGL > top of pipe) is allowed",
+              "default": false
+            }
+          }
+        },
+        "velocity": {
+          "type": "object",
+          "properties": {
+            "minVelocity": {
+              "type": "number",
+              "description": "Minimum velocity for self-cleansing (ft/s or m/s)",
+              "default": 2.5
+            },
+            "maxVelocity": {
+              "type": "number",
+              "description": "Maximum velocity to prevent scour (ft/s or m/s)",
+              "default": 15
+            }
+          }
+        },
+        "cover": {
+          "type": "object",
+          "properties": {
+            "minCover": {
+              "type": "number",
+              "description": "Minimum cover over pipe (ft or m)",
+              "default": 2
+            }
+          }
+        },
+        "capacity": {
+          "type": "object",
+          "properties": {
+            "minCapacityRatio": {
+              "type": "number",
+              "description": "Minimum Q_available/Q_design ratio",
+              "minimum": 0,
+              "default": 1.0
+            }
+          }
+        }
+      }
+    },
+    "analysis": {
+      "type": "object",
+      "description": "Analysis results (optional - populated by solver)",
+      "properties": {
+        "method": {
+          "type": "string",
+          "enum": ["rational", "SCS", "kinematic-wave", "dynamic-wave"],
+          "description": "Hydraulic/hydrologic analysis method used"
+        },
+        "designStormId": {
+          "type": "string",
+          "description": "ID of the design storm analyzed"
+        },
+        "timestamp": {
+          "type": "string",
+          "format": "date-time",
+          "description": "When analysis was performed"
+        },
+        "solver": {
+          "type": "object",
+          "properties": {
+            "name": {
+              "type": "string"
+            },
+            "version": {
+              "type": "string"
+            }
+          }
+        },
+        "nodeResults": {
+          "type": "array",
+          "description": "Computed results at each node",
+          "items": {
+            "type": "object",
+            "properties": {
+              "nodeId": {
+                "type": "string"
+              },
+              "hgl": {
+                "type": "number",
+                "description": "Hydraulic grade line elevation"
+              },
+              "egl": {
+                "type": "number",
+                "description": "Energy grade line elevation"
+              },
+              "depth": {
+                "type": "number",
+                "description": "Water depth at node"
+              },
+              "velocity": {
+                "type": "number",
+                "description": "Velocity at node"
+              },
+              "flooding": {
+                "type": "boolean",
+                "description": "Whether node is flooding (HGL > rim)"
+              },
+              "pressureHead": {
+                "type": "number",
+                "description": "Pressure head"
+              }
+            }
+          }
+        },
+        "conduitResults": {
+          "type": "array",
+          "description": "Computed results for each conduit",
+          "items": {
+            "type": "object",
+            "properties": {
+              "conduitId": {
+                "type": "string"
+              },
+              "flow": {
+                "type": "number",
+                "description": "Flow rate through conduit"
+              },
+              "velocity": {
+                "type": "number",
+                "description": "Average velocity"
+              },
+              "depth": {
+                "type": "number",
+                "description": "Flow depth"
+              },
+              "capacityUsed": {
+                "type": "number",
+                "description": "Fraction of capacity used (Q/Q_full)",
+                "minimum": 0
+              },
+              "froudeNumber": {
+                "type": "number",
+                "description": "Froude number (flow regime indicator)"
+              },
+              "flowRegime": {
+                "type": "string",
+                "enum": ["subcritical", "critical", "supercritical"],
+                "description": "Flow regime classification"
+              },
+              "headloss": {
+                "type": "object",
+                "properties": {
+                  "friction": {
+                    "type": "number"
+                  },
+                  "entrance": {
+                    "type": "number"
+                  },
+                  "exit": {
+                    "type": "number"
+                  },
+                  "bend": {
+                    "type": "number"
+                  },
+                  "total": {
+                    "type": "number"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "drainageAreaResults": {
+          "type": "array",
+          "description": "Computed runoff from drainage areas",
+          "items": {
+            "type": "object",
+            "properties": {
+              "drainageAreaId": {
+                "type": "string"
+              },
+              "peakFlow": {
+                "type": "number",
+                "description": "Peak runoff flow rate"
+              },
+              "timeOfPeak": {
+                "type": "number",
+                "description": "Time of peak flow (minutes from storm start)"
+              },
+              "totalVolume": {
+                "type": "number",
+                "description": "Total runoff volume"
+              },
+              "intensity": {
+                "type": "number",
+                "description": "Rainfall intensity used (in/hr)"
+              }
+            }
+          }
+        },
+        "violations": {
+          "type": "array",
+          "description": "Design criteria violations",
+          "items": {
+            "type": "object",
+            "properties": {
+              "type": {
+                "type": "string",
+                "enum": ["spread", "hgl", "velocity", "cover", "capacity", "flooding"],
+                "description": "Violation type"
+              },
+              "severity": {
+                "type": "string",
+                "enum": ["error", "warning", "info"]
+              },
+              "elementId": {
+                "type": "string",
+                "description": "ID of node or conduit with violation"
+              },
+              "message": {
+                "type": "string",
+                "description": "Human-readable violation description"
+              },
+              "value": {
+                "type": "number",
+                "description": "Actual computed value"
+              },
+              "limit": {
+                "type": "number",
+                "description": "Design limit that was exceeded"
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,402 @@
+{
+  "version": "1.0.0",
+  "project": {
+    "name": "Main Street Drainage - Station 10+00 to 13+50",
+    "description": "Highway drainage system validation from spreadsheet design",
+    "location": {
+      "latitude": 38.8977,
+      "longitude": -77.0365,
+      "datum": "NAVD88"
+    },
+    "units": {
+      "system": "US",
+      "length": "ft",
+      "elevation": "ft",
+      "flow": "cfs",
+      "area": "acres"
+    },
+    "author": "Jane Engineer",
+    "created": "2025-11-24T10:00:00Z",
+    "modified": "2025-11-24T14:30:00Z"
+  },
+  "rainfall": {
+    "designStorms": [
+      {
+        "id": "storm-10yr",
+        "name": "10-Year Design Storm",
+        "returnPeriod": 10,
+        "duration": 60,
+        "peakIntensity": 3.8,
+        "distribution": "Uniform"
+      }
+    ],
+    "idfCurves": [
+      {
+        "returnPeriod": 10,
+        "points": [
+          {"duration": 5, "intensity": 6.5},
+          {"duration": 10, "intensity": 5.2},
+          {"duration": 15, "intensity": 4.5},
+          {"duration": 30, "intensity": 3.8},
+          {"duration": 60, "intensity": 2.8}
+        ]
+      }
+    ]
+  },
+  "drainageAreas": [
+    {
+      "id": "DA-001",
+      "name": "Main Street East Side - Block A",
+      "area": 1.25,
+      "outlet": "IN-101",
+      "landUse": {
+        "primary": "Commercial",
+        "imperviousPercent": 85
+      },
+      "runoffCoefficient": 0.82,
+      "timeOfConcentration": 12.5,
+      "tcCalculation": {
+        "sheetFlow": {
+          "length": 50,
+          "slope": 0.02,
+          "roughness": 0.011,
+          "time": 3.2
+        },
+        "shallowConcentrated": {
+          "length": 200,
+          "slope": 0.015,
+          "surfaceType": "Paved",
+          "time": 6.8
+        },
+        "channelFlow": {
+          "length": 150,
+          "velocity": 3.5,
+          "time": 2.5
+        }
+      }
+    },
+    {
+      "id": "DA-002",
+      "name": "Main Street East Side - Block B",
+      "area": 0.95,
+      "outlet": "IN-102",
+      "landUse": {
+        "primary": "Commercial",
+        "imperviousPercent": 78
+      },
+      "runoffCoefficient": 0.75,
+      "timeOfConcentration": 10.0
+    }
+  ],
+  "network": {
+    "nodes": [
+      {
+        "id": "IN-101",
+        "type": "inlet",
+        "name": "Inlet at Station 10+25",
+        "invertElevation": 124.50,
+        "rimElevation": 128.75,
+        "coordinates": {
+          "x": 1000,
+          "y": 2000
+        },
+        "inlet": {
+          "inletType": "combination",
+          "location": "on-grade",
+          "grate": {
+            "length": 2.0,
+            "width": 1.5,
+            "barConfiguration": "perpendicular"
+          },
+          "curbOpening": {
+            "length": 3.0,
+            "height": 0.5,
+            "throatType": "horizontal"
+          },
+          "localDepression": 2.0,
+          "cloggingFactor": 0.15
+        }
+      },
+      {
+        "id": "IN-102",
+        "type": "inlet",
+        "name": "Inlet at Station 11+75",
+        "invertElevation": 121.80,
+        "rimElevation": 126.20,
+        "coordinates": {
+          "x": 1150,
+          "y": 2000
+        },
+        "inlet": {
+          "inletType": "combination",
+          "location": "on-grade",
+          "grate": {
+            "length": 2.0,
+            "width": 1.5,
+            "barConfiguration": "perpendicular"
+          },
+          "curbOpening": {
+            "length": 3.0,
+            "height": 0.5,
+            "throatType": "horizontal"
+          },
+          "localDepression": 2.0,
+          "cloggingFactor": 0.15
+        }
+      },
+      {
+        "id": "MH-201",
+        "type": "junction",
+        "name": "Manhole at Station 13+00",
+        "invertElevation": 118.50,
+        "rimElevation": 125.30,
+        "coordinates": {
+          "x": 1300,
+          "y": 2000
+        },
+        "junction": {
+          "diameter": 4.0,
+          "sumpDepth": 0.5,
+          "lossCoefficient": 0.25,
+          "benching": true,
+          "dropStructure": false
+        }
+      },
+      {
+        "id": "OUT-001",
+        "type": "outfall",
+        "name": "Outfall to Creek",
+        "invertElevation": 115.00,
+        "rimElevation": 122.00,
+        "coordinates": {
+          "x": 1450,
+          "y": 2050
+        },
+        "outfall": {
+          "boundaryCondition": "normal-depth",
+          "tailwaterElevation": 116.50
+        }
+      }
+    ],
+    "conduits": [
+      {
+        "id": "G-101",
+        "type": "gutter",
+        "name": "Gutter upstream of IN-101",
+        "fromNode": "IN-101",
+        "toNode": "IN-101",
+        "length": 400,
+        "slope": 0.015,
+        "gutter": {
+          "crossSlope": 0.02,
+          "longitudinalSlope": 0.015,
+          "width": 12,
+          "manningN": 0.016
+        }
+      },
+      {
+        "id": "P-101",
+        "type": "pipe",
+        "name": "18-inch RCP from IN-101 to IN-102",
+        "fromNode": "IN-101",
+        "toNode": "IN-102",
+        "length": 150,
+        "upstreamInvert": 124.30,
+        "downstreamInvert": 121.95,
+        "slope": 0.0157,
+        "pipe": {
+          "shape": "circular",
+          "diameter": 18,
+          "material": "RCP",
+          "manningN": 0.013,
+          "entranceLoss": 0.5,
+          "exitLoss": 1.0,
+          "bendLoss": 0
+        }
+      },
+      {
+        "id": "P-102",
+        "type": "pipe",
+        "name": "24-inch RCP from IN-102 to MH-201",
+        "fromNode": "IN-102",
+        "toNode": "MH-201",
+        "length": 175,
+        "upstreamInvert": 121.60,
+        "downstreamInvert": 118.78,
+        "slope": 0.0161,
+        "pipe": {
+          "shape": "circular",
+          "diameter": 24,
+          "material": "RCP",
+          "manningN": 0.013,
+          "entranceLoss": 0.5,
+          "exitLoss": 1.0,
+          "bendLoss": 0
+        }
+      },
+      {
+        "id": "P-201",
+        "type": "pipe",
+        "name": "30-inch RCP from MH-201 to OUT-001",
+        "fromNode": "MH-201",
+        "toNode": "OUT-001",
+        "length": 180,
+        "upstreamInvert": 118.25,
+        "downstreamInvert": 115.15,
+        "slope": 0.0172,
+        "pipe": {
+          "shape": "circular",
+          "diameter": 30,
+          "material": "RCP",
+          "manningN": 0.013,
+          "entranceLoss": 0.5,
+          "exitLoss": 1.0,
+          "bendLoss": 0
+        }
+      }
+    ]
+  },
+  "designCriteria": {
+    "gutterSpread": {
+      "maxSpread": 8.0,
+      "maxSpreadLocalStreet": 8.0,
+      "maxSpreadCollectorStreet": 10.0,
+      "maxSpreadArterialStreet": 12.0
+    },
+    "hglCriteria": {
+      "maxHglBelowRim": 1.0,
+      "allowSurcharge": false
+    },
+    "velocity": {
+      "minVelocity": 2.5,
+      "maxVelocity": 15.0
+    },
+    "cover": {
+      "minCover": 2.0
+    },
+    "capacity": {
+      "minCapacityRatio": 1.0
+    }
+  },
+  "analysis": {
+    "method": "rational",
+    "designStormId": "storm-10yr",
+    "timestamp": "2025-11-24T14:30:00Z",
+    "solver": {
+      "name": "HEC22-Solver",
+      "version": "1.0.0"
+    },
+    "drainageAreaResults": [
+      {
+        "drainageAreaId": "DA-001",
+        "peakFlow": 3.91,
+        "timeOfPeak": 12.5,
+        "intensity": 3.8
+      },
+      {
+        "drainageAreaId": "DA-002",
+        "peakFlow": 2.71,
+        "timeOfPeak": 10.0,
+        "intensity": 3.8
+      }
+    ],
+    "nodeResults": [
+      {
+        "nodeId": "IN-101",
+        "hgl": 125.82,
+        "egl": 126.15,
+        "depth": 1.32,
+        "velocity": 4.5,
+        "flooding": false,
+        "pressureHead": 1.32
+      },
+      {
+        "nodeId": "IN-102",
+        "hgl": 123.15,
+        "egl": 123.58,
+        "depth": 1.35,
+        "velocity": 5.2,
+        "flooding": false,
+        "pressureHead": 1.35
+      },
+      {
+        "nodeId": "MH-201",
+        "hgl": 120.10,
+        "egl": 120.65,
+        "depth": 1.60,
+        "velocity": 5.9,
+        "flooding": false,
+        "pressureHead": 1.60
+      },
+      {
+        "nodeId": "OUT-001",
+        "hgl": 116.50,
+        "egl": 117.12,
+        "depth": 1.50,
+        "velocity": 6.2,
+        "flooding": false,
+        "pressureHead": 1.50
+      }
+    ],
+    "conduitResults": [
+      {
+        "conduitId": "G-101",
+        "flow": 3.91,
+        "velocity": 2.8,
+        "depth": 0.35,
+        "capacityUsed": 0.42,
+        "froudeNumber": 0.65,
+        "flowRegime": "subcritical"
+      },
+      {
+        "conduitId": "P-101",
+        "flow": 3.91,
+        "velocity": 4.5,
+        "depth": 1.25,
+        "capacityUsed": 0.58,
+        "froudeNumber": 0.52,
+        "flowRegime": "subcritical",
+        "headloss": {
+          "friction": 0.45,
+          "entrance": 0.15,
+          "exit": 0.32,
+          "bend": 0,
+          "total": 0.92
+        }
+      },
+      {
+        "conduitId": "P-102",
+        "flow": 6.62,
+        "velocity": 5.2,
+        "depth": 1.65,
+        "capacityUsed": 0.61,
+        "froudeNumber": 0.48,
+        "flowRegime": "subcritical",
+        "headloss": {
+          "friction": 0.68,
+          "entrance": 0.18,
+          "exit": 0.42,
+          "bend": 0,
+          "total": 1.28
+        }
+      },
+      {
+        "conduitId": "P-201",
+        "flow": 6.62,
+        "velocity": 5.9,
+        "depth": 1.80,
+        "capacityUsed": 0.52,
+        "froudeNumber": 0.51,
+        "flowRegime": "subcritical",
+        "headloss": {
+          "friction": 0.82,
+          "entrance": 0.22,
+          "exit": 0.57,
+          "bend": 0,
+          "total": 1.61
+        }
+      }
+    ],
+    "violations": []
+  }
+}

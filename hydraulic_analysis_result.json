@@ -1,0 +1,183 @@
+{
+  "version": "1.0.0",
+  "project": {
+    "name": "Hydraulic Analysis Example",
+    "description": "Simple network demonstrating HGL/EGL solver",
+    "units": {
+      "system": "US",
+      "length": "ft",
+      "elevation": "ft",
+      "flow": "cfs",
+      "area": "acres"
+    },
+    "author": "HEC-22 Solver",
+    "created": "2025-11-24T13:04:07.228271359+00:00"
+  },
+  "network": {
+    "nodes": [
+      {
+        "id": "IN-001",
+        "type": "inlet",
+        "invertElevation": 124.5,
+        "rimElevation": 128.0,
+        "inlet": {
+          "inletType": "combination",
+          "location": "on-grade",
+          "localDepression": 2.0,
+          "cloggingFactor": 0.15
+        }
+      },
+      {
+        "id": "MH-001",
+        "type": "junction",
+        "invertElevation": 118.5,
+        "rimElevation": 125.0,
+        "junction": {
+          "diameter": 4.0,
+          "sumpDepth": 0.5,
+          "lossCoefficient": 0.15,
+          "benching": true,
+          "dropStructure": false
+        }
+      },
+      {
+        "id": "OUT-001",
+        "type": "outfall",
+        "invertElevation": 115.0,
+        "outfall": {
+          "boundaryCondition": "normal-depth",
+          "tailwaterElevation": 116.5
+        }
+      }
+    ],
+    "conduits": [
+      {
+        "id": "P-101",
+        "type": "pipe",
+        "fromNode": "IN-001",
+        "toNode": "MH-001",
+        "length": 150.0,
+        "upstreamInvert": 124.3,
+        "downstreamInvert": 118.65,
+        "pipe": {
+          "shape": "circular",
+          "diameter": 18.0,
+          "material": "RCP",
+          "manningN": 0.013,
+          "entranceLoss": 0.5,
+          "exitLoss": 1.0,
+          "bendLoss": 0.0
+        }
+      },
+      {
+        "id": "P-102",
+        "type": "pipe",
+        "fromNode": "MH-001",
+        "toNode": "OUT-001",
+        "length": 180.0,
+        "upstreamInvert": 118.25,
+        "downstreamInvert": 115.15,
+        "pipe": {
+          "shape": "circular",
+          "diameter": 24.0,
+          "material": "RCP",
+          "manningN": 0.013,
+          "entranceLoss": 0.5,
+          "exitLoss": 1.0,
+          "bendLoss": 0.0
+        }
+      }
+    ]
+  },
+  "drainageAreas": [
+    {
+      "id": "DA-001",
+      "name": "Contributing Area",
+      "area": 1.25,
+      "outlet": "IN-001",
+      "landUse": {
+        "primary": "Commercial",
+        "imperviousPercent": 85.0
+      },
+      "runoffCoefficient": 0.82,
+      "timeOfConcentration": 12.5
+    }
+  ],
+  "analysis": {
+    "method": "rational",
+    "designStormId": "10-year-storm",
+    "timestamp": "2025-11-24T13:04:07.228650012+00:00",
+    "nodeResults": [
+      {
+        "nodeId": "IN-001",
+        "hgl": 128.0939728460503,
+        "egl": 129.32249245247237,
+        "depth": 0.0,
+        "velocity": 0.0,
+        "flooding": true,
+        "pressureHead": 3.593972846050292
+      },
+      {
+        "nodeId": "MH-001",
+        "hgl": 120.5974638149944,
+        "egl": 121.26205980013248,
+        "depth": 0.0,
+        "velocity": 0.0,
+        "flooding": false,
+        "pressureHead": 2.0974638149943985
+      },
+      {
+        "nodeId": "OUT-001",
+        "hgl": 116.5,
+        "egl": 116.5,
+        "depth": 0.0,
+        "velocity": 0.0,
+        "flooding": false,
+        "pressureHead": 1.5
+      }
+    ],
+    "conduitResults": [
+      {
+        "conduitId": "P-102",
+        "flow": 3.8949999999999996,
+        "velocity": 6.539121170599597,
+        "depth": 0.4892257995605469,
+        "capacityUsed": 0.13119708978039846,
+        "flowRegime": "subcritical",
+        "headloss": {
+          "friction": 3.1005698372872876,
+          "entrance": 0.3322979925690383,
+          "exit": 0.6645959851380766,
+          "bend": 0.0,
+          "total": 4.097463814994402
+        }
+      },
+      {
+        "conduitId": "P-101",
+        "flow": 3.8949999999999996,
+        "velocity": 8.890610298353959,
+        "depth": 0.44422790222167974,
+        "capacityUsed": 0.1910557733877056,
+        "flowRegime": "subcritical",
+        "headloss": {
+          "friction": 5.653729621422739,
+          "entrance": 0.6142598032110466,
+          "exit": 1.2285196064220931,
+          "bend": 0.0,
+          "total": 7.496509031055879
+        }
+      }
+    ],
+    "drainageAreaResults": [],
+    "violations": [
+      {
+        "type": "hgl",
+        "severity": "error",
+        "elementId": "IN-001",
+        "message": "HGL at 128.09 ft is 0.09 ft above rim elevation of 128.00 ft",
+        "value": 128.0939728460503,
+        "limit": 128.0
+      }
+    ]
+  }
+}

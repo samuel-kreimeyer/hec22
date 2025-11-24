@@ -1,0 +1,325 @@
+{
+  "version": "1.0.0",
+  "project": {
+    "name": "Street Drainage with Inlet Bypass",
+    "description": "Series of inlets demonstrating bypass flow routing",
+    "units": {
+      "system": "US",
+      "length": "ft",
+      "elevation": "ft",
+      "flow": "cfs",
+      "area": "acres"
+    },
+    "author": "HEC-22 Solver",
+    "created": "2025-11-24T15:17:40.550493786+00:00"
+  },
+  "network": {
+    "nodes": [
+      {
+        "id": "IN-001",
+        "type": "inlet",
+        "invertElevation": 100.0,
+        "rimElevation": 104.0,
+        "inlet": {
+          "inletType": "grate",
+          "location": "on-grade",
+          "grate": {
+            "length": 3.0,
+            "width": 2.0,
+            "barConfiguration": "perpendicular"
+          },
+          "localDepression": 2.0,
+          "cloggingFactor": 0.15
+        }
+      },
+      {
+        "id": "IN-002",
+        "type": "inlet",
+        "invertElevation": 98.0,
+        "rimElevation": 102.0,
+        "inlet": {
+          "inletType": "combination",
+          "location": "on-grade",
+          "grate": {
+            "length": 3.0,
+            "width": 2.0,
+            "barConfiguration": "perpendicular"
+          },
+          "curbOpening": {
+            "length": 5.0,
+            "height": 0.5,
+            "throatType": "horizontal"
+          },
+          "localDepression": 2.0,
+          "cloggingFactor": 0.15
+        }
+      },
+      {
+        "id": "IN-003",
+        "type": "inlet",
+        "invertElevation": 95.0,
+        "rimElevation": 99.0,
+        "inlet": {
+          "inletType": "grate",
+          "location": "sag",
+          "grate": {
+            "length": 4.0,
+            "width": 3.0,
+            "barConfiguration": "perpendicular"
+          },
+          "cloggingFactor": 0.5
+        }
+      },
+      {
+        "id": "MH-001",
+        "type": "junction",
+        "invertElevation": 92.0,
+        "rimElevation": 98.0,
+        "junction": {
+          "diameter": 5.0,
+          "sumpDepth": 0.5,
+          "lossCoefficient": 0.15,
+          "benching": true,
+          "dropStructure": false
+        }
+      },
+      {
+        "id": "OUT-001",
+        "type": "outfall",
+        "invertElevation": 90.0,
+        "outfall": {
+          "boundaryCondition": "normal-depth",
+          "tailwaterElevation": 91.0
+        }
+      }
+    ],
+    "conduits": [
+      {
+        "id": "P-101",
+        "type": "pipe",
+        "fromNode": "IN-001",
+        "toNode": "MH-001",
+        "length": 250.0,
+        "upstreamInvert": 99.8,
+        "downstreamInvert": 92.5,
+        "pipe": {
+          "shape": "circular",
+          "diameter": 18.0,
+          "material": "RCP",
+          "manningN": 0.013,
+          "entranceLoss": 0.5,
+          "exitLoss": 1.0,
+          "bendLoss": 0.0
+        }
+      },
+      {
+        "id": "P-102",
+        "type": "pipe",
+        "fromNode": "IN-002",
+        "toNode": "MH-001",
+        "length": 200.0,
+        "upstreamInvert": 97.8,
+        "downstreamInvert": 92.5,
+        "pipe": {
+          "shape": "circular",
+          "diameter": 24.0,
+          "material": "RCP",
+          "manningN": 0.013,
+          "entranceLoss": 0.5,
+          "exitLoss": 1.0,
+          "bendLoss": 0.0
+        }
+      },
+      {
+        "id": "P-103",
+        "type": "pipe",
+        "fromNode": "IN-003",
+        "toNode": "MH-001",
+        "length": 150.0,
+        "upstreamInvert": 94.8,
+        "downstreamInvert": 92.5,
+        "pipe": {
+          "shape": "circular",
+          "diameter": 30.0,
+          "material": "RCP",
+          "manningN": 0.013,
+          "entranceLoss": 0.5,
+          "exitLoss": 1.0,
+          "bendLoss": 0.0
+        }
+      },
+      {
+        "id": "P-104",
+        "type": "pipe",
+        "fromNode": "MH-001",
+        "toNode": "OUT-001",
+        "length": 180.0,
+        "upstreamInvert": 92.0,
+        "downstreamInvert": 90.2,
+        "pipe": {
+          "shape": "circular",
+          "diameter": 36.0,
+          "material": "RCP",
+          "manningN": 0.013,
+          "entranceLoss": 0.5,
+          "exitLoss": 1.0,
+          "bendLoss": 0.0
+        }
+      }
+    ]
+  },
+  "drainageAreas": [
+    {
+      "id": "DA-001",
+      "name": "Inlet 1 catchment",
+      "area": 0.8,
+      "outlet": "IN-001",
+      "landUse": {
+        "primary": "Residential",
+        "imperviousPercent": 35.0
+      },
+      "runoffCoefficient": 0.5,
+      "timeOfConcentration": 10.0
+    },
+    {
+      "id": "DA-002",
+      "name": "Inlet 2 catchment",
+      "area": 1.2,
+      "outlet": "IN-002",
+      "landUse": {
+        "primary": "Residential",
+        "imperviousPercent": 40.0
+      },
+      "runoffCoefficient": 0.55,
+      "timeOfConcentration": 12.0
+    },
+    {
+      "id": "DA-003",
+      "name": "Inlet 3 catchment",
+      "area": 1.5,
+      "outlet": "IN-003",
+      "landUse": {
+        "primary": "Residential",
+        "imperviousPercent": 45.0
+      },
+      "runoffCoefficient": 0.6,
+      "timeOfConcentration": 15.0
+    }
+  ],
+  "analysis": {
+    "method": "rational",
+    "designStormId": "10-year-storm",
+    "timestamp": "2025-11-24T15:17:40.551032521+00:00",
+    "nodeResults": [
+      {
+        "nodeId": "IN-001",
+        "hgl": 101.4736772386115,
+        "egl": 101.98773644967882,
+        "depth": 0.0,
+        "velocity": 0.0,
+        "flooding": false,
+        "pressureHead": 1.4736772386115007
+      },
+      {
+        "nodeId": "IN-002",
+        "hgl": 99.77316571749873,
+        "egl": 100.48497864482573,
+        "depth": 0.0,
+        "velocity": 0.0,
+        "flooding": false,
+        "pressureHead": 1.7731657174987276
+      },
+      {
+        "nodeId": "IN-003",
+        "hgl": 96.56428995334238,
+        "egl": 97.136356099601,
+        "depth": 0.0,
+        "velocity": 0.0,
+        "flooding": false,
+        "pressureHead": 1.5642899533423815
+      },
+      {
+        "nodeId": "MH-001",
+        "hgl": 93.40683165036688,
+        "egl": 93.81175860303769,
+        "depth": 0.0,
+        "velocity": 0.0,
+        "flooding": false,
+        "pressureHead": 1.4068316503668825
+      },
+      {
+        "nodeId": "OUT-001",
+        "hgl": 91.0,
+        "egl": 91.0,
+        "depth": 0.0,
+        "velocity": 0.0,
+        "flooding": false,
+        "pressureHead": 1.0
+      }
+    ],
+    "conduitResults": [
+      {
+        "conduitId": "P-104",
+        "flow": 3.7800000000000002,
+        "velocity": 5.104213958567898,
+        "depth": 0.4848401641845703,
+        "capacityUsed": 0.05667303135061375,
+        "flowRegime": "subcritical",
+        "headloss": {
+          "friction": 1.7994412213606816,
+          "entrance": 0.20246347633540074,
+          "exit": 0.4049269526708015,
+          "bend": 0.0,
+          "total": 2.406831650366884
+        }
+      },
+      {
+        "conduitId": "P-103",
+        "flow": 3.7800000000000002,
+        "velocity": 6.066855515856628,
+        "depth": 0.46155335235595696,
+        "capacityUsed": 0.07442316647554946,
+        "flowRegime": "subcritical",
+        "headloss": {
+          "friction": 2.2993590835875564,
+          "entrance": 0.2860330731293129,
+          "exit": 0.5720661462586258,
+          "bend": 0.0,
+          "total": 3.1574583029754955
+        }
+      },
+      {
+        "conduitId": "P-102",
+        "flow": 2.600372969982004,
+        "velocity": 6.7674251931010785,
+        "depth": 0.3598442077636718,
+        "capacityUsed": 0.07061127281950395,
+        "flowRegime": "subcritical",
+        "headloss": {
+          "friction": 5.298614676141349,
+          "entrance": 0.35590646366349993,
+          "exit": 0.7118129273269999,
+          "bend": 0.0,
+          "total": 6.366334067131849
+        }
+      },
+      {
+        "conduitId": "P-101",
+        "flow": 1.1864773087969127,
+        "velocity": 5.751049438152272,
+        "depth": 0.26132383117675784,
+        "capacityUsed": 0.06609967274733496,
+        "flowRegime": "subcritical",
+        "headloss": {
+          "friction": 7.295756771643639,
+          "entrance": 0.25702960553366144,
+          "exit": 0.5140592110673229,
+          "bend": 0.0,
+          "total": 8.066845588244623
+        }
+      }
+    ],
+    "drainageAreaResults": [],
+    "violations": []
+  }
+}
