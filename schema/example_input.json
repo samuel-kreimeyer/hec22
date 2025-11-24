@@ -1,0 +1,67 @@
+{
+  "project_metadata": {
+    "project_name": "Example Highway Drainage Design",
+    "project_number": "HWY-2025-001",
+    "design_storm_frequency_years": 10,
+    "analysis_date": "2025-11-23"
+  },
+  "nodes": [
+    {
+      "id": "IN-001",
+      "type": "Inlet",
+      "rim_elevation_ft": 128.75,
+      "invert_elevation_ft": 124.50,
+      "x_coord": 100,
+      "y_coord": 25
+    },
+    {
+      "id": "MH-101",
+      "type": "Junction",
+      "rim_elevation_ft": 125.30,
+      "invert_elevation_ft": 118.50,
+      "x_coord": 220,
+      "y_coord": 30
+    },
+    {
+      "id": "OUT-001",
+      "type": "Outfall",
+      "rim_elevation_ft": 105.00,
+      "invert_elevation_ft": 100.50,
+      "x_coord": 470,
+      "y_coord": 40
+    }
+  ],
+  "conduits": [
+    {
+      "id": "C-101",
+      "from_node": "IN-001",
+      "to_node": "MH-101",
+      "length_ft": 120,
+      "manning_n": 0.013,
+      "shape": "circular",
+      "diameter_in": 18,
+      "upstream_invert_elevation_ft": 124.30,
+      "downstream_invert_elevation_ft": 118.60
+    },
+    {
+      "id": "C-102",
+      "from_node": "MH-101",
+      "to_node": "OUT-001",
+      "length_ft": 250,
+      "manning_n": 0.013,
+      "shape": "circular",
+      "diameter_in": 24,
+      "upstream_invert_elevation_ft": 118.50,
+      "downstream_invert_elevation_ft": 100.60
+    }
+  ],
+  "drainage_areas": [
+    {
+      "id": "A-001",
+      "area_acres": 0.5,
+      "runoff_coefficient": 0.85,
+      "time_of_concentration_min": 10,
+      "drains_to_node": "IN-001"
+    }
+  ]
+}

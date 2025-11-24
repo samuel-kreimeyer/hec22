@@ -1,0 +1,79 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://example.com/network_schema.json",
+  "title": "Urban Drainage Network Schema",
+  "description": "A schema for defining urban drainage system components for hydraulic analysis, based on HEC-22.",
+  "type": "object",
+  "properties": {
+    "project_metadata": {
+      "type": "object",
+      "properties": {
+        "project_name": { "type": "string" },
+        "project_number": { "type": "string" },
+        "design_storm_frequency_years": { "type": "number" },
+        "analysis_date": { "type": "string", "format": "date" }
+      },
+      "required": ["project_name"]
+    },
+    "nodes": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string" },
+          "type": { "enum": ["Inlet", "Junction", "Outfall"] },
+          "rim_elevation_ft": { "type": "number" },
+          "invert_elevation_ft": { "type": "number" },
+          "x_coord": { "type": "number" },
+          "y_coord": { "type": "number" }
+        },
+        "required": ["id", "type", "rim_elevation_ft", "invert_elevation_ft"]
+      }
+    },
+    "conduits": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string" },
+          "from_node": { "type": "string" },
+          "to_node": { "type": "string" },
+          "length_ft": { "type": "number" },
+          "manning_n": { "type": "number" },
+          "shape": { "enum": ["circular", "box"] },
+          "diameter_in": { "type": "number" },
+          "height_in": { "type": "number" },
+          "width_in": { "type": "number" },
+          "upstream_invert_elevation_ft": { "type": "number" },
+          "downstream_invert_elevation_ft": { "type": "number" }
+        },
+        "required": ["id", "from_node", "to_node", "length_ft", "manning_n", "shape"],
+        "oneOf": [
+          {
+            "properties": { "shape": { "const": "circular" } },
+            "required": ["diameter_in"]
+          },
+          {
+            "properties": { "shape": { "const": "box" } },
+            "required": ["height_in", "width_in"]
+          }
+        ]
+      }
+    },
+    "drainage_areas": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string" },
+          "area_acres": { "type": "number" },
+          "runoff_coefficient": { "type": "number" },
+          "time_of_concentration_min": { "type": "number" },
+          "drains_to_node": { "type": "string" }
+        },
+        "required": ["id", "area_acres", "runoff_coefficient", "time_of_concentration_min", "drains_to_node"]
+      }
+    }
+  },
+  "required": ["nodes", "conduits", "drainage_areas"]
+}

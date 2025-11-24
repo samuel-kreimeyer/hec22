@@ -443,7 +443,22 @@ Lt = 0.6 × Q^0.42 × SL^0.3 / (n × Sx^0.6)
 
 ## Input Data Structure
 
-### Nodes Table (Inlets, Junctions, Outfalls)
+While the system can be driven by tabular data (like the tables below), the primary input format is a structured JSON file that defines the entire drainage network.
+
+### JSON Input Schema
+
+A formal JSON schema defines the required structure for input files. This ensures data integrity and provides clear guidance for developers and users.
+
+- **Schema Definition:** [`schema/network_schema.json`](./schema/network_schema.json)
+- **Example Usage:** [`schema/example_input.json`](./schema/example_input.json)
+
+The schema includes definitions for project metadata, nodes (inlets, junctions, outfalls), conduits (pipes), and drainage areas.
+
+### Tabular Representation
+
+The following tables illustrate the conceptual data structure that the JSON format represents.
+
+#### Nodes Table (Inlets, Junctions, Outfalls)
 
 | Node ID | Type | Rim Elev (ft) | Invert Elev (ft) | Description |
 |---------|------|---------------|------------------|-------------|
@@ -451,14 +466,14 @@ Lt = 0.6 × Q^0.42 × SL^0.3 / (n × Sx^0.6)
 | MH-101 | Junction | 125.30 | 118.50 | Manhole at Sta 1+50 |
 | OUT-001 | Outfall | -- | 100.50 | Discharge to creek |
 
-### Conduits Table
+#### Conduits Table
 
 | Conduit ID | From Node | To Node | Diameter (in) | Length (ft) | n | Slope | Up Invert | Dn Invert |
 |------------|-----------|---------|---------------|-------------|---|-------|-----------|-----------|
 | C-101 | IN-001 | MH-101 | 18 | 120 | 0.013 | 0.0067 | 124.30 | 118.60 |
 | C-102 | MH-101 | OUT-001 | 24 | 250 | 0.013 | 0.0716 | 118.50 | 100.60 |
 
-### Drainage Areas Table
+#### Drainage Areas Table
 
 | Subarea ID | Area (acres) | Land Use | C Value | Tc (min) | Rainfall (in/hr) | Q (cfs) |
 |------------|--------------|----------|---------|----------|------------------|---------|
@@ -563,6 +578,9 @@ python extract_chapters.py --extract
 hec22/
 ├── README.md                          # This file
 ├── extract_chapters.py                # Script to extract PDF chapters
+├── schema/                            # Data schemas and examples
+│   ├── network_schema.json            # JSON schema for input data
+│   └── example_input.json             # Example input file
 ├── reference/                         # Reference materials
 │   ├── chapters/                      # Individual HEC-22 chapters (PDFs)
 │   │   ├── HEC22 Chapter 2.pdf
