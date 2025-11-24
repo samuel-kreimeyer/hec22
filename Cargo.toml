@@ -1,0 +1,19 @@
+[package]
+name = "hec22"
+version = "0.1.0"
+edition = "2021"
+authors = ["HEC-22 Contributors"]
+description = "Urban drainage network analysis following FHWA HEC-22 methodology"
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/samuel-kreimeyer/hec22"
+keywords = ["hydraulics", "drainage", "stormwater", "hec22", "civil-engineering"]
+categories = ["science", "simulation"]
+
+[dependencies]
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+thiserror = "1.0"
+chrono = { version = "0.4", features = ["serde"] }
+
+[dev-dependencies]
+approx = "0.5"
