@@ -16,6 +16,7 @@
 //! - [`analysis`] - Analysis results and violations
 //! - [`hydraulics`] - Hydraulic calculations (Manning's equation, HGL/EGL)
 //! - [`gutter`] - Gutter spread calculations (Chapter 5)
+//! - [`inlet`] - Inlet capacity calculations (Chapter 7)
 //! - [`solver`] - HGL/EGL solver (9-step procedure from Chapter 9)
 //!
 //! ## Example
@@ -39,6 +40,7 @@ pub mod conduit;
 pub mod drainage;
 pub mod gutter;
 pub mod hydraulics;
+pub mod inlet;
 pub mod network;
 pub mod node;
 pub mod project;

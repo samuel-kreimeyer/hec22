@@ -19,9 +19,14 @@ use crate::analysis::{
 };
 use crate::conduit::{Conduit, ConduitType};
 use crate::drainage::DrainageArea;
+use crate::gutter::{UniformGutter, GUTTER_K_US, GUTTER_K_SI};
 use crate::hydraulics::{EnergyLoss, FlowRegime, ManningsEquation, PipeFlowResult};
+use crate::inlet::{
+    BarConfiguration as InletBarConfig, CombinationInletOnGrade, CurbOpeningInletOnGrade,
+    GrateInletOnGrade, InletInterceptionResult, ThroatType as InletThroatType,
+};
 use crate::network::Network;
-use crate::node::{BoundaryCondition, Node, NodeType};
+use crate::node::{BoundaryCondition, Node, NodeType, InletLocation};
 use crate::project::UnitSystem;
 use std::collections::HashMap;
 
@@ -563,6 +568,294 @@ pub fn route_flows(
     }
 
     Ok(conduit_flows)
+}
+
+/// Inlet interception tracking for flow routing
+#[derive(Debug, Clone)]
+pub struct InletInterception {
+    /// Node ID (inlet)
+    pub node_id: String,
+    /// Approach flow to inlet (cfs)
+    pub approach_flow: f64,
+    /// Intercepted flow entering system (cfs)
+    pub intercepted_flow: f64,
+    /// Bypass flow continuing downstream (cfs)
+    pub bypass_flow: f64,
+    /// Interception efficiency (0.0 to 1.0)
+    pub efficiency: f64,
+    /// Gutter spread at inlet (ft)
+    pub spread: f64,
+}
+
+/// Route flows through network accounting for inlet interception
+///
+/// This enhanced routing function:
+/// 1. Routes flows from upstream to downstream
+/// 2. At each inlet node, calculates inlet interception efficiency
+/// 3. Tracks bypass flows that continue in gutters to downstream inlets
+/// 4. Sag inlets capture 100% of flow
+///
+/// # Arguments
+/// * `network` - The drainage network
+/// * `node_inflows` - Direct inflows at each node (from drainage areas)
+/// * `unit_system` - Unit system for gutter calculations
+///
+/// # Returns
+/// Tuple of (conduit flows, inlet interception results)
+pub fn route_flows_with_inlets(
+    network: &Network,
+    node_inflows: &HashMap<String, f64>,
+    unit_system: UnitSystem,
+) -> Result<(HashMap<String, f64>, Vec<InletInterception>), String> {
+    let mut conduit_flows = HashMap::new();
+    let mut node_total_flows: HashMap<String, f64> = HashMap::new();
+    let mut bypass_flows: HashMap<String, f64> = HashMap::new();
+    let mut inlet_results = Vec::new();
+
+    let k = match unit_system {
+        UnitSystem::US => GUTTER_K_US,
+        UnitSystem::SI => GUTTER_K_SI,
+    };
+
+    // Initialize with direct inflows
+    for (node_id, &flow) in node_inflows {
+        node_total_flows.insert(node_id.clone(), flow);
+    }
+
+    // Get all nodes in upstream-to-downstream order
+    let mut visited = std::collections::HashSet::new();
+    let mut stack = Vec::new();
+
+    // Start from inlets (nodes with no upstream conduits)
+    for node in &network.nodes {
+        if network.upstream_conduits(&node.id).is_empty() && !node.is_outfall() {
+            stack.push(node.id.clone());
+        }
+    }
+
+    // Process nodes from upstream to downstream
+    while let Some(node_id) = stack.pop() {
+        if visited.contains(&node_id) {
+            continue;
+        }
+        visited.insert(node_id.clone());
+
+        // Find the node
+        let node = network
+            .nodes
+            .iter()
+            .find(|n| n.id == node_id)
+            .ok_or_else(|| format!("Node {} not found", node_id))?;
+
+        // Get total flow approaching this node
+        let direct_inflow = node_total_flows.get(&node_id).cloned().unwrap_or(0.0);
+        let bypass_inflow = bypass_flows.get(&node_id).cloned().unwrap_or(0.0);
+        let approach_flow = direct_inflow + bypass_inflow;
+
+        // Determine intercepted vs bypass flow
+        let (intercepted_flow, bypass_flow, interception_result) =
+            if let Some(ref inlet_props) = node.inlet {
+                // This is an inlet - calculate interception
+                calculate_inlet_interception(node, inlet_props, approach_flow, k)?
+            } else {
+                // Not an inlet - all flow enters system
+                (approach_flow, 0.0, None)
+            };
+
+        // Store inlet interception result
+        if let Some(result) = interception_result {
+            inlet_results.push(result);
+        }
+
+        // Route intercepted flow through downstream conduits
+        let downstream_conduits = network.downstream_conduits(&node_id);
+
+        if !downstream_conduits.is_empty() {
+            // For on-grade inlets, intercepted flow goes to underground system
+            // Bypass flow continues in gutter to next inlet
+            let flow_per_conduit = intercepted_flow / downstream_conduits.len() as f64;
+
+            for conduit in downstream_conduits {
+                // Set conduit flow (underground system)
+                conduit_flows.insert(conduit.id.clone(), flow_per_conduit);
+
+                // Add intercepted flow to downstream node
+                let downstream_flow = node_total_flows
+                    .entry(conduit.to_node.clone())
+                    .or_insert(0.0);
+                *downstream_flow += flow_per_conduit;
+
+                // Add bypass flow to downstream node (gutter flow)
+                if bypass_flow > 0.0 {
+                    let downstream_bypass = bypass_flows
+                        .entry(conduit.to_node.clone())
+                        .or_insert(0.0);
+                    *downstream_bypass += bypass_flow;
+                }
+
+                // Add downstream node to processing queue
+                if !visited.contains(&conduit.to_node) {
+                    stack.push(conduit.to_node.clone());
+                }
+            }
+        }
+    }
+
+    Ok((conduit_flows, inlet_results))
+}
+
+/// Calculate inlet interception for a given inlet node
+///
+/// Returns (intercepted_flow, bypass_flow, inlet_result)
+fn calculate_inlet_interception(
+    node: &Node,
+    inlet_props: &crate::node::InletProperties,
+    approach_flow: f64,
+    k: f64,
+) -> Result<(f64, f64, Option<InletInterception>), String> {
+    if approach_flow <= 0.0 {
+        return Ok((0.0, 0.0, None));
+    }
+
+    // Check if this is a sag inlet (100% capture)
+    if inlet_props.location == InletLocation::Sag {
+        let result = InletInterception {
+            node_id: node.id.clone(),
+            approach_flow,
+            intercepted_flow: approach_flow,
+            bypass_flow: 0.0,
+            efficiency: 1.0,
+            spread: 0.0, // Ponded at sag
+        };
+        return Ok((approach_flow, 0.0, Some(result)));
+    }
+
+    // On-grade inlet - need to calculate interception
+
+    // Get gutter properties from upstream conduit (if it's a gutter)
+    // For now, use default gutter assumptions
+    let manning_n = 0.016; // Asphalt
+    let cross_slope = 0.02; // 2%
+    let longitudinal_slope = 0.01; // 1% (default)
+
+    let gutter = UniformGutter::new(manning_n, cross_slope, longitudinal_slope, None);
+    let gutter_result = gutter.result_for_flow(approach_flow, k);
+
+    // Determine inlet type and calculate interception
+    let local_depression = inlet_props.local_depression.unwrap_or(0.0);
+    let clogging_factor = inlet_props.clogging_factor.unwrap_or(0.15);
+
+    let interception: InletInterceptionResult = match inlet_props.inlet_type {
+        crate::node::InletType::Grate => {
+            if let Some(ref grate_props) = inlet_props.grate {
+                let length = grate_props.length.unwrap_or(3.0);
+                let width = grate_props.width.unwrap_or(2.0);
+                let bar_config = match grate_props.bar_configuration {
+                    Some(crate::node::BarConfiguration::Parallel) => InletBarConfig::Parallel,
+                    _ => InletBarConfig::Perpendicular,
+                };
+
+                let inlet = GrateInletOnGrade::new(
+                    length,
+                    width,
+                    bar_config,
+                    clogging_factor,
+                    local_depression,
+                );
+
+                inlet.interception(approach_flow, &gutter_result)
+            } else {
+                // No grate properties - assume default
+                let inlet =
+                    GrateInletOnGrade::new(3.0, 2.0, InletBarConfig::Perpendicular, 0.15, 2.0);
+                inlet.interception(approach_flow, &gutter_result)
+            }
+        }
+
+        crate::node::InletType::CurbOpening => {
+            if let Some(ref curb_props) = inlet_props.curb_opening {
+                let length = curb_props.length.unwrap_or(5.0);
+                let height = curb_props.height.unwrap_or(0.5);
+                let throat_type = match curb_props.throat_type {
+                    Some(crate::node::ThroatType::Inclined) => InletThroatType::Inclined,
+                    Some(crate::node::ThroatType::Vertical) => InletThroatType::Vertical,
+                    _ => InletThroatType::Horizontal,
+                };
+
+                let inlet = CurbOpeningInletOnGrade::new(length, height, throat_type, clogging_factor);
+                inlet.interception(approach_flow, &gutter_result)
+            } else {
+                // Default curb opening
+                let inlet = CurbOpeningInletOnGrade::new(5.0, 0.5, InletThroatType::Horizontal, 0.10);
+                inlet.interception(approach_flow, &gutter_result)
+            }
+        }
+
+        crate::node::InletType::Combination => {
+            // Combination inlet with both grate and curb opening
+            let grate_length = inlet_props.grate.as_ref()
+                .and_then(|g| g.length).unwrap_or(3.0);
+            let grate_width = inlet_props.grate.as_ref()
+                .and_then(|g| g.width).unwrap_or(2.0);
+            let bar_config = inlet_props.grate.as_ref()
+                .and_then(|g| g.bar_configuration)
+                .map(|bc| match bc {
+                    crate::node::BarConfiguration::Parallel => InletBarConfig::Parallel,
+                    _ => InletBarConfig::Perpendicular,
+                })
+                .unwrap_or(InletBarConfig::Perpendicular);
+
+            let curb_length = inlet_props.curb_opening.as_ref()
+                .and_then(|c| c.length).unwrap_or(5.0);
+            let curb_height = inlet_props.curb_opening.as_ref()
+                .and_then(|c| c.height).unwrap_or(0.5);
+            let curb_throat = inlet_props.curb_opening.as_ref()
+                .and_then(|c| c.throat_type)
+                .map(|tt| match tt {
+                    crate::node::ThroatType::Inclined => InletThroatType::Inclined,
+                    crate::node::ThroatType::Vertical => InletThroatType::Vertical,
+                    _ => InletThroatType::Horizontal,
+                })
+                .unwrap_or(InletThroatType::Horizontal);
+
+            let grate = GrateInletOnGrade::new(
+                grate_length,
+                grate_width,
+                bar_config,
+                clogging_factor,
+                local_depression,
+            );
+
+            let curb = CurbOpeningInletOnGrade::new(curb_length, curb_height, curb_throat, clogging_factor);
+
+            let combo = CombinationInletOnGrade::new(grate, curb);
+            combo.interception(approach_flow, &gutter_result)
+        }
+
+        crate::node::InletType::Slotted => {
+            // Slotted drains typically have high efficiency
+            // For now, assume 80% efficiency
+            InletInterceptionResult {
+                approach_flow,
+                intercepted_flow: approach_flow * 0.80,
+                bypass_flow: approach_flow * 0.20,
+                efficiency: 0.80,
+                spread: gutter_result.spread,
+                velocity: gutter_result.velocity,
+            }
+        }
+    };
+
+    let result = InletInterception {
+        node_id: node.id.clone(),
+        approach_flow: interception.approach_flow,
+        intercepted_flow: interception.intercepted_flow,
+        bypass_flow: interception.bypass_flow,
+        efficiency: interception.efficiency,
+        spread: interception.spread,
+    };
+
+    Ok((interception.intercepted_flow, interception.bypass_flow, Some(result)))
 }
 
 
