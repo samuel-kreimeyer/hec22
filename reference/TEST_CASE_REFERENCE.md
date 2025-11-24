@@ -15,6 +15,9 @@ This document consolidates all formulas and worked examples from the HEC-22 Urba
 5. [Manning's Equation (Pipe Flow)](#5-mannings-equation-pipe-flow)
 6. [Hydraulic Grade Line Analysis](#6-hydraulic-grade-line-analysis)
 7. [Worked Example: Complete Design Problem](#7-worked-example-complete-design-problem)
+8. [Detention and Retention (Chapter 10)](#8-detention-and-retention-chapter-10)
+9. [Urban Stormwater Quality (Chapter 11)](#9-urban-stormwater-quality-chapter-11)
+10. [Pump Stations (Chapter 12)](#10-pump-stations-chapter-12)
 
 ---
 
@@ -1320,3 +1323,210 @@ def test_gutter_spread():
 ---
 
 **End of Test Case Reference Document**
+
+---
+
+## 8. Detention and Retention (Chapter 10)
+
+### Test Case 8.1: Preliminary Detention Basin Sizing
+**Source:** `reference/equations/detention_retention.md:353-384`
+
+```
+Input:
+  Drainage area: 38 acres
+  Pre-development peak: 50 ft³/s
+  Post-development peak: 131 ft³/s
+  Design storm: 0.1 AEP (10-year)
+  Target release: 50 ft³/s
+  Time of concentration (Tc): 20 minutes = 1,200 seconds
+  Basin dimensions: L = 100 ft, W = 50 ft, side slope Z = 4:1
+
+Expected Output:
+  Time of inflow (ti): 2,400 seconds
+  Preliminary storage volume (Vs): 97,200 ft³
+  Required depth (D): ~4.5 ft (iterative solution)
+
+Calculation:
+  Step 1: Preliminary Storage (Triangular Hydrograph)
+    t_i = 2 × T_c = 2 × 1,200 = 2,400 seconds
+    V_s = 0.5 × 2,400 × (131 - 50)
+    V_s = 0.5 × 2,400 × 81
+    V_s = 97,200 ft³
+
+  Step 2: Basin Sizing (Trapezoidal)
+    V = L×W×D + (L+W)×Z×D² + (4/3)×Z²×D³
+    97,200 = 100×50×D + (100+50)×4×D² + (4/3)×16×D³
+    97,200 = 5,000D + 600D² + 21.33D³
+
+  Step 3: Solve Iteratively
+    D ≈ 4.5 ft
+```
+**Note:** This is preliminary. Verify with storage routing and iterate on outlet structure sizing.
+
+### Test Case 8.2: Simple Detention Basin (Validation Problem)
+**Source:** `reference/guidance/chapter_10_design_notes.md:888-902`
+```
+Input:
+  Drainage area: 38 acres
+  Pre-development peak: 50 ft³/s
+  Post-development peak: 131 ft³/s
+  Design storm: 0.1 AEP
+
+Expected Results:
+  Preliminary storage: 28,000-32,000 ft³
+  Weir length: ~1.6 ft (after iteration)
+  Peak outflow: ~50 ft³/s
+  Maximum stage: ~4.5 ft
+```
+**Note:** See HEC-22 Example 10.14 for complete solution
+
+### Test Case 8.3: Water Budget Analysis (Validation Problem)
+**Source:** `reference/guidance/chapter_10_design_notes.md:904-921`
+```
+Input:
+  Drainage area: 100 acres
+  Pool surface area: 3 acres
+  Pool bottom area: 2 acres
+  Runoff coefficient: 0.3
+  Annual rainfall: 50 inches
+  Annual evaporation: 35 inches
+  Infiltration rate: 0.1 in/hr
+
+Expected Results:
+  Annual runoff: 5,445,000 ft³
+  Annual evaporation: 381,150 ft³
+  Annual infiltration: 6,359,760 ft³
+  Net budget: -1,295,910 ft³ (does not maintain pool)
+```
+**Interpretation:** The retention pond will not maintain its permanent pool with these parameters. Need to either:
+- Increase drainage area
+- Reduce infiltration (liner)
+- Provide supplemental water source
+
+**Note:** See HEC-22 Example 10.13 for complete solution
+
+---
+
+## 9. Urban Stormwater Quality (Chapter 11)
+
+### Test Case 9.1: Bioretention Basin Design
+**Source:** `reference/equations/stormwater_quality.md:256-312`
+
+```
+Input:
+  Drainage area: 10 acres
+  Imperviousness: 75%
+  Design rainfall (P): 1.0 inch (water quality storm)
+  Annual rainfall: 40 inches
+  TSS concentration: 100 mg/L
+  BMP: Bioretention basin
+  Media depth: 3 ft
+  Media porosity: 0.25
+  Infiltration rate: 2 ft/hr
+  Drawdown time: 24 hours
+
+Expected Output:
+  Volumetric runoff coefficient (Rv): 0.725
+  Water quality volume (WQv): 26,318 ft³
+  Annual runoff: 26.1 inches
+  Annual TSS loading: 5,899 lb/yr
+  Bioretention basin surface area: 9,570 ft² (0.22 acres)
+  TSS removal: 5,014 lb/yr (85% efficiency)
+
+Calculation:
+  Step 1: Volumetric Runoff Coefficient
+    Rv = 0.05 + 0.009 × I
+    Rv = 0.05 + 0.009 × 75
+    Rv = 0.05 + 0.675 = 0.725
+
+  Step 2: Water Quality Volume
+    WQv = Rv × P × A × 3,630
+    WQv = 0.725 × 1.0 × 10 × 3,630
+    WQv = 26,318 ft³
+
+  Step 3: Annual Pollutant Loading (TSS)
+    R = Annual runoff = 40 × 0.9 × 0.725 = 26.1 inches
+    L = c × R × C × A
+    L = 0.226 × 26.1 × 100 × 10
+    L = 5,899 lb/yr TSS
+
+  Step 4: Size Bioretention Basin
+    V_bio = WQv / [(n × d) + (K × t)]
+    V_bio = 26,318 / [(0.25 × 3) + (2 × 24/24)]
+    V_bio = 26,318 / [0.75 + 2]
+    V_bio = 26,318 / 2.75
+    V_bio = 9,570 ft²
+
+  Step 5: TSS Removal
+    L_removed = 5,899 × 0.85 = 5,014 lb/yr TSS
+```
+
+---
+
+## 10. Pump Stations (Chapter 12)
+
+### Test Case 10.1: Pump Station Design
+**Source:** `reference/equations/pump_stations.md:376-436`
+
+```
+Input:
+  Design discharge (Q): 10 ft³/s
+  Static head (Hs): 15 ft
+  Discharge pipe: 12-inch diameter, 200 ft long
+  Pipe material: PVC (n = 0.011)
+  Fittings:
+    - 2 elbows (K = 0.9 each)
+    - 1 check valve (K = 2.5)
+    - 1 gate valve (K = 0.2)
+    - 1 exit loss (K = 1.0)
+  Pump efficiency: 75%
+
+Expected Output:
+  Pipe area: 0.785 ft²
+  Velocity: 12.7 ft/s
+  Friction loss (Hf): 4.96 ft
+  Velocity head (Hv): 2.5 ft
+  Minor losses (Hl): 13.8 ft
+  Total Dynamic Head (TDH): 36.3 ft
+  Water Horsepower (WHP): 41.3 hp
+  Brake Horsepower (BHP): 55 hp
+  Motor selection: 60 hp (next standard size)
+
+Calculation:
+  Step 1: Velocity
+    D = 12 in = 1.0 ft
+    A = π × D² / 4 = π × 1.0² / 4 = 0.785 ft²
+    V = Q / A = 10 / 0.785 = 12.7 ft/s
+
+  Step 2: Friction Loss (Manning's)
+    R = D / 4 = 1.0 / 4 = 0.25 ft
+    Hf = (n² × L × V²) / (2.22 × R^(4/3))
+    Hf = (0.011² × 200 × 12.7²) / (2.22 × 0.25^(4/3))
+    Hf = (0.000121 × 200 × 161.3) / (2.22 × 0.354)
+    Hf = 3.90 / 0.786 = 4.96 ft
+
+  Step 3: Velocity Head
+    Hv = V² / (2g)
+    Hv = 12.7² / (2 × 32.2)
+    Hv = 161.3 / 64.4 = 2.5 ft
+
+  Step 4: Minor Losses
+    K_total = 2(0.9) + 2.5 + 0.2 + 1.0 = 5.5
+    Hl = K_total × (V² / 2g)
+    Hl = 5.5 × (12.7² / 64.4)
+    Hl = 5.5 × 2.5 = 13.8 ft
+
+  Step 5: Total Dynamic Head
+    TDH = Hs + Hf + Hv + Hl
+    TDH = 15 + 4.96 + 2.5 + 13.8 = 36.3 ft
+
+  Step 6: Horsepower Requirements
+    WHP = (Q × TDH) / 8.8
+    WHP = (10 × 36.3) / 8.8 = 41.3 hp
+
+    BHP = WHP / efficiency
+    BHP = 41.3 / 0.75 = 55 hp
+
+  Step 7: Motor Selection
+    Select 60 hp motor (next standard size above 55 hp)
+```
