@@ -81,12 +81,39 @@ Individual HEC-22 chapters extracted for easy reference:
   - Hydraulic capacity using Manning's equation for conduits
   - Manning's roughness coefficients for various pipe materials
   - Conduit shape alternatives (circular, oval, arch, box)
-  - Energy Grade Line (EGL) and Hydraulic Grade Line (HGL) concepts
+  - Energy Grade Line (EGL) and Hydraulic Grade Line (HGL) concepts:
+    - EGL: longitudinal line connecting points of total energy (elevation + velocity + pressure head)
+    - HGL: water surface level in open channels, conceptual pressure line in closed conduits
+    - HGL determination: subtract velocity head (V²/2g) from EGL at any point
+    - Surcharging occurs when HGL exceeds top elevation of structures
+    - Starting point: tailwater depth or (yc + D)/2 at outfall, work upstream
   - Storm drain outfalls and tailwater elevation considerations
-  - Energy losses: pipe friction, exit losses, bend losses, transition losses
-  - Junction losses using momentum equations
-  - Approximate method for inlet and access hole energy loss
-  - FHWA comprehensive method for access hole energy losses
+  - Energy losses - detailed calculation methods:
+    - Pipe friction losses: hf = Sf × L where Sf = [(Qn)/(KQD^2.67)]²
+    - Exit losses: H₀ = 1.0[(V₀²/2g) - (Vd²/2g)] for sudden expansion
+    - Bend losses: Hb = 0.0033(Δ)(V²/2g) where Δ = angle in degrees
+    - Transition losses: He = Ke[(V₂²/2g) - (V₁²/2g)] for expansions/contractions
+  - Junction losses using momentum equations:
+    - Hj = [(Q₀V₀) - (QᵢVᵢ) - (QₗVₗcos θj)] / [0.5g(A₀ + Aᵢ)] + hᵢ - h₀
+    - Accounts for flow changes at pipe junctions with lateral inflows
+    - Interior angle θj measured between trunk and lateral pipes
+  - Approximate method for inlet and access hole energy loss:
+    - Hah = Kah(V₀²/2g) where Kah varies by configuration
+    - Straight run: Kah = 0.15 to 0.50
+    - 90° angle: Kah = 1.00 to 1.50
+    - Used for preliminary design only, not final EGL calculations
+  - FHWA comprehensive method for access hole energy losses:
+    - Three-step procedure: initial energy level, adjustments, exit losses
+    - Initial energy: Eai = max(Eaio, Eais, Eaiu)
+      - Outlet control: Eaio = Ei + Ki(Vi²/2g) where Ki = 0.2
+      - Submerged inlet: Eais = D₀(DI)² where DI = Q/[A(D₀g)^0.5]
+      - Unsubmerged inlet: Eaiu = 1.6D₀(DI)^0.67
+    - Adjustments: Ea = Eai + HB + Hθ + HP
+      - Benching: HB = CB(Eai - Ei) where CB ranges from -0.98 to 0.0
+      - Angled inflow: Hθ = Cθ(Eai - Ei) where Cθ = 4.5(ΣQj/Q₀)cos(θw/2)
+      - Plunging flow: HP = CP(Eai - Ei) where CP = Σ(Qkhk)/Q₀
+    - Exit losses: EGL₀ = Ea + K₀(V₀²/2g) where K₀ = 0.4
+    - Non-iterative, handles surcharged and supercritical flows
   - Inlet control (weir and orifice) and outlet control conditions
   - Benching, angled inflow, and plunging flow adjustments
   - Design storm frequency selection (0.1 to 0.02 AEP)
@@ -96,8 +123,19 @@ Individual HEC-22 chapters extracted for easy reference:
   - Location, alignment, and curved storm drain considerations
   - Maintenance considerations and inspection requirements
   - Preliminary design procedure (9-step process)
-  - Hydraulic grade line evaluation methodology
-  - Complete worked example with EGL/HGL calculations
+  - Hydraulic grade line evaluation methodology (9-step procedure):
+    - Step 1: Determine tailwater elevation at outfall
+    - Step 2: Estimate HGL/EGL at downstream end of each pipe (5 cases in Table 9.6)
+    - Step 3: Estimate HGL/EGL at upstream end of pipe (4 flow conditions in Table 9.7)
+      - Condition A: Full flow (surcharge) - HGLi ≥ TOCi
+      - Condition B: Downstream-controlled partial flow - TOCi ≥ HGLi > BOCi + yn and yc
+      - Condition C: Subcritical partial flow - BOCi + yn ≥ HGLi > BOCi + yc
+      - Condition D: Supercritical partial flow - BOCi + yc ≥ HGLi (losses not carried upstream)
+    - Step 4: Calculate EGL/HGL at each structure using FHWA comprehensive method
+    - Step 5-8: Repeat for all pipes and structures working upstream
+    - Step 9: Compare EGL elevations to ground surface, verify minimum cover
+    - Key concept: Start at outfall, work upstream; subcritical carries losses, supercritical doesn't
+  - Complete worked example with EGL/HGL calculations (4-structure system)
   - Supercritical and subcritical flow identification
   - Debris and clogging prevention strategies
 - **HEC22 Chapter 10.pdf** - Detention and Retention
