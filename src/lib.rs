@@ -14,6 +14,8 @@
 //! - [`drainage`] - Drainage areas and subcatchments
 //! - [`rainfall`] - Rainfall events and IDF curves
 //! - [`analysis`] - Analysis results and violations
+//! - [`hydraulics`] - Hydraulic calculations (Manning's equation, HGL/EGL)
+//! - [`solver`] - HGL/EGL solver (9-step procedure from Chapter 9)
 //!
 //! ## Example
 //!
@@ -34,10 +36,12 @@
 pub mod analysis;
 pub mod conduit;
 pub mod drainage;
+pub mod hydraulics;
 pub mod network;
 pub mod node;
 pub mod project;
 pub mod rainfall;
+pub mod solver;
 
 use serde::{Deserialize, Serialize};
 
