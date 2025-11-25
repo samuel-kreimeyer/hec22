@@ -90,24 +90,60 @@ let areas = csv::parse_drainage_areas_csv("templates/drainage_areas.csv")?;
 let gutter_params = csv::parse_gutter_parameters_csv("templates/gutter_parameters.csv")?;
 ```
 
-### Future CLI Usage
+### CLI Usage
+
+The HEC-22 CLI tool is now available! Run hydraulic analysis from CSV files:
 
 ```bash
-# Solve network from CSV files
-hec22 solve \
+# Basic usage with cargo
+cargo run -- \
   --nodes templates/nodes.csv \
   --conduits templates/conduits.csv \
-  --areas templates/drainage_areas.csv \
+  --drainage-areas templates/drainage_areas.csv \
+  --intensity 4.0
+
+# With output file
+cargo run -- \
+  --nodes templates/nodes.csv \
+  --conduits templates/conduits.csv \
+  --drainage-areas templates/drainage_areas.csv \
+  --intensity 4.0 \
   --output results.txt
 
-# With gutter analysis
-hec22 solve \
+# JSON output format
+cargo run -- \
   --nodes templates/nodes.csv \
   --conduits templates/conduits.csv \
-  --areas templates/drainage_areas.csv \
-  --gutters templates/gutter_parameters.csv \
-  --output results.txt
+  --drainage-areas templates/drainage_areas.csv \
+  --intensity 4.0 \
+  --format json \
+  --output results.json
+
+# CSV output format
+cargo run -- \
+  --nodes templates/nodes.csv \
+  --conduits templates/conduits.csv \
+  --drainage-areas templates/drainage_areas.csv \
+  --intensity 4.0 \
+  --format csv \
+  --output results
+
+# Using built binary (after cargo build --release)
+./target/release/hec22 \
+  --nodes templates/nodes.csv \
+  --conduits templates/conduits.csv \
+  --drainage-areas templates/drainage_areas.csv \
+  --intensity 4.0
 ```
+
+**CLI Options:**
+- `--nodes, -n <FILE>`: Path to nodes CSV file (required)
+- `--conduits, -c <FILE>`: Path to conduits CSV file (required)
+- `--drainage-areas, -a <FILE>`: Path to drainage areas CSV file (optional)
+- `--intensity, -i <VALUE>`: Rainfall intensity in in/hr (default: 4.0)
+- `--units, -u <SYSTEM>`: Unit system: `us` or `si` (default: us)
+- `--output, -o <FILE>`: Output file path (default: stdout)
+- `--format, -f <FORMAT>`: Output format: `text`, `json`, or `csv` (default: text)
 
 ## Tips
 
@@ -128,9 +164,9 @@ hec22 solve \
 2. **Export each sheet as CSV**:
    - Save as `project_nodes.csv`, `project_conduits.csv`, etc.
 
-3. **Run analysis** (future CLI):
+3. **Run analysis**:
    ```bash
-   hec22 solve --nodes project_nodes.csv --conduits project_conduits.csv --areas project_areas.csv
+   cargo run -- --nodes project_nodes.csv --conduits project_conduits.csv --drainage-areas project_areas.csv --intensity 4.0
    ```
 
 4. **Review results**:
