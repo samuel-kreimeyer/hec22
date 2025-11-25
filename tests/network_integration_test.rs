@@ -951,3 +951,528 @@ fn test_branching_network() {
     println!("  Trunk flow: {:.2} cfs (affected by routing bug)", trunk_flow);
     println!("  Junction HGL: {:.2} ft, Outfall HGL: {:.2} ft", hgl_junction, hgl_outfall);
 }
+
+/// Test an unbalanced branching network with different branch lengths
+///
+/// Network topology:
+///   Branch 1 (Short):  IN-101 ↘
+///                                MH-001 → OUT-001
+///   Branch 2 (Long):   IN-201 → IN-202 → IN-203 ↗
+///
+/// This test verifies:
+/// 1. Topological sorting correctly handles unbalanced branches
+/// 2. Flow routing through branches of different lengths
+/// 3. Accurate flow accumulation despite asymmetric network structure
+/// 4. The new topological sorting algorithm handles complex dependencies
+#[test]
+fn test_unbalanced_branching_network() {
+    // Create project metadata
+    let project = project::Project {
+        name: "Unbalanced Branching Network Test".to_string(),
+        description: Some("Network with unbalanced branches: 1 inlet vs 3 inlets".to_string()),
+        location: None,
+        units: project::Units::us_customary(),
+        author: Some("Integration Test".to_string()),
+        created: Some(chrono::Utc::now().to_rfc3339()),
+        modified: None,
+    };
+
+    // Branch 1 (Short): Single inlet
+    let inlet_1 = node::Node::new_inlet(
+        "IN-101".to_string(),
+        135.0, // invert
+        139.0, // rim
+        node::InletProperties {
+            inlet_type: node::InletType::Grate,
+            location: node::InletLocation::OnGrade,
+            grate: Some(node::GrateProperties {
+                length: Some(2.0),
+                width: Some(1.5),
+                bar_configuration: Some(node::BarConfiguration::Parallel),
+            }),
+            curb_opening: None,
+            local_depression: Some(2.0),
+            clogging_factor: Some(0.10),
+        },
+    );
+
+    // Branch 2 (Long): Three inlets in series
+    let inlet_2a = node::Node::new_inlet(
+        "IN-201".to_string(),
+        145.0, // invert (highest - most upstream)
+        149.0, // rim
+        node::InletProperties {
+            inlet_type: node::InletType::CurbOpening,
+            location: node::InletLocation::OnGrade,
+            grate: None,
+            curb_opening: Some(node::CurbOpeningProperties {
+                length: Some(4.0),
+                height: Some(0.5),
+                throat_type: Some(node::ThroatType::Horizontal),
+            }),
+            local_depression: Some(0.0),
+            clogging_factor: Some(0.15),
+        },
+    );
+
+    let inlet_2b = node::Node::new_inlet(
+        "IN-202".to_string(),
+        140.0, // invert (middle)
+        144.0, // rim
+        node::InletProperties {
+            inlet_type: node::InletType::CurbOpening,
+            location: node::InletLocation::OnGrade,
+            grate: None,
+            curb_opening: Some(node::CurbOpeningProperties {
+                length: Some(4.0),
+                height: Some(0.5),
+                throat_type: Some(node::ThroatType::Horizontal),
+            }),
+            local_depression: Some(0.0),
+            clogging_factor: Some(0.15),
+        },
+    );
+
+    let inlet_2c = node::Node::new_inlet(
+        "IN-203".to_string(),
+        135.0, // invert (lowest in branch 2)
+        139.0, // rim
+        node::InletProperties {
+            inlet_type: node::InletType::CurbOpening,
+            location: node::InletLocation::OnGrade,
+            grate: None,
+            curb_opening: Some(node::CurbOpeningProperties {
+                length: Some(4.0),
+                height: Some(0.5),
+                throat_type: Some(node::ThroatType::Horizontal),
+            }),
+            local_depression: Some(0.0),
+            clogging_factor: Some(0.15),
+        },
+    );
+
+    // Junction where both branches meet
+    let junction = node::Node::new_junction(
+        "MH-001".to_string(),
+        128.0, // invert
+        135.0, // rim
+        node::JunctionProperties {
+            diameter: Some(4.0),
+            sump_depth: Some(1.0),
+            loss_coefficient: Some(0.2),
+            benching: Some(true),
+            drop_structure: Some(false),
+        },
+    );
+
+    // Outfall
+    let outfall = node::Node::new_outfall(
+        "OUT-001".to_string(),
+        122.0, // invert (lowest)
+        node::OutfallProperties {
+            boundary_condition: node::BoundaryCondition::NormalDepth,
+            tailwater_elevation: Some(123.5),
+            tidal_curve: None,
+        },
+    );
+
+    // Branch 1 pipe (single short branch)
+    let mut pipe_1 = conduit::Conduit::new_pipe(
+        "P-101".to_string(),
+        "IN-101".to_string(),
+        "MH-001".to_string(),
+        200.0, // length
+        conduit::PipeProperties {
+            shape: conduit::PipeShape::Circular,
+            diameter: Some(15.0), // 15" pipe
+            width: None,
+            height: None,
+            material: Some(conduit::PipeMaterial::RCP),
+            manning_n: 0.013,
+            entrance_loss: Some(0.5),
+            exit_loss: Some(1.0),
+            bend_loss: Some(0.0),
+        },
+    );
+    pipe_1.upstream_invert = Some(135.0);
+    pipe_1.downstream_invert = Some(128.5);
+
+    // Branch 2 pipes (three inlets in series)
+    let mut pipe_2a = conduit::Conduit::new_pipe(
+        "P-201".to_string(),
+        "IN-201".to_string(),
+        "IN-202".to_string(),
+        250.0, // length
+        conduit::PipeProperties {
+            shape: conduit::PipeShape::Circular,
+            diameter: Some(12.0), // 12" pipe
+            width: None,
+            height: None,
+            material: Some(conduit::PipeMaterial::RCP),
+            manning_n: 0.013,
+            entrance_loss: Some(0.5),
+            exit_loss: Some(1.0),
+            bend_loss: Some(0.0),
+        },
+    );
+    pipe_2a.upstream_invert = Some(145.0);
+    pipe_2a.downstream_invert = Some(140.2);
+
+    let mut pipe_2b = conduit::Conduit::new_pipe(
+        "P-202".to_string(),
+        "IN-202".to_string(),
+        "IN-203".to_string(),
+        240.0, // length
+        conduit::PipeProperties {
+            shape: conduit::PipeShape::Circular,
+            diameter: Some(15.0), // 15" pipe (larger for accumulated flow)
+            width: None,
+            height: None,
+            material: Some(conduit::PipeMaterial::RCP),
+            manning_n: 0.013,
+            entrance_loss: Some(0.5),
+            exit_loss: Some(1.0),
+            bend_loss: Some(0.0),
+        },
+    );
+    pipe_2b.upstream_invert = Some(140.0);
+    pipe_2b.downstream_invert = Some(135.2);
+
+    let mut pipe_2c = conduit::Conduit::new_pipe(
+        "P-203".to_string(),
+        "IN-203".to_string(),
+        "MH-001".to_string(),
+        280.0, // length
+        conduit::PipeProperties {
+            shape: conduit::PipeShape::Circular,
+            diameter: Some(18.0), // 18" pipe (larger for accumulated flow)
+            width: None,
+            height: None,
+            material: Some(conduit::PipeMaterial::RCP),
+            manning_n: 0.013,
+            entrance_loss: Some(0.5),
+            exit_loss: Some(1.0),
+            bend_loss: Some(0.0),
+        },
+    );
+    pipe_2c.upstream_invert = Some(135.0);
+    pipe_2c.downstream_invert = Some(128.7);
+
+    // Trunk pipe from junction to outfall
+    let mut pipe_trunk = conduit::Conduit::new_pipe(
+        "P-301".to_string(),
+        "MH-001".to_string(),
+        "OUT-001".to_string(),
+        350.0, // length
+        conduit::PipeProperties {
+            shape: conduit::PipeShape::Circular,
+            diameter: Some(30.0), // 30" pipe (handles combined flow)
+            width: None,
+            height: None,
+            material: Some(conduit::PipeMaterial::RCP),
+            manning_n: 0.013,
+            entrance_loss: Some(0.5),
+            exit_loss: Some(1.0),
+            bend_loss: Some(0.0),
+        },
+    );
+    pipe_trunk.upstream_invert = Some(128.0);
+    pipe_trunk.downstream_invert = Some(122.3);
+
+    // Build network
+    let mut network = network::Network::new();
+
+    // Add nodes
+    network.add_node(inlet_1);
+    network.add_node(inlet_2a);
+    network.add_node(inlet_2b);
+    network.add_node(inlet_2c);
+    network.add_node(junction);
+    network.add_node(outfall);
+
+    // Add conduits
+    network.add_conduit(pipe_1);
+    network.add_conduit(pipe_2a);
+    network.add_conduit(pipe_2b);
+    network.add_conduit(pipe_2c);
+    network.add_conduit(pipe_trunk);
+
+    // Validate network
+    network
+        .validate_connectivity()
+        .expect("Network should be valid");
+
+    // Verify network structure
+    assert_eq!(network.node_count(), 6, "Should have 6 nodes");
+    assert_eq!(network.conduit_count(), 5, "Should have 5 conduits");
+    assert_eq!(network.inlets().len(), 4, "Should have 4 inlets");
+    assert_eq!(network.junctions().len(), 1, "Should have 1 junction");
+    assert_eq!(network.outfalls().len(), 1, "Should have 1 outfall");
+
+    // Create drainage areas for each inlet
+    let drainage_areas = vec![
+        drainage::DrainageArea {
+            id: "DA-1".to_string(),
+            name: Some("Short Branch Area".to_string()),
+            area: 2.5, // acres
+            outlet: "IN-101".to_string(),
+            land_use: Some(drainage::LandUse {
+                primary: Some(drainage::LandUseType::Commercial),
+                impervious_percent: Some(85.0),
+                composition: None,
+            }),
+            runoff_coefficient: Some(0.85),
+            time_of_concentration: Some(12.0),
+            tc_calculation: None,
+            curve_number: None,
+            geometry: None,
+        },
+        drainage::DrainageArea {
+            id: "DA-2A".to_string(),
+            name: Some("Long Branch - Upper".to_string()),
+            area: 1.0, // acres
+            outlet: "IN-201".to_string(),
+            land_use: Some(drainage::LandUse {
+                primary: Some(drainage::LandUseType::Residential),
+                impervious_percent: Some(40.0),
+                composition: None,
+            }),
+            runoff_coefficient: Some(0.50),
+            time_of_concentration: Some(20.0),
+            tc_calculation: None,
+            curve_number: None,
+            geometry: None,
+        },
+        drainage::DrainageArea {
+            id: "DA-2B".to_string(),
+            name: Some("Long Branch - Middle".to_string()),
+            area: 1.5, // acres
+            outlet: "IN-202".to_string(),
+            land_use: Some(drainage::LandUse {
+                primary: Some(drainage::LandUseType::Residential),
+                impervious_percent: Some(45.0),
+                composition: None,
+            }),
+            runoff_coefficient: Some(0.55),
+            time_of_concentration: Some(18.0),
+            tc_calculation: None,
+            curve_number: None,
+            geometry: None,
+        },
+        drainage::DrainageArea {
+            id: "DA-2C".to_string(),
+            name: Some("Long Branch - Lower".to_string()),
+            area: 1.2, // acres
+            outlet: "IN-203".to_string(),
+            land_use: Some(drainage::LandUse {
+                primary: Some(drainage::LandUseType::Residential),
+                impervious_percent: Some(50.0),
+                composition: None,
+            }),
+            runoff_coefficient: Some(0.60),
+            time_of_concentration: Some(16.0),
+            tc_calculation: None,
+            curve_number: None,
+            geometry: None,
+        },
+    ];
+
+    // Compute flows
+    let intensity = 4.0; // in/hr
+    let node_inflows = solver::compute_rational_flows(&drainage_areas, intensity);
+
+    // Verify all inlets have inflows
+    assert_eq!(node_inflows.len(), 4, "Should have 4 inlet inflows");
+    assert!(node_inflows.contains_key("IN-101"));
+    assert!(node_inflows.contains_key("IN-201"));
+    assert!(node_inflows.contains_key("IN-202"));
+    assert!(node_inflows.contains_key("IN-203"));
+
+    // Calculate expected flows using rational method: Q = C * i * A
+    let q_1 = 0.85 * 4.0 * 2.5; // Branch 1 (short): single inlet
+    let q_2a = 0.50 * 4.0 * 1.0; // Branch 2 (long): upstream inlet
+    let q_2b = 0.55 * 4.0 * 1.5; // Branch 2: middle inlet
+    let q_2c = 0.60 * 4.0 * 1.2; // Branch 2: downstream inlet
+    let q_total = q_1 + q_2a + q_2b + q_2c;
+
+    // Verify rational method calculations
+    assert!(
+        (node_inflows["IN-101"] - q_1).abs() < 0.001,
+        "IN-101 flow should match rational method"
+    );
+    assert!(
+        (node_inflows["IN-201"] - q_2a).abs() < 0.001,
+        "IN-201 flow should match rational method"
+    );
+    assert!(
+        (node_inflows["IN-202"] - q_2b).abs() < 0.001,
+        "IN-202 flow should match rational method"
+    );
+    assert!(
+        (node_inflows["IN-203"] - q_2c).abs() < 0.001,
+        "IN-203 flow should match rational method"
+    );
+
+    // Route flows through network
+    let conduit_flows = solver::route_flows(&network, &node_inflows)
+        .expect("Flow routing should succeed");
+
+    assert_eq!(conduit_flows.len(), 5, "Should have flows in all 5 conduits");
+
+    // Verify flow accumulation through branches
+    // Branch 1 (short): single pipe carries single inlet flow
+    assert!(
+        (conduit_flows["P-101"] - q_1).abs() < 0.001,
+        "P-101 should carry only IN-101 flow: expected {:.2}, got {:.2}",
+        q_1,
+        conduit_flows["P-101"]
+    );
+
+    // Branch 2 (long): flows accumulate through series
+    assert!(
+        (conduit_flows["P-201"] - q_2a).abs() < 0.001,
+        "P-201 should carry only IN-201 flow: expected {:.2}, got {:.2}",
+        q_2a,
+        conduit_flows["P-201"]
+    );
+    assert!(
+        (conduit_flows["P-202"] - (q_2a + q_2b)).abs() < 0.001,
+        "P-202 should carry IN-201 + IN-202 flow: expected {:.2}, got {:.2}",
+        q_2a + q_2b,
+        conduit_flows["P-202"]
+    );
+    assert!(
+        (conduit_flows["P-203"] - (q_2a + q_2b + q_2c)).abs() < 0.001,
+        "P-203 should carry accumulated flow from all branch 2 inlets: expected {:.2}, got {:.2}",
+        q_2a + q_2b + q_2c,
+        conduit_flows["P-203"]
+    );
+
+    // Verify trunk pipe flow is the sum of all branch flows
+    // This is the critical test for the topological sorting algorithm
+    assert!(
+        (conduit_flows["P-301"] - q_total).abs() < 0.001,
+        "P-301 should carry the combined flow from all branches (topological sort verification). Expected: {:.2}, Got: {:.2}",
+        q_total,
+        conduit_flows["P-301"]
+    );
+
+    // Run hydraulic solver
+    let config = solver::SolverConfig::us_customary();
+    let hgl_solver = solver::HglSolver::new(config);
+
+    let analysis = hgl_solver
+        .solve(&network, &conduit_flows, "unbalanced-test".to_string())
+        .expect("HGL solver should succeed");
+
+    // Verify results structure
+    assert!(analysis.node_results.is_some());
+    assert!(analysis.conduit_results.is_some());
+
+    let node_results = analysis.node_results.clone().unwrap();
+    let conduit_results = analysis.conduit_results.clone().unwrap();
+
+    assert_eq!(node_results.len(), 6, "Should have 6 node results");
+    assert_eq!(conduit_results.len(), 5, "Should have 5 conduit results");
+
+    // Verify plausible hydraulic results
+    for node_result in &node_results {
+        assert!(
+            node_result.hgl.is_some(),
+            "Node {} should have HGL",
+            node_result.node_id
+        );
+
+        let hgl = node_result.hgl.unwrap();
+        let node = network.find_node(&node_result.node_id).unwrap();
+
+        assert!(
+            hgl > node.invert_elevation,
+            "Node {} HGL ({:.2}) should be above invert elevation ({:.2})",
+            node_result.node_id,
+            hgl,
+            node.invert_elevation
+        );
+    }
+
+    for conduit_result in &conduit_results {
+        if let Some(flow) = conduit_result.flow {
+            assert!(
+                flow > 0.0,
+                "Conduit {} should have positive flow",
+                conduit_result.conduit_id
+            );
+        }
+
+        if let Some(velocity) = conduit_result.velocity {
+            assert!(
+                velocity > 0.0 && velocity < 30.0,
+                "Conduit {} velocity ({:.2} ft/s) should be reasonable",
+                conduit_result.conduit_id,
+                velocity
+            );
+        }
+    }
+
+    // Verify HGL gradient: junction should be higher than outfall
+    let hgl_junction = node_results
+        .iter()
+        .find(|r| r.node_id == "MH-001")
+        .unwrap()
+        .hgl
+        .unwrap();
+    let hgl_outfall = node_results
+        .iter()
+        .find(|r| r.node_id == "OUT-001")
+        .unwrap()
+        .hgl
+        .unwrap();
+
+    assert!(
+        hgl_junction > hgl_outfall,
+        "Junction HGL ({:.2}) should be higher than outfall HGL ({:.2})",
+        hgl_junction,
+        hgl_outfall
+    );
+
+    // Build complete model and verify JSON roundtrip
+    let mut drainage_network = DrainageNetwork::new(project, network);
+    drainage_network.drainage_areas = Some(drainage_areas);
+    drainage_network.analysis = Some(analysis);
+
+    let json = drainage_network
+        .to_json()
+        .expect("Should serialize to JSON");
+
+    let reparsed: DrainageNetwork =
+        serde_json::from_str(&json).expect("Should deserialize from JSON");
+
+    assert_eq!(
+        reparsed.network.nodes.len(),
+        6,
+        "Roundtrip should preserve node count"
+    );
+    assert_eq!(
+        reparsed.network.conduits.len(),
+        5,
+        "Roundtrip should preserve conduit count"
+    );
+
+    println!("✓ Unbalanced branching network integration test passed");
+    println!("  Network: Unbalanced branches (1 inlet vs 3 inlets) → 1 junction → 1 outfall");
+    println!("  Branch 1 (short): {:.2} cfs from 1 inlet", q_1);
+    println!(
+        "  Branch 2 (long): {:.2} cfs from 3 inlets ({:.2} + {:.2} + {:.2})",
+        q_2a + q_2b + q_2c,
+        q_2a,
+        q_2b,
+        q_2c
+    );
+    println!("  Expected total flow: {:.2} cfs", q_total);
+    println!("  Trunk flow: {:.2} cfs", conduit_flows["P-301"]);
+    println!(
+        "  Junction HGL: {:.2} ft, Outfall HGL: {:.2} ft",
+        hgl_junction, hgl_outfall
+    );
+    println!("  ✓ Topological sorting correctly handled unbalanced branches");
+}
