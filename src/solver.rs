@@ -521,48 +521,27 @@ pub fn route_flows(
         node_total_flows.insert(node_id.clone(), flow);
     }
 
-    // Get all nodes in upstream-to-downstream order
-    let mut visited = std::collections::HashSet::new();
-    let mut stack = Vec::new();
+    // Get traversal order
+    let sorted_nodes = topological_sort_upstream_to_downstream(network)?;
 
-    // Start from inlets (nodes with no upstream conduits)
-    for node in &network.nodes {
-        if network.upstream_conduits(&node.id).is_empty() && !node.is_outfall() {
-            stack.push(node.id.clone());
-        }
-    }
-
-    // Process nodes from upstream to downstream
-    while let Some(node_id) = stack.pop() {
-        if visited.contains(&node_id) {
-            continue;
-        }
-        visited.insert(node_id.clone());
-
-        // Get total flow at this node
+    // Process nodes in topological order
+    for node_id in sorted_nodes {
+        // Get total flow at this node (direct inflow + upstream contributions)
         let node_flow = node_total_flows.get(&node_id).cloned().unwrap_or(0.0);
 
-        // Route flow through downstream conduits
+        // Route flow to downstream conduits
         let downstream_conduits = network.downstream_conduits(&node_id);
-
         if !downstream_conduits.is_empty() {
-            // Distribute flow evenly if multiple outlets (shouldn't happen in typical networks)
             let flow_per_conduit = node_flow / downstream_conduits.len() as f64;
 
             for conduit in downstream_conduits {
-                // Set conduit flow
                 conduit_flows.insert(conduit.id.clone(), flow_per_conduit);
 
-                // Add flow to downstream node
+                // Add this flow to the total for the downstream node
                 let downstream_flow = node_total_flows
                     .entry(conduit.to_node.clone())
                     .or_insert(0.0);
                 *downstream_flow += flow_per_conduit;
-
-                // Add downstream node to processing queue
-                if !visited.contains(&conduit.to_node) {
-                    stack.push(conduit.to_node.clone());
-                }
             }
         }
     }
@@ -622,23 +601,11 @@ pub fn route_flows_with_inlets(
         node_total_flows.insert(node_id.clone(), flow);
     }
 
-    // Get all nodes in upstream-to-downstream order
-    let mut visited = std::collections::HashSet::new();
-    let mut stack = Vec::new();
+    // Get traversal order
+    let sorted_nodes = topological_sort_upstream_to_downstream(network)?;
 
-    // Start from inlets (nodes with no upstream conduits)
-    for node in &network.nodes {
-        if network.upstream_conduits(&node.id).is_empty() && !node.is_outfall() {
-            stack.push(node.id.clone());
-        }
-    }
-
-    // Process nodes from upstream to downstream
-    while let Some(node_id) = stack.pop() {
-        if visited.contains(&node_id) {
-            continue;
-        }
-        visited.insert(node_id.clone());
+    // Process nodes in topological order
+    for node_id in sorted_nodes {
 
         // Find the node
         let node = network
@@ -667,35 +634,25 @@ pub fn route_flows_with_inlets(
             inlet_results.push(result);
         }
 
-        // Route intercepted flow through downstream conduits
+        // Route intercepted flow to downstream conduits
         let downstream_conduits = network.downstream_conduits(&node_id);
-
         if !downstream_conduits.is_empty() {
-            // For on-grade inlets, intercepted flow goes to underground system
-            // Bypass flow continues in gutter to next inlet
             let flow_per_conduit = intercepted_flow / downstream_conduits.len() as f64;
 
             for conduit in downstream_conduits {
-                // Set conduit flow (underground system)
+                // Add intercepted flow to the underground system
                 conduit_flows.insert(conduit.id.clone(), flow_per_conduit);
-
-                // Add intercepted flow to downstream node
-                let downstream_flow = node_total_flows
+                let downstream_total = node_total_flows
                     .entry(conduit.to_node.clone())
                     .or_insert(0.0);
-                *downstream_flow += flow_per_conduit;
+                *downstream_total += flow_per_conduit;
 
-                // Add bypass flow to downstream node (gutter flow)
+                // Add bypass flow to the downstream gutter
                 if bypass_flow > 0.0 {
                     let downstream_bypass = bypass_flows
                         .entry(conduit.to_node.clone())
                         .or_insert(0.0);
                     *downstream_bypass += bypass_flow;
-                }
-
-                // Add downstream node to processing queue
-                if !visited.contains(&conduit.to_node) {
-                    stack.push(conduit.to_node.clone());
                 }
             }
         }
@@ -856,6 +813,56 @@ fn calculate_inlet_interception(
     };
 
     Ok((interception.intercepted_flow, interception.bypass_flow, Some(result)))
+}
+
+/// Perform an upstream-to-downstream topological sort of the network nodes.
+///
+/// This implementation uses Kahn's algorithm. It's used for flow routing
+/// to ensure that a node is processed only after all its upstream contributors
+/// have been accounted for.
+///
+/// # Arguments
+/// * `network` - The drainage network.
+///
+/// # Returns
+/// A `Vec<String>` containing the node IDs in topologically sorted order,
+/// or an error if a cycle is detected.
+fn topological_sort_upstream_to_downstream(
+    network: &Network,
+) -> Result<Vec<String>, String> {
+    let mut in_degree: HashMap<String, usize> = HashMap::new();
+    let mut queue: Vec<String> = Vec::new();
+    let mut sorted_nodes: Vec<String> = Vec::new();
+
+    // Initialize in-degree for all nodes
+    for node in &network.nodes {
+        in_degree.insert(node.id.clone(), network.upstream_conduits(&node.id).len());
+        if *in_degree.get(&node.id).unwrap() == 0 {
+            queue.push(node.id.clone());
+        }
+    }
+
+    // Process nodes with an in-degree of 0
+    while let Some(node_id) = queue.pop() {
+        sorted_nodes.push(node_id.clone());
+
+        // For each downstream node, decrement its in-degree
+        for conduit in network.downstream_conduits(&node_id) {
+            if let Some(degree) = in_degree.get_mut(&conduit.to_node) {
+                *degree -= 1;
+                if *degree == 0 {
+                    queue.push(conduit.to_node.clone());
+                }
+            }
+        }
+    }
+
+    // Check for cycles
+    if sorted_nodes.len() != network.nodes.len() {
+        Err("A cycle was detected in the network graph.".to_string())
+    } else {
+        Ok(sorted_nodes)
+    }
 }
 
 

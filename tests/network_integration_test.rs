@@ -835,19 +835,12 @@ fn test_branching_network() {
         "P-202 should carry combined south branch flow"
     );
 
-    // KNOWN LIMITATION: route_flows() has a bug with junction confluence
-    // The stack-based algorithm can process a junction before all upstream flows arrive.
-    // The trunk pipe may only get flow from one branch instead of both.
-    // This test verifies the solver still completes without errors despite this limitation.
-    println!("\nNote: route_flows() limitation detected:");
-    println!("  Expected P-301 flow: {:.2} cfs (combined from both branches)", q_total);
-    println!("  Actual P-301 flow: {:.2} cfs", conduit_flows["P-301"]);
-    println!("  This is a known routing bug, not a test failure");
-
-    // For now, just verify P-301 has SOME positive flow (relaxed assertion)
+    // Verify trunk pipe flow is the sum of all branch flows
     assert!(
-        conduit_flows["P-301"] > 0.0,
-        "P-301 should have positive flow"
+        (conduit_flows["P-301"] - q_total).abs() < 0.001,
+        "P-301 should carry the combined flow from all branches. Expected: {}, Got: {}",
+        q_total,
+        conduit_flows["P-301"]
     );
 
     // Run hydraulic solver
