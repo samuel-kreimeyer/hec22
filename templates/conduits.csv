@@ -1,0 +1,5 @@
+id,type,from_node,to_node,diameter,length,slope,manning_n,material,cross_slope,long_slope
+P-001,pipe,IN-001,MH-001,18,120,0.005,0.013,RCP,,
+P-002,pipe,IN-002,MH-001,18,100,0.008,0.013,RCP,,
+P-003,pipe,MH-001,MH-002,24,120,0.0375,0.013,RCP,,
+P-004,pipe,MH-002,OUT-001,30,120,0.0458,0.013,RCP,,
