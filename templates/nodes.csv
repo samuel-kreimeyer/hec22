@@ -1,0 +1,6 @@
+id,type,invert_elev,rim_elev,x,y,diameter,inlet_type,boundary_condition
+IN-001,inlet,100.5,105.5,0,0,,grate,
+IN-002,inlet,98.2,103.2,120,0,,combination,
+MH-001,junction,95.0,100.0,240,0,4.0,,
+MH-002,junction,90.5,95.5,360,0,4.0,,
+OUT-001,outfall,85.0,,480,0,,,free

@@ -18,6 +18,7 @@
 //! - [`gutter`] - Gutter spread calculations (Chapter 5)
 //! - [`inlet`] - Inlet capacity calculations (Chapter 7)
 //! - [`solver`] - HGL/EGL solver (9-step procedure from Chapter 9)
+//! - [`csv`] - CSV input/output for tabular data
 //!
 //! ## Example
 //!
@@ -37,6 +38,7 @@
 
 pub mod analysis;
 pub mod conduit;
+pub mod csv;
 pub mod drainage;
 pub mod gutter;
 pub mod hydraulics;
