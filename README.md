@@ -286,30 +286,196 @@ hec22/
 └── LICENSE                            # Project license
 ```
 
-## Next Steps
+## Development Roadmap
 
-Future development of this project may include:
+This roadmap defines the phased development of the HEC-22 drainage analysis system, prioritizing practical usability for practicing engineers.
 
-1. **Computational Tools**
-   - Python/JavaScript implementation of equations
-   - Web-based calculator interface
-   - Automated HGL analysis
+### Phase 1: Core Hydraulics ✓ COMPLETE
 
-2. **Data Management**
-   - Database schema for component storage
-   - Import/export to common formats (CSV, JSON, XML)
-   - Integration with GIS data
+**Status**: All features implemented and verified
 
-3. **Visualization**
-   - Network diagram generation
-   - Profile plotting (HGL/EGL)
-   - Drainage area mapping
+- [x] Manning's equation for pipes and channels
+- [x] Gutter flow calculations (Chapter 5)
+- [x] Inlet capacity and bypass flow (Chapter 7)
+- [x] HGL/EGL solver with junction losses (Chapter 9)
+- [x] JSON schema and Rust type system
+- [x] Verification tests against HEC-22 worked examples (59 tests passing)
 
-4. **Advanced Features**
-   - Detention pond design
-   - Water quality BMPs
-   - Pump station analysis
-   - Dynamic modeling (EPA SWMM integration)
+**Deliverables**:
+- Complete Rust library (`hec22` crate) with hydraulic calculation functions
+- JSON schema for drainage network representation
+- Working examples demonstrating all core features
+
+---
+
+### Phase 2: Tabular Input & CLI MVP 🎯 TOP PRIORITY
+
+**Goal**: Enable non-programmers to analyze drainage systems using spreadsheets and command-line tools
+
+**Target User**: "I have a spreadsheet with nodes, pipes, and drainage areas. I need to check HGL and gutter spread."
+
+#### 2.1 CSV/Excel Input Parser
+- [ ] **Node table parser** - Read inlet/junction/outfall data from CSV
+  - Columns: `id`, `type`, `invert_elev`, `rim_elev`, `x`, `y`
+- [ ] **Conduit table parser** - Read pipe/gutter data from CSV
+  - Columns: `id`, `from_node`, `to_node`, `diameter`, `length`, `slope`, `manning_n`
+- [ ] **Drainage area parser** - Read subcatchment data
+  - Columns: `id`, `area`, `runoff_coef`, `time_of_conc`, `outlet_node`
+- [ ] **Gutter/curb parameters** - Read surface drainage properties
+  - Columns: `node_id`, `cross_slope`, `long_slope`, `curb_height`, `gutter_width`
+- [ ] **Project settings** - Design criteria and units
+  - Storm event, design flows, spread limits, HGL criteria
+
+#### 2.2 CLI Tool (`hec22-cli`)
+- [ ] **Command structure**
+  ```bash
+  hec22 solve --nodes nodes.csv --conduits pipes.csv --areas catchments.csv --output report.txt
+  ```
+- [ ] **Input validation** - Check for missing nodes, disconnected networks, invalid slopes
+- [ ] **Progress reporting** - Show analysis progress for large networks
+- [ ] **Error messages** - Clear, actionable error messages for non-programmers
+
+#### 2.3 HGL Analysis & Reporting
+- [ ] **Automatic flow assignment** - Assign drainage area flows to inlets
+- [ ] **HGL solver execution** - Run hydraulic grade line analysis
+- [ ] **Violation detection** - Identify nodes where HGL exceeds rim elevation
+- [ ] **Text report generation**
+  ```
+  === HGL ANALYSIS RESULTS ===
+  Node ID    Rim Elev    HGL      Status
+  -------    --------    ----     ------
+  MH-001     125.0 ft    124.3    OK
+  MH-002     122.0 ft    123.5    VIOLATION (-1.5 ft)
+  ```
+
+#### 2.4 Gutter Spread Reporting
+- [ ] **Spread calculation** - Compute gutter spread at each inlet
+- [ ] **Criteria checking** - Compare to design limits (e.g., 10 ft max)
+- [ ] **Spread report**
+  ```
+  === GUTTER SPREAD ANALYSIS ===
+  Inlet ID   Flow (cfs)   Spread (ft)   Limit (ft)   Status
+  --------   ----------   -----------   ----------   ------
+  IN-001     2.5          8.3           10.0         OK
+  IN-002     4.2          12.1          10.0         EXCEEDS
+  ```
+
+#### 2.5 Basic Output Formats
+- [ ] **Text report** - Human-readable summary (`.txt`)
+- [ ] **CSV export** - Results tables for Excel import (`.csv`)
+- [ ] **Summary statistics** - Total flow, number of violations, max HGL
+
+**Success Criteria**:
+A civil engineer with a spreadsheet can run the tool and get HGL/spread results in under 5 minutes, without writing code.
+
+---
+
+### Phase 3: Design Automation
+
+**Goal**: Automated pipe sizing and inlet spacing optimization
+
+- [ ] **Pipe sizing optimizer** - Auto-size pipes to meet HGL criteria
+- [ ] **Inlet spacing calculator** - Optimize inlet locations for spread limits
+- [ ] **Iterative solver** - Adjust network until all criteria satisfied
+- [ ] **Cost optimization** - Minimize total pipe material cost
+- [ ] **Design alternatives** - Generate multiple solutions ranked by cost/performance
+
+**Use Case**: "Size my pipes to prevent flooding with minimum cost"
+
+---
+
+### Phase 4: Advanced HEC-22 Features
+
+**Goal**: Complete coverage of HEC-22 methodology
+
+#### 4.1 Detention/Retention (Chapter 10)
+- [ ] Stage-storage-discharge relationships
+- [ ] Modified Puls routing method
+- [ ] Outlet structure design (weirs, orifices, culverts)
+- [ ] Pond sizing for peak flow attenuation
+
+#### 4.2 Water Quality BMPs (Chapter 11)
+- [ ] Pollutant load estimation (runoff quality)
+- [ ] BMP removal efficiency calculations
+- [ ] LID/Green infrastructure sizing (bioretention, permeable pavement)
+- [ ] Treatment train analysis
+
+#### 4.3 Pump Stations (Chapter 12)
+- [ ] Pump selection and system curves
+- [ ] Wet well volume calculations
+- [ ] Storage routing with pumping
+- [ ] Multiple pump operation strategies
+
+**Deliverable**: Full HEC-22 methodology implementation
+
+---
+
+### Phase 5: File Format Converters & Integration
+
+**Goal**: Interoperability with existing tools
+
+#### 5.1 Import Formats
+- [ ] **SWMM .inp** - EPA Storm Water Management Model files
+- [ ] **Civil3D XML** - Autodesk Civil3D pipe network export
+- [ ] **HydroCAD** - HydroCAD project files
+- [ ] **Excel templates** - Pre-formatted spreadsheet layouts
+- [ ] **GIS shapefiles** - Import network geometry from ArcGIS/QGIS
+
+#### 5.2 Export Formats
+- [ ] **GeoJSON** - For web mapping and GIS integration
+- [ ] **PDF reports** - Professional calculation packages
+- [ ] **SWMM .inp** - Export to EPA SWMM for dynamic modeling
+- [ ] **DXF/DWG** - CAD drawing exchange
+
+**Use Case**: "Convert my 20 SWMM models to this format" or "Export results to AutoCAD"
+
+---
+
+### Phase 6: Web Interface & Visualization
+
+**Goal**: Interactive design environment accessible via browser
+
+- [ ] **Network diagram** - Interactive node/link visualization with pan/zoom
+- [ ] **Profile plots** - HGL/EGL elevation profiles along pipe runs
+- [ ] **Drainage area mapping** - Catchment boundaries and flow paths
+- [ ] **Real-time editing** - Modify network and see immediate results
+- [ ] **Report generation** - Export professional PDF calculation packages
+- [ ] **Collaboration** - Share projects via URL, multi-user access
+
+**Technology**: Web-based (React + WebAssembly or browser-native)
+
+**Use Case**: "Share this design with my client via a link"
+
+---
+
+### Phase 7: Production Readiness & Distribution
+
+**Goal**: Make the tool accessible to the broader engineering community
+
+- [ ] **Performance optimization** - Handle 1000+ node networks efficiently
+- [ ] **Comprehensive error handling** - Graceful failures with helpful messages
+- [ ] **API documentation** - Detailed docs for all public functions
+- [ ] **User guide** - Step-by-step tutorials for common workflows
+- [ ] **Example projects** - Library of worked examples from real projects
+- [ ] **Packaging & distribution**
+  - Rust crate on crates.io
+  - Python bindings on PyPI
+  - npm package for JavaScript/TypeScript
+  - Pre-built CLI binaries for Windows/Mac/Linux
+- [ ] **Testing & CI/CD** - Automated testing on all platforms
+- [ ] **Versioning & releases** - Semantic versioning with changelogs
+
+**Deliverable**: Production-quality tool ready for professional use
+
+---
+
+## Current Focus
+
+**Next Milestone**: Phase 2 - Tabular Input & CLI MVP
+
+The immediate development priority is building a working command-line tool that accepts CSV inputs and produces HGL and gutter spread reports. This will make the tool immediately useful to practicing engineers without requiring programming knowledge.
+
+See the [CONTRIBUTING.md](CONTRIBUTING.md) guide for information on participating in development.
 
 ## Contributing
 
