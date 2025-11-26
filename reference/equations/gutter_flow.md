@@ -3,6 +3,31 @@
 ## Reference
 Based on FHWA HEC-22 (4th Edition, 2024) - Urban Drainage Design Manual, Chapter 4
 
+## Choosing Between Gutter Types
+
+### When to Use Uniform Cross-Slope (Linear Formula)
+
+Use the **uniform cross-slope** gutter type when:
+- The pavement has a constant cross slope from curb to crown
+- No local depression or gutter pan exists
+- Simple triangular flow section
+- **This is a good default assumption** for preliminary analysis
+
+### When to Use Composite Section
+
+Use the **composite gutter** type when:
+- A depressed gutter section exists along the curb
+- Different cross slopes for gutter vs roadway (Sx ≠ Sw)
+- Local depression depth (typically 1-3 inches)
+- More accurate flow distribution is needed for inlet design
+
+### When to Use Parabolic Crown
+
+Use the **parabolic crown** when:
+- Roadway has a curved (parabolic) cross section
+- Analyzing flow on crowned roads (both sides of centerline)
+- Variable cross slope across the section
+
 ## Gutter Flow Capacity
 
 ### Modified Manning's Equation for Gutter Flow

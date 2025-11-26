@@ -1,7 +1,9 @@
-id,type,invert_elev,rim_elev,x,y,shape,diameter,width,height,inlet_type,boundary_condition
-IN-001,inlet,100.5,105.5,0,0,,,,,grate,
-IN-002,inlet,98.2,103.2,120,0,,,,,combination,
-MH-001,junction,95.0,100.0,240,0,circular,4.0,,,,
-MH-002,junction,90.5,95.5,360,0,rectangular,,6.0,6.0,,
-MH-003,junction,88.0,93.0,480,0,rectangular,,8.0,8.0,,
-OUT-001,outfall,85.0,,600,0,,,,,,free
+id,type,invert_elev,rim_elev,x,y,shape,diameter,width,height,inlet_type,inlet_location,grate_length,grate_width,bar_configuration,curb_opening_length,curb_opening_height,throat_type,local_depression,clogging_factor,grate_count,boundary_condition
+IN-001,inlet,100.5,105.5,0,0,,,,,grate,on_grade,3.0,2.0,perpendicular,,,,,0.15,1,
+IN-002,inlet,98.2,103.2,120,0,,,,,combination,on_grade,2.5,1.5,perpendicular,5.0,0.5,horizontal,2.0,0.20,1,
+IN-003,inlet,96.5,101.5,200,0,,,,,curb_opening,on_grade,,,,,8.0,0.5,vertical,,0.10,1,
+IN-004,inlet,94.0,99.0,300,0,,,,,grate,sag,4.0,2.5,perpendicular,,,,,0.50,2,
+MH-001,junction,95.0,100.0,240,0,circular,4.0,,,,,,,,,,,,,
+MH-002,junction,90.5,95.5,360,0,rectangular,,6.0,6.0,,,,,,,,,,,
+MH-003,junction,88.0,93.0,480,0,rectangular,,8.0,8.0,,,,,,,,,,,
+OUT-001,outfall,85.0,,600,0,,,,,,,,,,,,,,,free
