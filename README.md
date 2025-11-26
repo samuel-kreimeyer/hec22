@@ -288,7 +288,8 @@ atlas14_fetch --lat 34.0522 --lon -118.2437 \
 ```
 
 **Features:**
-- Fetches rainfall intensity data for any US location
+- Fetches **real NOAA ATLAS14 precipitation frequency data** directly from NOAA servers
+- Provides official, authoritative rainfall intensity values used in professional engineering practice
 - Supports both English (in/hr) and metric (mm/hr) units
 - Customizable return periods and storm durations
 - Outputs CSV in HEC-22 compatible format (return_period, duration, intensity)

@@ -14,7 +14,6 @@
 
 use clap::Parser;
 use reqwest::blocking::Client;
-use serde::Deserialize;
 use std::error::Error;
 use std::fs::File;
 use std::io::Write;
@@ -48,24 +47,6 @@ struct Cli {
     /// Durations in minutes (comma-separated, e.g., "5,10,15,30,60,120")
     #[arg(short, long, default_value = "5,10,15,30,60,120")]
     durations: String,
-}
-
-/// NOAA ATLAS14 API response structure (simplified)
-#[derive(Debug, Deserialize)]
-struct Atlas14Response {
-    #[serde(default)]
-    data: Vec<Vec<DataPoint>>,
-}
-
-#[derive(Debug, Deserialize, Clone)]
-struct DataPoint {
-    duration: String,
-    frequency: String,
-    upper: f64,
-    lower: f64,
-    // The actual precipitation value (depth in inches for the duration)
-    #[serde(rename = "precip")]
-    precip: Option<f64>,
 }
 
 /// IDF curve entry
@@ -130,14 +111,11 @@ fn fetch_atlas14_data(
         .timeout(std::time::Duration::from_secs(60))
         .build()?;
 
-    // NOAA ATLAS14 uses a different API structure
-    // We'll use the precipitation frequency data server
-    let base_url = "https://hdsc.nws.noaa.gov/cgi-bin/hdsc/new/cgi_readH5.py";
-
-    // Build query parameters
+    // NOAA HDSC Precipitation Frequency Data Server API
+    // This endpoint returns CSV data with precipitation frequency estimates
     let url = format!(
-        "{}?lat={:.4}&lon={:.4}&type=pf&data=depth&units={}&series=pds",
-        base_url, lat, lon, units
+        "https://hdsc.nws.noaa.gov/cgi-bin/new/fe_text_lwr.csv?lat={:.4}&lon={:.4}&data=intensity&units={}&series=pds",
+        lat, lon, units
     );
 
     println!("Querying NOAA ATLAS14 API...");
@@ -149,63 +127,127 @@ fn fetch_atlas14_data(
         return Err(format!("API request failed with status: {}", response.status()).into());
     }
 
-    let text = response.text()?;
+    let csv_text = response.text()?;
 
-    // The NOAA API returns a complex format, we'll need to parse it
-    // For now, we'll generate sample data based on typical ATLAS14 curves
-    // In a production version, this would parse the actual NOAA response
+    println!("Successfully retrieved NOAA ATLAS14 data");
+    println!("Parsing precipitation frequency estimates...\n");
 
-    println!("Warning: Using empirical ATLAS14 approximation for the given location.");
-    println!("For precise data, please verify with official NOAA ATLAS14 maps.\n");
-
-    generate_atlas14_approximation(lat, lon, return_periods, durations, units)
+    // Parse the CSV response from NOAA
+    parse_noaa_csv(&csv_text, return_periods, durations)
 }
 
-/// Generate ATLAS14 approximation using empirical formulas
-/// This is a simplified approximation - real implementation would parse NOAA data
-fn generate_atlas14_approximation(
-    lat: &f64,
-    _lon: &f64,
-    return_periods: &[f64],
-    durations: &[f64],
-    units: &str,
+/// Parse NOAA ATLAS14 CSV response
+///
+/// NOAA returns CSV with headers and data in a specific format.
+/// The CSV contains precipitation intensity values for various durations (columns)
+/// and return periods (rows).
+fn parse_noaa_csv(
+    csv_text: &str,
+    requested_return_periods: &[f64],
+    requested_durations: &[f64],
 ) -> Result<Vec<IdfEntry>, Box<dyn Error>> {
     let mut idf_entries = Vec::new();
+    let mut csv_reader = csv::ReaderBuilder::new()
+        .has_headers(true)
+        .flexible(true)
+        .from_reader(csv_text.as_bytes());
 
-    // Climate adjustment factor based on latitude (simplified)
-    // Higher latitudes typically have lower intensities
-    let climate_factor = 1.0 - (lat.abs() - 30.0) / 100.0;
-    let climate_factor = climate_factor.max(0.5).min(1.2);
+    // Read headers to get duration values
+    let headers = csv_reader.headers()?;
 
-    for &rp in return_periods {
-        for &dur in durations {
-            // Use modified Talbot equation as approximation
-            // i = a / (t + b)^c where:
-            // - i is intensity (in/hr or mm/hr)
-            // - t is duration (minutes)
-            // - a, b, c are coefficients that vary with return period
+    // First column is typically the return period label
+    // Subsequent columns are durations (e.g., "5-min", "10-min", "15-min", etc.)
+    let mut duration_map: Vec<(usize, f64)> = Vec::new();
 
-            // These coefficients are simplified approximations
-            let a = if units == "metric" {
-                climate_factor * rp.powf(0.25) * 180.0
-            } else {
-                climate_factor * rp.powf(0.25) * 7.0
-            };
-
-            let b = 10.0;
-            let c = 0.75;
-
-            let intensity = a / (dur + b).powf(c);
-
-            idf_entries.push(IdfEntry {
-                return_period: rp,
-                duration: dur,
-                intensity,
-            });
+    for (idx, header) in headers.iter().enumerate().skip(1) {
+        // Parse duration from header (e.g., "5-min" -> 5.0)
+        if let Some(duration) = parse_duration_from_header(header) {
+            duration_map.push((idx, duration));
         }
     }
 
+    // Parse each row (each row represents a return period)
+    for result in csv_reader.records() {
+        let record = result?;
+
+        // First column should be the return period
+        let return_period_str = record.get(0).unwrap_or("");
+        let return_period = parse_return_period(return_period_str)?;
+
+        // Only process requested return periods
+        if !requested_return_periods.contains(&return_period) {
+            continue;
+        }
+
+        // Extract intensities for each duration
+        for (col_idx, duration) in &duration_map {
+            // Only process requested durations
+            if !requested_durations.contains(duration) {
+                continue;
+            }
+
+            if let Some(value_str) = record.get(*col_idx) {
+                if let Ok(intensity) = value_str.trim().parse::<f64>() {
+                    idf_entries.push(IdfEntry {
+                        return_period,
+                        duration: *duration,
+                        intensity,
+                    });
+                }
+            }
+        }
+    }
+
+    if idf_entries.is_empty() {
+        return Err("No data extracted from NOAA response. Check lat/lon coordinates and parameters.".into());
+    }
+
     Ok(idf_entries)
+}
+
+/// Parse duration from CSV header (e.g., "5-min" -> 5.0, "1-hr" -> 60.0)
+fn parse_duration_from_header(header: &str) -> Option<f64> {
+    let header_lower = header.to_lowercase();
+
+    // Handle various formats: "5-min", "5 min", "5min", "1-hr", "1 hr"
+    if header_lower.contains("min") {
+        // Extract number before "min"
+        let num_str: String = header_lower
+            .chars()
+            .take_while(|c| c.is_numeric() || *c == '.')
+            .collect();
+        num_str.parse::<f64>().ok()
+    } else if header_lower.contains("hr") || header_lower.contains("hour") {
+        // Extract number and convert hours to minutes
+        let num_str: String = header_lower
+            .chars()
+            .take_while(|c| c.is_numeric() || *c == '.')
+            .collect();
+        num_str.parse::<f64>().ok().map(|h| h * 60.0)
+    } else if header_lower.contains("day") {
+        // Extract number and convert days to minutes
+        let num_str: String = header_lower
+            .chars()
+            .take_while(|c| c.is_numeric() || *c == '.')
+            .collect();
+        num_str.parse::<f64>().ok().map(|d| d * 1440.0)
+    } else {
+        None
+    }
+}
+
+/// Parse return period from row header (e.g., "10-yr" -> 10.0, "100" -> 100.0)
+fn parse_return_period(s: &str) -> Result<f64, Box<dyn Error>> {
+    let s_lower = s.to_lowercase();
+
+    // Extract numeric part
+    let num_str: String = s_lower
+        .chars()
+        .filter(|c| c.is_numeric() || *c == '.')
+        .collect();
+
+    num_str.parse::<f64>()
+        .map_err(|e| format!("Failed to parse return period from '{}': {}", s, e).into())
 }
 
 /// Write IDF data to CSV file in HEC-22 format

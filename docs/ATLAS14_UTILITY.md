@@ -123,35 +123,36 @@ You can use online geocoding services to convert city names to coordinates:
 
 ### Data Source
 
-The utility queries the NOAA ATLAS14 Precipitation Frequency Data Server:
-- Base URL: `https://hdsc.nws.noaa.gov/cgi-bin/hdsc/new/cgi_readH5.py`
-- Parameters: `lat`, `lon`, `type=pf`, `units=english|metric`, `series=pds`
+The utility fetches **real** precipitation frequency data from the NOAA HDSC (Hydrometeorological Design Studies Center) Precipitation Frequency Data Server API:
 
-### Current Implementation Note
+- **API Endpoint**: `https://hdsc.nws.noaa.gov/cgi-bin/new/fe_text_lwr.csv`
+- **Method**: HTTP GET
+- **Parameters**:
+  - `lat`: Latitude in decimal degrees
+  - `lon`: Longitude in decimal degrees
+  - `data`: `intensity` (rainfall intensity in in/hr or mm/hr)
+  - `units`: `english` or `metric`
+  - `series`: `pds` (partial duration series) for design applications
 
-**Version 0.1.0** uses an empirical approximation based on the modified Talbot equation with climate-adjusted coefficients. This provides reasonable estimates for preliminary design work.
+### Data Quality
 
-For critical projects, you should:
-1. Verify the results against official NOAA ATLAS14 maps
-2. Or manually download data from https://hdsc.nws.noaa.gov/pfds/
-3. Future versions will include direct NOAA API parsing
+The utility fetches **official NOAA ATLAS14 precipitation frequency estimates** directly from NOAA's servers. This is the same authoritative data used by professional engineers and included in NOAA Atlas 14 publications.
 
-### Approximation Formula
+**Coverage**: NOAA Atlas 14 currently covers most of the United States. Coverage may vary by region:
+- Contiguous US: Complete coverage
+- Alaska: Limited coverage
+- Hawaii and US territories: May have limited or no coverage
 
-The current implementation uses:
+For locations outside ATLAS14 coverage, the API will return an error.
 
-```
-i = a / (t + b)^c
-```
+### Data Format
 
-Where:
-- `i` = rainfall intensity (in/hr or mm/hr)
-- `t` = duration (minutes)
-- `a` = coefficient that varies with return period and climate
-- `b` = 10.0 (constant)
-- `c` = 0.75 (constant)
+NOAA returns CSV data with:
+- **Rows**: Different return periods (1, 2, 5, 10, 25, 50, 100, 200, 500, 1000 years)
+- **Columns**: Different storm durations (5-min, 10-min, 15-min, 30-min, 1-hr, 2-hr, 3-hr, 6-hr, 12-hr, 24-hr, etc.)
+- **Values**: Precipitation intensity (in/hr) or depth (inches) depending on the `data` parameter
 
-Climate adjustment factor based on latitude accounts for regional variations.
+The utility automatically parses this CSV and extracts only the requested return periods and durations.
 
 ## Troubleshooting
 
@@ -171,12 +172,12 @@ The utility requires internet access to query the NOAA ATLAS14 database. Check y
 ## Future Enhancements
 
 Planned features for future versions:
-- [ ] Direct parsing of NOAA ATLAS14 API responses
 - [ ] Support for city/address geocoding (no manual coordinates needed)
 - [ ] Confidence interval data (upper/lower bounds)
 - [ ] Temporal distribution patterns (SCS Type I, IA, II, III)
 - [ ] Batch processing of multiple locations
 - [ ] Caching of fetched data to minimize API calls
+- [ ] Support for precipitation depth values in addition to intensity
 
 ## References
 
