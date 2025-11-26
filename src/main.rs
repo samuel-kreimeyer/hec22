@@ -26,7 +26,16 @@ struct Cli {
     #[arg(short = 'a', long, value_name = "FILE")]
     drainage_areas: Option<PathBuf>,
 
-    /// Rainfall intensity (in/hr for US units, mm/hr for SI units)
+    /// Path to IDF curves CSV file (columns: return_period, duration, intensity)
+    #[arg(long, value_name = "FILE")]
+    idf_curves: Option<PathBuf>,
+
+    /// Return period in years (used with IDF curves, default: 10)
+    #[arg(short = 'r', long, default_value = "10")]
+    return_period: f64,
+
+    /// Rainfall intensity (in/hr for US units, mm/hr for SI units).
+    /// If IDF curves are provided, this is used as fallback when time of concentration lookup fails.
     #[arg(short, long, default_value = "4.0")]
     intensity: f64,
 
@@ -128,17 +137,71 @@ fn run_analysis(cli: Cli) -> Result<(), Box<dyn std::error::Error>> {
              network.junctions().len(),
              network.outfalls().len());
 
+    // Load IDF curves if provided
+    let idf_curve = if let Some(ref idf_path) = cli.idf_curves {
+        println!("\nLoading IDF curves...");
+        let curves = csv::parse_idf_curves_csv(idf_path)
+            .map_err(|e| format!("Failed to parse IDF curves file: {}", e))?;
+
+        // Find curve for the requested return period
+        let curve = curves.iter()
+            .find(|c| (c.return_period - cli.return_period).abs() < 0.1)
+            .ok_or_else(|| format!("No IDF curve found for return period {} years", cli.return_period))?;
+
+        println!("  Using {}-year IDF curve with {} duration points",
+                 curve.return_period, curve.points.len());
+        Some(curve.clone())
+    } else {
+        None
+    };
+
     // Compute flows from drainage areas
     let node_inflows = if let Some(ref areas) = drainage_areas {
         println!("\nComputing rational method flows...");
-        println!("  Rainfall intensity: {} {}",
-                 cli.intensity,
-                 if matches!(cli.units, UnitSystemArg::Us) { "in/hr" } else { "mm/hr" });
 
-        let flows = solver::compute_rational_flows(areas, cli.intensity);
+        let mut flows = HashMap::new();
 
-        for (node_id, flow) in &flows {
-            println!("  Node {}: {:.2} cfs", node_id, flow);
+        for area in areas {
+            // Determine intensity for this drainage area
+            let intensity = if let Some(ref curve) = idf_curve {
+                // Use time of concentration to look up intensity from IDF curve
+                if let Some(tc) = area.time_of_concentration {
+                    match curve.get_intensity(tc) {
+                        Some(i) => {
+                            println!("  Area {}: Tc={:.1} min, i={:.2} in/hr (from IDF curve)",
+                                     area.id, tc, i);
+                            i
+                        }
+                        None => {
+                            println!("  Area {}: Warning - could not interpolate intensity for Tc={:.1} min, using fallback",
+                                     area.id, tc);
+                            cli.intensity
+                        }
+                    }
+                } else {
+                    println!("  Area {}: Warning - no time of concentration, using fallback intensity",
+                             area.id);
+                    cli.intensity
+                }
+            } else {
+                // No IDF curve provided, use fixed intensity
+                cli.intensity
+            };
+
+            // Compute rational method flow: Q = C * i * A
+            let c = area.runoff_coefficient.unwrap_or(0.5);
+            let flow = c * intensity * area.area;
+
+            println!("  Node {}: Q = {:.2} × {:.2} × {:.2} = {:.2} cfs",
+                     area.outlet, c, intensity, area.area, flow);
+
+            *flows.entry(area.outlet.clone()).or_insert(0.0) += flow;
+        }
+
+        if idf_curve.is_none() {
+            println!("  (Using fixed intensity: {} {})",
+                     cli.intensity,
+                     if matches!(cli.units, UnitSystemArg::Us) { "in/hr" } else { "mm/hr" });
         }
 
         flows
