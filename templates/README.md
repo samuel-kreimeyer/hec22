@@ -4,12 +4,15 @@ This directory contains CSV templates for defining drainage networks using the H
 
 ## Overview of Templates
 
-### Basic Templates
+### Core Templates (✅ Fully Implemented)
 - **nodes.csv** - Network nodes (inlets, junctions, outfalls)
 - **conduits.csv** - Pipes and channels connecting nodes
 - **drainage_areas.csv** - Subcatchment/drainage area definitions
 - **idf_curves.csv** - Intensity-Duration-Frequency curves for rainfall analysis
-- **design_storms.csv** - Design storm event definitions
+
+### Planned Templates (🚧 Future Features)
+- **design_storms.csv** - Design storm event definitions (planned for future release)
+- **gutter_parameters.csv** - Gutter and curb inlet parameters (planned for future release)
 
 ### Extended Examples
 - **nodes_extended_example.csv** - Shows rectangular manholes
@@ -19,7 +22,20 @@ This directory contains CSV templates for defining drainage networks using the H
 
 1. Copy the template files you need to your project directory
 2. Edit the CSV files with your project-specific data
-3. Use the HEC-22 CLI or library to analyze your network
+3. Use the HEC-22 CLI to analyze your network:
+
+```bash
+# Basic analysis with fixed intensity
+hec22 --nodes nodes.csv --conduits conduits.csv \
+      --drainage-areas drainage_areas.csv \
+      --intensity 4.5 --output results.txt
+
+# Using IDF curves (automatic intensity lookup by Tc)
+hec22 --nodes nodes.csv --conduits conduits.csv \
+      --drainage-areas drainage_areas.csv \
+      --idf-curves idf_curves.csv \
+      --return-period 10 --output results.txt
+```
 
 ## Template Details
 
@@ -133,7 +149,9 @@ return_period,duration,intensity
 
 **Common return periods:** 2, 5, 10, 25, 50, 100 years
 
-### design_storms.csv
+### design_storms.csv (🚧 Planned Feature)
+
+**Status:** This feature is planned for a future release. Currently, use IDF curves with the `--return-period` CLI parameter instead.
 
 Defines design storm events for runoff analysis.
 
@@ -155,21 +173,33 @@ DS-10YR,10-Year 24-Hour,10,1440,5.1,SCS Type II,
 DS-100YR,100-Year 24-Hour,100,1440,8.0,SCS Type II,
 ```
 
-## Using IDF Curves with Drainage Areas
+## Using IDF Curves with Drainage Areas (✅ Implemented)
 
-The system can automatically compute peak flow for each drainage area using:
+The CLI automatically computes peak flow for each drainage area using:
 1. Time of concentration (Tc) from the drainage area
 2. IDF curves to lookup rainfall intensity for the design storm's return period and duration equal to Tc
-3. Rational method formula: **Q = C × i × A**
+3. Linear interpolation between IDF curve points if Tc falls between durations
+4. Rational method formula: **Q = C × i × A**
 
 **Workflow:**
-1. Define your IDF curves in `idf_curves.csv`
-2. Define design storms in `design_storms.csv` with return periods matching your IDF curves
-3. Reference the design storm in `drainage_areas.csv` using the `design_storm` column
+1. Create your IDF curves in `idf_curves.csv` (or use `atlas14_fetch` to get NOAA data)
+2. Define drainage areas in `drainage_areas.csv` with time of concentration values
+3. Run the CLI with `--idf-curves` and `--return-period` parameters:
+
+```bash
+hec22 --nodes nodes.csv --conduits conduits.csv \
+      --drainage-areas drainage_areas.csv \
+      --idf-curves idf_curves.csv \
+      --return-period 10 \
+      --output results.txt
+```
+
 4. The system will:
-   - Look up the IDF curve for the storm's return period
-   - Find the intensity for duration = Tc
+   - Load the IDF curve for the specified return period (e.g., 10-year)
+   - For each drainage area, find the rainfall intensity for duration = Tc
+   - Interpolate linearly if Tc falls between IDF curve duration points
    - Compute peak flow: Q = C × i × A
+   - Display the computed intensity and flow for each drainage area
 
 ## Pipe Shape Guidelines
 

@@ -14,6 +14,9 @@
 //! ## Drainage Areas CSV
 //! Columns: `id`, `area`, `runoff_coef`, `time_of_conc`, `outlet_node`
 //!
+//! ## IDF Curves CSV
+//! Columns: `return_period`, `duration`, `intensity`
+//!
 //! ## Gutter Parameters CSV
 //! Columns: `node_id`, `cross_slope`, `long_slope`, `curb_height`, `gutter_width`
 
@@ -351,6 +354,70 @@ pub fn parse_drainage_areas_csv<P: AsRef<Path>>(path: P) -> Result<Vec<DrainageA
     }
 
     Ok(areas)
+}
+
+// ============================================================================
+// IDF Curves CSV Parser
+// ============================================================================
+
+use crate::rainfall::{IdfCurve, IdfPoint};
+
+/// CSV record for IDF curve data point
+#[derive(Debug, Deserialize)]
+pub struct IdfCurveCsvRecord {
+    /// Return period in years
+    pub return_period: f64,
+    /// Duration in minutes
+    pub duration: f64,
+    /// Rainfall intensity (in/hr or mm/hr)
+    pub intensity: f64,
+}
+
+/// Parse IDF curves from CSV file and organize by return period
+pub fn parse_idf_curves_csv<P: AsRef<Path>>(path: P) -> Result<Vec<IdfCurve>, Box<dyn Error>> {
+    let file = File::open(path)?;
+    let mut reader = ReaderBuilder::new()
+        .flexible(true)
+        .from_reader(file);
+
+    let mut records = Vec::new();
+
+    for (line_num, result) in reader.deserialize().enumerate() {
+        let record: IdfCurveCsvRecord = result
+            .map_err(|e| format!("Line {}: {}", line_num + 2, e))?;
+        records.push(record);
+    }
+
+    // Group by return period
+    use std::collections::HashMap;
+    let mut curves_map: HashMap<i32, Vec<IdfPoint>> = HashMap::new();
+
+    for record in records {
+        let rp_key = record.return_period as i32;
+        curves_map.entry(rp_key).or_insert_with(Vec::new).push(IdfPoint {
+            duration: record.duration,
+            intensity: record.intensity,
+        });
+    }
+
+    // Convert to IdfCurve structs
+    let mut curves: Vec<IdfCurve> = curves_map
+        .into_iter()
+        .map(|(rp, mut points)| {
+            // Sort points by duration
+            points.sort_by(|a, b| a.duration.partial_cmp(&b.duration).unwrap());
+            IdfCurve {
+                return_period: rp as f64,
+                equation: None,
+                points,
+            }
+        })
+        .collect();
+
+    // Sort curves by return period
+    curves.sort_by(|a, b| a.return_period.partial_cmp(&b.return_period).unwrap());
+
+    Ok(curves)
 }
 
 // ============================================================================
