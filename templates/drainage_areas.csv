@@ -1,3 +1,3 @@
-id,area,runoff_coef,time_of_conc,outlet_node,land_use
-DA-001,0.75,0.85,10.0,IN-001,Commercial
-DA-002,1.25,0.50,15.0,IN-002,Residential
+id,area,runoff_coef,time_of_conc,outlet_node,land_use,design_storm
+DA-001,0.75,0.85,10.0,IN-001,Commercial,DS-10YR
+DA-002,1.25,0.50,15.0,IN-002,Residential,DS-10YR
