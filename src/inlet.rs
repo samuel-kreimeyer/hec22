@@ -15,7 +15,7 @@
 //! - **On-Grade**: Continuous longitudinal slope (has bypass flow)
 //! - **Sag**: Low point in vertical profile (captures all flow)
 
-use crate::gutter::{GutterFlowResult, UniformGutter, GUTTER_K_US};
+use crate::gutter::{CompositeGutter, GutterFlowResult, UniformGutter, GUTTER_K_US};
 
 /// Inlet interception result
 #[derive(Debug, Clone, PartialEq)]
@@ -125,10 +125,22 @@ impl GrateInletOnGrade {
         let spread = gutter_result.spread;
         let velocity = gutter_result.velocity;
 
-        // Calculate frontal flow ratio using HEC-22 composite gutter equation
-        // Eo = 1 - (1 - W/T)^(8/3) for uniform cross slope
-        let w_over_t = (self.width / spread).min(1.0);
-        let ratio_frontal = 1.0 - (1.0 - w_over_t).powf(8.0 / 3.0);
+        // Calculate frontal flow ratio based on gutter type
+        // Composite gutters provide frontal_flow, uniform gutters do not
+        let ratio_frontal = if let Some(frontal) = gutter_result.frontal_flow {
+            // Composite gutter - use the calculated frontal flow ratio
+            // This accounts for depression and different slopes
+            if gutter_result.flow > 0.0 {
+                frontal / gutter_result.flow
+            } else {
+                0.0
+            }
+        } else {
+            // Uniform cross slope - use HEC-22 equation
+            // Eo = 1 - (1 - W/T)^(8/3) for uniform cross slope
+            let w_over_t = (self.width / spread).min(1.0);
+            1.0 - (1.0 - w_over_t).powf(8.0 / 3.0)
+        };
 
         // Frontal flow efficiency
         let ef = self.frontal_efficiency(velocity, ratio_frontal);
@@ -538,5 +550,50 @@ mod tests {
         // At mild slopes and moderate flows, this can be 200-500 ft
         assert!(lt > 0.0);
         assert!(lt < 1000.0); // Sanity check
+    }
+
+    #[test]
+    fn test_grate_inlet_with_composite_gutter() {
+        // Test that grate inlet correctly uses composite gutter frontal flow
+        let inlet = GrateInletOnGrade::new(
+            3.0,  // 3 ft length
+            2.0,  // 2 ft width
+            BarConfiguration::Perpendicular,
+            0.15, // 15% clogging
+            2.0,  // 2 inch depression
+        );
+
+        // Create composite gutter result
+        let composite_gutter = CompositeGutter::new(
+            0.016,  // Manning's n
+            0.04,   // 4% gutter slope
+            0.02,   // 2% roadway slope
+            0.01,   // 1% longitudinal slope
+            2.0,    // 2 ft gutter width
+            2.0,    // 2 inch local depression
+        );
+
+        let gutter_result = composite_gutter.result_for_flow(4.0, GUTTER_K_US);
+
+        // Verify that the composite gutter result has frontal flow populated
+        assert!(gutter_result.frontal_flow.is_some());
+        assert!(gutter_result.side_flow.is_some());
+
+        let result = inlet.interception(4.0, &gutter_result);
+
+        // Should intercept some flow
+        assert!(result.intercepted_flow > 0.0);
+        assert!(result.bypass_flow >= 0.0);
+        assert!((result.intercepted_flow + result.bypass_flow - 4.0).abs() < 0.01);
+        assert!(result.efficiency > 0.0 && result.efficiency <= 1.0);
+
+        // For composite gutters, the frontal flow ratio should be higher than
+        // the simple W/T ratio due to flow concentration near the curb
+        let frontal = gutter_result.frontal_flow.unwrap();
+        let simple_ratio = inlet.width / gutter_result.spread;
+        let composite_ratio = frontal / gutter_result.flow;
+        assert!(composite_ratio > simple_ratio,
+            "Composite gutter frontal ratio ({}) should be > simple W/T ({})",
+            composite_ratio, simple_ratio);
     }
 }
