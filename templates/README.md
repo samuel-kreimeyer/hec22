@@ -1,199 +1,241 @@
-# CSV Templates for HEC-22 Data Input
+# HEC-22 CSV Templates
 
-This directory contains example CSV files that demonstrate the format required for importing drainage network data.
+This directory contains CSV templates for defining drainage networks using the HEC-22 methodology.
 
-## File Descriptions
+## Overview of Templates
+
+### Basic Templates
+- **nodes.csv** - Network nodes (inlets, junctions, outfalls)
+- **conduits.csv** - Pipes and channels connecting nodes
+- **drainage_areas.csv** - Subcatchment/drainage area definitions
+- **idf_curves.csv** - Intensity-Duration-Frequency curves for rainfall analysis
+- **design_storms.csv** - Design storm event definitions
+
+### Extended Examples
+- **nodes_extended_example.csv** - Shows rectangular manholes
+- **conduits_extended_example.csv** - Shows various pipe shapes (circular, rectangular, elliptical, arch)
+
+## Quick Start
+
+1. Copy the template files you need to your project directory
+2. Edit the CSV files with your project-specific data
+3. Use the HEC-22 CLI or library to analyze your network
+
+## Template Details
 
 ### nodes.csv
-Defines network nodes (inlets, junctions/manholes, outfalls).
 
-**Required Columns:**
-- `id` - Unique node identifier
-- `type` - Node type: "inlet", "junction" (or "manhole"), or "outfall"
-- `invert_elev` - Invert elevation (ft)
+Defines network nodes including inlets, junctions (manholes), and outfalls.
 
-**Optional Columns:**
-- `rim_elev` - Rim/ground elevation (ft) - required for inlets and junctions
-- `x` - X coordinate (ft)
-- `y` - Y coordinate (ft)
-- `diameter` - Junction diameter (ft) - for junctions only
-- `inlet_type` - Inlet type: "grate", "curb", "combination", or "slotted" - for inlets only
-- `boundary_condition` - Boundary condition: "free", "normal", or "fixed" - for outfalls only
+**Columns:**
+- `id` - Unique node identifier (e.g., "IN-001", "MH-001", "OUT-001")
+- `type` - Node type: "inlet", "junction", "outfall"
+- `invert_elev` - Invert elevation (ft or m)
+- `rim_elev` - Ground/rim elevation (ft or m)
+- `x`, `y` - Coordinates for mapping (optional)
+- `shape` - Manhole shape: "circular" or "rectangular" (for junctions only)
+- `diameter` - Diameter in inches or mm (for circular manholes)
+- `width` - Width in feet or meters (for rectangular manholes)
+- `height` - Height in feet or meters (for rectangular manholes)
+- `inlet_type` - Inlet type: "grate", "curb_opening", "combination", "slotted" (for inlets only)
+- `boundary_condition` - Boundary condition for outfalls: "free", "normal", "fixed"
+
+**Examples:**
+```csv
+# Circular manhole (4 ft diameter)
+MH-001,junction,95.0,100.0,240,0,circular,4.0,,,,
+
+# Rectangular manhole (6 ft x 6 ft)
+MH-002,junction,90.5,95.5,360,0,rectangular,,6.0,6.0,,
+
+# Grate inlet
+IN-001,inlet,100.5,105.5,0,0,,,,,grate,
+```
 
 ### conduits.csv
-Defines pipes and gutters connecting nodes.
 
-**Required Columns:**
-- `id` - Unique conduit identifier
+Defines pipes and channels connecting nodes.
+
+**Columns:**
+- `id` - Unique conduit identifier (e.g., "P-001", "CH-001")
+- `type` - Conduit type: "pipe" or "channel"
 - `from_node` - Upstream node ID
 - `to_node` - Downstream node ID
-- `length` - Conduit length (ft)
-
-**Required for Pipes:**
-- `diameter` - Pipe diameter (inches)
-
-**Required for Gutters:**
-- `cross_slope` - Cross slope (ft/ft)
-- `long_slope` - Longitudinal slope (ft/ft)
-
-**Optional Columns:**
-- `type` - Conduit type: "pipe" (default) or "gutter"
-- `slope` - Slope (ft/ft) - used if `long_slope` not provided
+- `shape` - Cross-section shape: "circular", "rectangular", "elliptical", "arch"
+- `diameter` - Pipe diameter in inches or mm (for circular pipes)
+- `width` - Width in inches or mm (for rectangular/elliptical/arch pipes)
+- `height` - Height in inches or mm (for rectangular/elliptical/arch pipes)
+- `length` - Length in feet or meters
+- `slope` - Slope in ft/ft or m/m
 - `manning_n` - Manning's roughness coefficient
-- `material` - Pipe material: "RCP", "CMP", "PVC", "HDPE"
+- `material` - Pipe material: "RCP", "CMP", "PVC", "HDPE", "Concrete", "Steel", "Ductile Iron"
+- `cross_slope` - Cross slope for gutter/street flow (optional)
+- `long_slope` - Longitudinal slope for gutter flow (optional)
+
+**Examples:**
+```csv
+# 18-inch circular RCP
+P-001,pipe,IN-001,MH-001,circular,18,,,120,0.005,0.013,RCP,,
+
+# 36x24 elliptical pipe
+P-002,pipe,IN-002,MH-001,elliptical,,36,24,100,0.008,0.013,RCP,,
+
+# 48x48 rectangular box culvert
+P-003,pipe,MH-001,MH-002,rectangular,,48,48,120,0.0375,0.013,Concrete,,
+
+# 72x48 arch pipe
+P-004,pipe,MH-002,MH-003,arch,,72,48,120,0.025,0.024,CMP,,
+```
 
 ### drainage_areas.csv
-Defines drainage subcatchments and their properties.
 
-**Required Columns:**
+Defines drainage areas (subcatchments) that contribute runoff to the network.
+
+**Columns:**
 - `id` - Unique drainage area identifier
-- `area` - Drainage area (acres)
-- `runoff_coef` - Runoff coefficient (0.0-1.0)
-- `time_of_conc` - Time of concentration (minutes)
-- `outlet_node` - Node ID where this area drains to
+- `area` - Drainage area (acres or hectares)
+- `runoff_coef` - Rational method C coefficient (0.0-1.0)
+- `time_of_conc` - Time of concentration in minutes
+- `outlet_node` - Node ID where runoff enters the network
+- `land_use` - Land use type: "Commercial", "Industrial", "Residential", "Open Space", etc.
+- `design_storm` - Design storm ID for automatic peak flow calculation (references design_storms.csv)
 
-**Optional Columns:**
-- `land_use` - Land use type: "Commercial", "Industrial", "Residential", "Open Space", "Transportation", "Agricultural", or "Mixed"
+**Examples:**
+```csv
+# Commercial area, 0.75 acres, C=0.85, Tc=10 min
+DA-001,0.75,0.85,10.0,IN-001,Commercial,DS-10YR
 
-### gutter_parameters.csv
-Defines gutter and curb properties at inlet locations.
-
-**Required Columns:**
-- `node_id` - Node ID (must be an inlet)
-- `cross_slope` - Gutter cross slope (ft/ft)
-- `long_slope` - Gutter longitudinal slope (ft/ft)
-
-**Optional Columns:**
-- `curb_height` - Curb height (inches)
-- `gutter_width` - Gutter width (ft)
-- `manning_n` - Manning's n (default: 0.016 for concrete)
-- `depression` - Local depression depth (inches)
-- `depression_width` - Depression width (ft)
-
-## Usage
-
-### Loading CSV Files (Rust)
-
-```rust
-use hec22::csv;
-
-// Parse nodes
-let nodes = csv::parse_nodes_csv("templates/nodes.csv")?;
-
-// Parse conduits
-let conduits = csv::parse_conduits_csv("templates/conduits.csv")?;
-
-// Parse drainage areas
-let areas = csv::parse_drainage_areas_csv("templates/drainage_areas.csv")?;
-
-// Parse gutter parameters
-let gutter_params = csv::parse_gutter_parameters_csv("templates/gutter_parameters.csv")?;
+# Residential area, 1.25 acres, C=0.50, Tc=15 min
+DA-002,1.25,0.50,15.0,IN-002,Residential,DS-10YR
 ```
 
-### CLI Usage
+### idf_curves.csv
 
-The HEC-22 CLI tool is now available! Run hydraulic analysis from CSV files:
+Defines Intensity-Duration-Frequency (IDF) curves for rainfall analysis. Each row represents one point on an IDF curve.
 
-```bash
-# Basic usage with cargo
-cargo run -- \
-  --nodes templates/nodes.csv \
-  --conduits templates/conduits.csv \
-  --drainage-areas templates/drainage_areas.csv \
-  --intensity 4.0
+**Columns:**
+- `return_period` - Return period in years (e.g., 2, 5, 10, 25, 50, 100)
+- `duration` - Storm duration in minutes
+- `intensity` - Rainfall intensity in in/hr or mm/hr
 
-# With output file
-cargo run -- \
-  --nodes templates/nodes.csv \
-  --conduits templates/conduits.csv \
-  --drainage-areas templates/drainage_areas.csv \
-  --intensity 4.0 \
-  --output results.txt
-
-# JSON output format
-cargo run -- \
-  --nodes templates/nodes.csv \
-  --conduits templates/conduits.csv \
-  --drainage-areas templates/drainage_areas.csv \
-  --intensity 4.0 \
-  --format json \
-  --output results.json
-
-# CSV output format
-cargo run -- \
-  --nodes templates/nodes.csv \
-  --conduits templates/conduits.csv \
-  --drainage-areas templates/drainage_areas.csv \
-  --intensity 4.0 \
-  --format csv \
-  --output results
-
-# Using built binary (after cargo build --release)
-./target/release/hec22 \
-  --nodes templates/nodes.csv \
-  --conduits templates/conduits.csv \
-  --drainage-areas templates/drainage_areas.csv \
-  --intensity 4.0
+**Example:**
+```csv
+return_period,duration,intensity
+10,5,9.35
+10,10,7.54
+10,15,6.52
+10,30,4.86
+10,60,3.39
+10,120,2.17
 ```
 
-**CLI Options:**
-- `--nodes, -n <FILE>`: Path to nodes CSV file (required)
-- `--conduits, -c <FILE>`: Path to conduits CSV file (required)
-- `--drainage-areas, -a <FILE>`: Path to drainage areas CSV file (optional)
-- `--intensity, -i <VALUE>`: Rainfall intensity in in/hr (default: 4.0)
-- `--units, -u <SYSTEM>`: Unit system: `us` or `si` (default: us)
-- `--output, -o <FILE>`: Output file path (default: stdout)
-- `--format, -f <FORMAT>`: Output format: `text`, `json`, or `csv` (default: text)
+**Common durations:** 5, 10, 15, 30, 60, 120, 360, 720, 1440 minutes
 
-## Tips
+**Common return periods:** 2, 5, 10, 25, 50, 100 years
 
-- **Excel/Google Sheets**: Create your data in a spreadsheet, then export as CSV
-- **Required vs Optional**: Only required columns must be present; optional columns can be omitted or left blank
-- **Units**: All elevations and lengths in feet (US customary)
-- **Connectivity**: Every `from_node` and `to_node` in conduits must reference a valid node `id`
-- **Drainage areas**: Each `outlet_node` must reference a valid node `id`
+### design_storms.csv
 
-## Example Workflow
+Defines design storm events for runoff analysis.
 
-1. **Create your network in Excel**:
-   - One sheet for nodes
-   - One sheet for conduits
-   - One sheet for drainage areas
-   - One sheet for gutter parameters (if needed)
+**Columns:**
+- `id` - Unique storm identifier (e.g., "DS-10YR")
+- `name` - Descriptive name (e.g., "10-Year 24-Hour")
+- `return_period` - Return period in years
+- `duration` - Storm duration in minutes (e.g., 1440 for 24 hours)
+- `total_depth` - Total rainfall depth in inches or mm (optional)
+- `distribution` - Temporal distribution: "SCS Type I", "SCS Type IA", "SCS Type II", "SCS Type III", "Uniform", "Custom"
+- `peak_intensity` - Peak intensity in in/hr or mm/hr (optional, can be computed from IDF curves)
 
-2. **Export each sheet as CSV**:
-   - Save as `project_nodes.csv`, `project_conduits.csv`, etc.
+**Examples:**
+```csv
+# 10-year, 24-hour storm with SCS Type II distribution
+DS-10YR,10-Year 24-Hour,10,1440,5.1,SCS Type II,
 
-3. **Run analysis**:
-   ```bash
-   cargo run -- --nodes project_nodes.csv --conduits project_conduits.csv --drainage-areas project_areas.csv --intensity 4.0
-   ```
+# 100-year, 24-hour storm
+DS-100YR,100-Year 24-Hour,100,1440,8.0,SCS Type II,
+```
 
-4. **Review results**:
-   - Check HGL violations
-   - Check gutter spread
-   - Adjust design as needed
+## Using IDF Curves with Drainage Areas
 
-## Design Standards Reference
+The system can automatically compute peak flow for each drainage area using:
+1. Time of concentration (Tc) from the drainage area
+2. IDF curves to lookup rainfall intensity for the design storm's return period and duration equal to Tc
+3. Rational method formula: **Q = C × i × A**
 
-### Typical Manning's n Values
-- RCP (Reinforced Concrete Pipe): 0.013
-- CMP (Corrugated Metal Pipe): 0.024
-- PVC/HDPE (smooth): 0.011
-- Concrete gutter: 0.016
+**Workflow:**
+1. Define your IDF curves in `idf_curves.csv`
+2. Define design storms in `design_storms.csv` with return periods matching your IDF curves
+3. Reference the design storm in `drainage_areas.csv` using the `design_storm` column
+4. The system will:
+   - Look up the IDF curve for the storm's return period
+   - Find the intensity for duration = Tc
+   - Compute peak flow: Q = C × i × A
 
-### Typical Runoff Coefficients
-- Commercial/Industrial: 0.70-0.95
-- Residential (dense): 0.50-0.70
-- Residential (low density): 0.30-0.50
-- Lawns/Open space: 0.10-0.30
+## Pipe Shape Guidelines
 
-### Typical Gutter Cross Slopes
-- Standard pavement: 0.02 (2%)
-- Steep cross slope: 0.03-0.04 (3-4%)
-- ADA-compliant: 0.02 maximum (2%)
+### Circular Pipes
+- Most common for storm sewers
+- Specify `diameter` only
+- Available in standard sizes: 12", 15", 18", 21", 24", 30", 36", 42", 48", 54", 60", 72", 84", 96"
 
-### Minimum Pipe Sizes
-- Storm drain laterals: 15-18 inches
-- Storm mains: 18-24 inches
-- Driveway culverts: 12 inches minimum
+### Rectangular Box Culverts
+- Used for high capacity or shallow cover situations
+- Specify `width` and `height`
+- Common sizes: 4'×4', 6'×6', 8'×8', 10'×10'
+- Can be custom sized
+
+### Elliptical Pipes
+- Used where vertical clearance is limited
+- Specify `width` (horizontal span) and `height` (vertical rise)
+- Common sizes: 14"×23", 19"×30", 24"×38", 29"×45", 34"×53", 38"×60", 48"×76", 58"×91"
+- More hydraulically efficient than equivalent circular pipe of same height
+
+### Arch Pipes
+- Used where headroom is limited but width is available
+- Specify `width` (horizontal span) and `height` (vertical rise)
+- Common sizes: 18"×11", 22"×13", 36"×22", 58"×36", 73"×45"
+- Lower profile than circular or elliptical
+
+## Manning's n Values by Material
+
+Typical Manning's roughness coefficients:
+- **RCP** (Reinforced Concrete Pipe): 0.013
+- **CMP** (Corrugated Metal Pipe): 0.024
+- **PVC**: 0.011
+- **HDPE**: 0.011
+- **Concrete**: 0.013
+- **Steel**: 0.012
+- **Ductile Iron**: 0.013
+
+## SCS Rainfall Distributions
+
+- **SCS Type I**: Pacific maritime climate (Alaska, coastal Oregon/Washington)
+- **SCS Type IA**: Pacific coast and intermountain regions (California, parts of Pacific Northwest)
+- **SCS Type II**: Most of the US, moderate climates (Midwest, Northeast, most of US)
+- **SCS Type III**: Gulf of Mexico and Atlantic coastal areas (Texas, Louisiana, Florida)
+- **Uniform**: Constant intensity throughout the storm (rare, used for conservative estimates)
+- **Custom**: User-defined hyetograph
+
+## Units
+
+The system supports both US customary and SI metric units. Ensure consistency within each file:
+
+**US Customary:**
+- Length: feet, inches
+- Elevation: feet
+- Flow: cfs (cubic feet per second)
+- Area: acres
+- Intensity: in/hr
+
+**SI Metric:**
+- Length: meters, millimeters
+- Elevation: meters
+- Flow: cms (cubic meters per second)
+- Area: hectares
+- Intensity: mm/hr
+
+## Additional Resources
+
+- See `/examples/` directory for complete example networks
+- Refer to FHWA HEC-22 Urban Drainage Design Manual for methodology details
+- Visit the project documentation for API usage

@@ -1,0 +1,5 @@
+id,name,return_period,duration,total_depth,distribution,peak_intensity
+DS-2YR,2-Year 24-Hour,2,1440,3.2,SCS Type II,
+DS-10YR,10-Year 24-Hour,10,1440,5.1,SCS Type II,
+DS-25YR,25-Year 24-Hour,25,1440,6.2,SCS Type II,
+DS-100YR,100-Year 24-Hour,100,1440,8.0,SCS Type II,
