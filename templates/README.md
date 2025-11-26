@@ -43,30 +43,71 @@ hec22 --nodes nodes.csv --conduits conduits.csv \
 
 Defines network nodes including inlets, junctions (manholes), and outfalls.
 
-**Columns:**
+**Common Columns (All Nodes):**
 - `id` - Unique node identifier (e.g., "IN-001", "MH-001", "OUT-001")
 - `type` - Node type: "inlet", "junction", "outfall"
 - `invert_elev` - Invert elevation (ft or m)
 - `rim_elev` - Ground/rim elevation (ft or m)
 - `x`, `y` - Coordinates for mapping (optional)
-- `shape` - Manhole shape: "circular" or "rectangular" (for junctions only)
+
+**Junction-Specific Columns:**
+- `shape` - Manhole shape: "circular" or "rectangular"
 - `diameter` - Diameter in inches or mm (for circular manholes)
 - `width` - Width in feet or meters (for rectangular manholes)
 - `height` - Height in feet or meters (for rectangular manholes)
-- `inlet_type` - Inlet type: "grate", "curb_opening", "combination", "slotted" (for inlets only)
-- `boundary_condition` - Boundary condition for outfalls: "free", "normal", "fixed"
+
+**Inlet-Specific Columns (HEC-22 Chapter 7 Parameters):**
+- `inlet_type` - Type: "grate", "curb_opening", "combination", "slotted"
+- `inlet_location` - Location: "on_grade" (continuous slope) or "sag" (low point)
+- `grate_length` - Grate length parallel to flow (ft)
+- `grate_width` - Grate width perpendicular to flow (ft)
+- `bar_configuration` - Bar orientation: "parallel" or "perpendicular"
+- `curb_opening_length` - Curb opening length (ft)
+- `curb_opening_height` - Curb opening height (ft)
+- `throat_type` - Throat configuration: "horizontal", "inclined", "vertical"
+- `local_depression` - Local depression depth at inlet (inches)
+- `clogging_factor` - Clogging reduction factor (0.0-1.0, typically 0.15-0.50)
+- `grate_count` - Number of grates (for sag inlets)
+
+**Outfall-Specific Columns:**
+- `boundary_condition` - Boundary condition: "free", "normal", "fixed"
 
 **Examples:**
+
 ```csv
+# Grate inlet on grade with perpendicular bars
+IN-001,inlet,100.5,105.5,0,0,,,,,grate,on_grade,3.0,2.0,perpendicular,,,,,0.15,1,
+
+# Combination inlet (grate + curb opening) on grade
+IN-002,inlet,98.2,103.2,120,0,,,,,combination,on_grade,2.5,1.5,perpendicular,5.0,0.5,horizontal,2.0,0.20,1,
+
+# Curb opening inlet with vertical throat
+IN-003,inlet,96.5,101.5,200,0,,,,,curb_opening,on_grade,,,,,8.0,0.5,vertical,,0.10,1,
+
+# Grate inlet at sag location (2 grates)
+IN-004,inlet,94.0,99.0,300,0,,,,,grate,sag,4.0,2.5,perpendicular,,,,,0.50,2,
+
 # Circular manhole (4 ft diameter)
-MH-001,junction,95.0,100.0,240,0,circular,4.0,,,,
+MH-001,junction,95.0,100.0,240,0,circular,4.0,,,,,,,,,,,,,
 
 # Rectangular manhole (6 ft x 6 ft)
-MH-002,junction,90.5,95.5,360,0,rectangular,,6.0,6.0,,
+MH-002,junction,90.5,95.5,360,0,rectangular,,6.0,6.0,,,,,,,,,,,
 
-# Grate inlet
-IN-001,inlet,100.5,105.5,0,0,,,,,grate,
+# Free outfall
+OUT-001,outfall,85.0,,480,0,,,,,,,,,,,,,,,free
 ```
+
+**Inlet Design Guidelines (HEC-22):**
+
+- **Grate Inlets**: Most common for on-grade locations. Use perpendicular bars for better hydraulic efficiency.
+- **Curb Opening Inlets**: Used where grates are impractical or for aesthetic reasons. Less efficient than grates but less prone to clogging.
+- **Combination Inlets**: Most effective design, combining advantages of both types. Grate captures flow first, curb opening captures bypass.
+- **Clogging Factors**:
+  - Grate inlets: 0.15-0.50 (use 50% capacity reduction for conservative design)
+  - Curb openings: 0.10 (use 90% capacity)
+  - Combination: 0.20 (use 80% capacity)
+- **Local Depression**: 1-2 inches typical, improves grate efficiency by concentrating flow
+- **Bar Configuration**: Perpendicular bars more efficient but may create bicycle hazard; parallel bars safer but less efficient
 
 ### conduits.csv
 

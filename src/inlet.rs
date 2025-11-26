@@ -125,9 +125,10 @@ impl GrateInletOnGrade {
         let spread = gutter_result.spread;
         let velocity = gutter_result.velocity;
 
-        // Calculate width ratio for frontal flow
+        // Calculate frontal flow ratio using HEC-22 composite gutter equation
+        // Eo = 1 - (1 - W/T)^(8/3) for uniform cross slope
         let w_over_t = (self.width / spread).min(1.0);
-        let ratio_frontal = w_over_t;
+        let ratio_frontal = 1.0 - (1.0 - w_over_t).powf(8.0 / 3.0);
 
         // Frontal flow efficiency
         let ef = self.frontal_efficiency(velocity, ratio_frontal);
@@ -230,7 +231,7 @@ impl CurbOpeningInletOnGrade {
         let efficiency_gross = if self.length >= l_t {
             1.0
         } else {
-            1.0 - (1.0 - self.length / l_t).powf(0.6)
+            1.0 - (1.0 - self.length / l_t).powf(1.8)
         };
 
         // Apply clogging factor
