@@ -267,6 +267,44 @@ python extract_chapters.py --extract
 - Individual chapter PDFs saved to `reference/chapters/`
 - Console output shows page ranges for verification
 
+### ATLAS14 Rainfall Data Utility
+
+The `atlas14_fetch` utility fetches precipitation frequency data from NOAA ATLAS14 and generates IDF (Intensity-Duration-Frequency) curves in CSV format compatible with HEC-22 hydraulic analysis.
+
+**Usage:**
+
+```bash
+# Build the utility
+cargo build --release --bin atlas14_fetch
+
+# Fetch IDF data for a location (e.g., New York City)
+./target/release/atlas14_fetch --lat 40.7128 --lon -74.0060 --output nyc_idf.csv
+
+# Use custom return periods and durations
+atlas14_fetch --lat 34.0522 --lon -118.2437 \
+  --return-periods "2,5,10,25,50,100" \
+  --durations "5,10,15,30,60,120" \
+  --output la_idf.csv
+```
+
+**Features:**
+- Fetches rainfall intensity data for any US location
+- Supports both English (in/hr) and metric (mm/hr) units
+- Customizable return periods and storm durations
+- Outputs CSV in HEC-22 compatible format (return_period, duration, intensity)
+- **IDF interpolation**: The HEC-22 library automatically interpolates between IDF curve points using linear interpolation, so times of concentration that fall between duration values are handled seamlessly
+
+**Output Format:**
+```csv
+return_period,duration,intensity
+2,5,6.82
+2,10,5.49
+2,15,4.75
+...
+```
+
+See [docs/ATLAS14_UTILITY.md](docs/ATLAS14_UTILITY.md) for detailed documentation and examples.
+
 ## Project Structure
 
 ```
