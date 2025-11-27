@@ -19,6 +19,7 @@
 //! - [`inlet`] - Inlet capacity calculations (Chapter 7)
 //! - [`solver`] - HGL/EGL solver (9-step procedure from Chapter 9)
 //! - [`csv`] - CSV input/output for tabular data
+//! - [`visualization`] - SVG and HTML visualization tools (network plan and profile views)
 //!
 //! ## Example
 //!
@@ -48,6 +49,7 @@ pub mod node;
 pub mod project;
 pub mod rainfall;
 pub mod solver;
+pub mod visualization;
 
 use serde::{Deserialize, Serialize};
 

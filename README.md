@@ -620,20 +620,71 @@ A civil engineer with a spreadsheet can run the tool and get HGL results in unde
 
 ---
 
-### Phase 6: Web Interface & Visualization
+### Phase 6: Web Interface & Visualization 🚧 IN PROGRESS
 
 **Goal**: Interactive design environment accessible via browser
 
-- [ ] **Network diagram** - Interactive node/link visualization with pan/zoom
-- [ ] **Profile plots** - HGL/EGL elevation profiles along pipe runs
+**Status**: Basic visualization capabilities implemented! ✅
+
+**Completed Features**:
+- [x] **Network plan view** - SVG visualization of network layout showing nodes and conduits
+- [x] **Profile plots** - Elevation profiles along pipe runs (ground line and pipe invert)
+- [x] **SVG export** - Export visualizations as standalone SVG files
+- [x] **Interactive HTML viewer** - Web-based viewer with pan, zoom, and download capabilities
+- [x] **CLI integration** - Command-line flags for visualization export
+
+**In Progress**:
+- [ ] **HGL/EGL overlay** - Add hydraulic grade line and energy grade line to profile views (data structure ready, visualization pending)
 - [ ] **Drainage area mapping** - Catchment boundaries and flow paths
 - [ ] **Real-time editing** - Modify network and see immediate results
 - [ ] **Report generation** - Export professional PDF calculation packages
 - [ ] **Collaboration** - Share projects via URL, multi-user access
 
-**Technology**: Web-based (React + WebAssembly or browser-native)
+**Technology**: SVG + HTML/CSS/JavaScript (no framework dependencies)
 
-**Use Case**: "Share this design with my client via a link"
+**Use Case**: "Visualize my drainage network and share results with non-technical stakeholders"
+
+**Usage Examples**:
+
+```bash
+# Export network plan view
+./target/release/hec22 \
+  --nodes nodes.csv --conduits pipes.csv \
+  --export-network-plan network_plan.svg
+
+# Export profile view
+./target/release/hec22 \
+  --nodes nodes.csv --conduits pipes.csv \
+  --export-profile profile.svg \
+  --profile-path "IN-001,MH-001,OUT-001"
+
+# Export interactive HTML viewer (includes both views)
+./target/release/hec22 \
+  --nodes nodes.csv --conduits pipes.csv \
+  --drainage-areas areas.csv \
+  --export-html network_viewer.html
+```
+
+**Features**:
+- **Network Plan View**: Top-down view of the drainage network
+  - Color-coded nodes (green=inlet, blue=junction, red=outfall)
+  - Conduit connections with flow direction arrows
+  - Node labels and coordinates
+  - Auto-layout for networks without coordinates
+
+- **Profile View**: Elevation profile along a pipe run
+  - Pipe invert elevations
+  - Ground/rim elevations
+  - Station labels and node markers
+  - Automatic profile path detection (follows upstream from outfall)
+  - Custom profile paths via `--profile-path` flag
+
+- **Interactive HTML Viewer**: Web-based visualization
+  - Pan and zoom controls
+  - Mouse drag to pan
+  - Download SVG button
+  - Network statistics (node count, conduit count)
+  - Responsive layout
 
 ---
 
@@ -660,20 +711,29 @@ A civil engineer with a spreadsheet can run the tool and get HGL results in unde
 
 ## Current Focus
 
-**Current Status**: Phase 2 (CLI MVP) is mostly complete! ✅
+**Current Status**: Phase 6 (Visualization) in progress! 🚧
 
-The CLI tool is operational and accepts CSV inputs to produce hydraulic analysis reports. Engineers can now:
+**Recently Completed**:
+- ✅ Phase 2 (CLI MVP) - Fully operational hydraulic analysis tool
+- ✅ Basic visualization capabilities (network plan and profile views)
+- ✅ SVG export and interactive HTML viewer
+
+**What's Working Now**:
+Engineers can now:
 - Import drainage networks from spreadsheets (nodes, pipes, drainage areas)
 - Run HGL/EGL analysis with automatic flow routing
 - Use IDF curves with automatic intensity lookup by time of concentration
 - Generate reports in text, JSON, or CSV formats
+- **Visualize networks** with plan and profile views (NEW!)
+- **Export visualizations** as SVG or interactive HTML (NEW!)
 - Analyze networks with multiple pipe shapes (circular, rectangular, elliptical, arch)
 - Fetch real NOAA ATLAS14 rainfall data using the `atlas14_fetch` utility
 
 **Next Steps**:
+- Add HGL/EGL overlay to profile visualizations
+- Implement drainage area boundary visualization
 - Complete gutter spread reporting integration in CLI
-- Begin Phase 3 (Design Automation) for pipe sizing optimization
-- Expand test coverage for edge cases
+- Consider Phase 3 (Design Automation) for pipe sizing optimization
 
 See [CLI_USAGE.md](CLI_USAGE.md) for complete usage instructions.
 
@@ -693,7 +753,7 @@ See LICENSE file for details.
 
 ---
 
-**Document Version:** 2.0
+**Document Version:** 2.1
 **Last Updated:** November 2025
-**Status:** Phase 1 Complete ✅ | Phase 2 Mostly Complete ✅ | CLI Tool Operational ✅
+**Status:** Phase 1 Complete ✅ | Phase 2 Complete ✅ | Phase 6 In Progress 🚧 | Visualization Operational ✅
 **Based on:** FHWA HEC-22, 4th Edition (February 2024)
