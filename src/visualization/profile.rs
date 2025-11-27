@@ -394,25 +394,69 @@ impl<'a> ProfileView<'a> {
 
     /// Draw node markers
     fn draw_node_markers(&self, svg: &mut SvgBuilder, min_elev: f64, max_elev: f64) {
+        // Create node lookup to get node types
+        let node_map: std::collections::HashMap<&str, &Node> = self.network.nodes
+            .iter()
+            .map(|n| (n.id.as_str(), n))
+            .collect();
+
         for point in &self.profile_points {
-            let (x, y) = self.transform(point.station, point.invert_elev, min_elev, max_elev);
+            let (x, y_invert) = self.transform(point.station, point.invert_elev, min_elev, max_elev);
 
-            // Draw node marker
-            svg.circle(x, y, 4.0, "#000", "#000", 1.0);
+            // Get node type from network
+            if let Some(node) = node_map.get(point.node_id.as_str()) {
+                if node.is_junction() && point.rim_elev.is_some() {
+                    // Draw junction as a rectangle from invert to rim
+                    let rim = point.rim_elev.unwrap();
+                    let (_, y_rim) = self.transform(point.station, rim, min_elev, max_elev);
 
-            // Draw node label if enabled
-            if self.config.show_labels {
-                svg.text(x, y - 10.0, &point.node_id, 10.0, "middle", "#000");
+                    let rect_width = 20.0; // Width of junction box in pixels
+                    let rect_height = y_invert - y_rim; // Height from rim to invert (positive in SVG coords)
 
-                // Draw station label
-                svg.text(
-                    x,
-                    self.config.height - self.config.margin + 20.0,
-                    &format!("{:.0}", point.station),
-                    9.0,
-                    "middle",
-                    "#666"
-                );
+                    // Draw junction box (manhole/junction chamber)
+                    svg.rect(
+                        x - rect_width / 2.0,
+                        y_rim,
+                        rect_width,
+                        rect_height,
+                        "#E3F2FD",  // Light blue fill
+                        "#1565C0",  // Dark blue stroke
+                        2.0
+                    );
+
+                    // Draw junction label if enabled
+                    if self.config.show_labels {
+                        svg.text(x, y_rim - 10.0, &point.node_id, 10.0, "middle", "#000");
+                    }
+                } else {
+                    // Draw inlet or outfall as a circle at invert
+                    let color = if node.is_inlet() {
+                        "#4CAF50" // Green for inlets
+                    } else if node.is_outfall() {
+                        "#F44336" // Red for outfalls
+                    } else {
+                        "#000"     // Black default
+                    };
+
+                    svg.circle(x, y_invert, 5.0, color, "#000", 2.0);
+
+                    // Draw node label if enabled
+                    if self.config.show_labels {
+                        svg.text(x, y_invert - 10.0, &point.node_id, 10.0, "middle", "#000");
+                    }
+                }
+
+                // Draw station label (for all nodes)
+                if self.config.show_labels {
+                    svg.text(
+                        x,
+                        self.config.height - self.config.margin + 20.0,
+                        &format!("{:.0}", point.station),
+                        9.0,
+                        "middle",
+                        "#666"
+                    );
+                }
             }
         }
     }

@@ -17,7 +17,9 @@ Elevation profile along the main drainage path (IN-001 → MH-001 → MH-002 →
 - **Brown line**: Ground/rim elevations
 - **Blue line**: Hydraulic Grade Line (HGL) - water surface elevation
 - **Orange line**: Energy Grade Line (EGL) - total energy elevation
-- **Black dots**: Node locations with labels
+- **Light blue rectangles**: Junction structures (manholes) showing physical height from invert to rim
+- **Green circles**: Inlets at invert elevation
+- **Red circles**: Outfalls at invert elevation
 - **Station labels**: Cumulative distance along the profile
 
 This visualization matches **HEC-22 Figure 9.6** and demonstrates:
@@ -52,16 +54,28 @@ These visualizations were generated using:
 
 The profile view is critical for hydraulic analysis:
 
-1. **HGL (Blue line)**: Shows where the water surface is in the system
-   - If HGL > Rim elevation → Flooding occurs
-   - Slope of HGL indicates head loss through pipes
+1. **Junction Structures (Light blue rectangles)**: Physical representation of manholes/junction boxes
+   - Bottom of rectangle = invert elevation (pipe entry/exit point)
+   - Top of rectangle = rim elevation (ground surface/manhole cover)
+   - Height shows the depth of the structure
+   - Critical for checking if HGL stays below rim (no flooding)
 
-2. **EGL (Orange line)**: Shows total energy (pressure + velocity head)
+2. **HGL (Blue line)**: Shows where the water surface is in the system
+   - If HGL > Rim elevation → Flooding occurs (water comes out of manhole!)
+   - Slope of HGL indicates head loss through pipes
+   - **Key check**: HGL must stay below the top of junction rectangles
+
+3. **EGL (Orange line)**: Shows total energy (pressure + velocity head)
    - Always above HGL
    - Vertical drop = energy loss at junctions
    - Slope indicates friction losses
 
-3. **Violations in this example**:
+4. **Inlet/Outfall Markers (Colored circles)**:
+   - Green circles = Inlets (surface drainage entry points)
+   - Red circles = Outfalls (discharge to receiving water)
+   - Located at invert elevation
+
+5. **Violations in this example**:
    - IN-001: HGL = 106.37 ft, Rim = 105.50 ft → 0.87 ft of flooding!
    - IN-002: HGL = 103.69 ft, Rim = 103.20 ft → 0.49 ft of flooding!
 
