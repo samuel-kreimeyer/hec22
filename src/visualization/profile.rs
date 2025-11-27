@@ -7,6 +7,7 @@
 //! - Pipe inverts and slopes
 //! - Node locations
 
+use crate::analysis::Analysis;
 use crate::network::Network;
 use crate::node::Node;
 use crate::visualization::svg::SvgBuilder;
@@ -58,7 +59,8 @@ struct ProfilePoint {
     node_id: String,
     invert_elev: f64,
     rim_elev: Option<f64>,
-    // HGL and EGL will be added from analysis results in future enhancement
+    hgl: Option<f64>,
+    egl: Option<f64>,
 }
 
 /// Profile view generator
@@ -82,7 +84,34 @@ impl<'a> ProfileView<'a> {
     /// Create a new profile view with custom configuration
     pub fn with_config(network: &'a Network, node_path: &[&str], config: ProfileConfig) -> Self {
         let node_path: Vec<String> = node_path.iter().map(|s| s.to_string()).collect();
-        let profile_points = Self::build_profile_points(network, &node_path);
+        let profile_points = Self::build_profile_points(network, &node_path, None);
+
+        Self {
+            network,
+            config,
+            node_path,
+            profile_points,
+        }
+    }
+
+    /// Create a new profile view with analysis results (includes HGL/EGL)
+    pub fn with_analysis(
+        network: &'a Network,
+        node_path: &[&str],
+        analysis: &Analysis,
+    ) -> Self {
+        Self::with_analysis_and_config(network, node_path, analysis, ProfileConfig::default())
+    }
+
+    /// Create a new profile view with analysis results and custom configuration
+    pub fn with_analysis_and_config(
+        network: &'a Network,
+        node_path: &[&str],
+        analysis: &Analysis,
+        config: ProfileConfig,
+    ) -> Self {
+        let node_path: Vec<String> = node_path.iter().map(|s| s.to_string()).collect();
+        let profile_points = Self::build_profile_points(network, &node_path, Some(analysis));
 
         Self {
             network,
@@ -93,7 +122,11 @@ impl<'a> ProfileView<'a> {
     }
 
     /// Build profile points from network and node path
-    fn build_profile_points(network: &Network, node_path: &[String]) -> Vec<ProfilePoint> {
+    fn build_profile_points(
+        network: &Network,
+        node_path: &[String],
+        analysis: Option<&Analysis>,
+    ) -> Vec<ProfilePoint> {
         let mut points = Vec::new();
         let mut cumulative_station = 0.0;
 
@@ -102,6 +135,20 @@ impl<'a> ProfileView<'a> {
             .iter()
             .map(|n| (n.id.as_str(), n))
             .collect();
+
+        // Create HGL/EGL lookup from analysis results if available
+        let hgl_egl_map: HashMap<&str, (Option<f64>, Option<f64>)> = if let Some(analysis) = analysis {
+            if let Some(ref node_results) = analysis.node_results {
+                node_results
+                    .iter()
+                    .map(|nr| (nr.node_id.as_str(), (nr.hgl, nr.egl)))
+                    .collect()
+            } else {
+                HashMap::new()
+            }
+        } else {
+            HashMap::new()
+        };
 
         for (i, node_id) in node_path.iter().enumerate() {
             if let Some(node) = node_map.get(node_id.as_str()) {
@@ -117,11 +164,19 @@ impl<'a> ProfileView<'a> {
                     }
                 }
 
+                // Get HGL/EGL from analysis results if available
+                let (hgl, egl) = hgl_egl_map
+                    .get(node_id.as_str())
+                    .copied()
+                    .unwrap_or((None, None));
+
                 points.push(ProfilePoint {
                     station: cumulative_station,
                     node_id: node.id.clone(),
                     invert_elev: node.invert_elevation,
                     rim_elev: node.rim_elevation,
+                    hgl,
+                    egl,
                 });
             }
         }
@@ -176,11 +231,21 @@ impl<'a> ProfileView<'a> {
 
         for point in &self.profile_points {
             min_elev = min_elev.min(point.invert_elev);
+
             if let Some(elev) = point.rim_elev {
                 max_elev = max_elev.max(elev);
             } else {
                 // If no rim elevation, use invert + some height
                 max_elev = max_elev.max(point.invert_elev + 5.0);
+            }
+
+            // Include HGL and EGL in range calculation
+            if let Some(hgl) = point.hgl {
+                max_elev = max_elev.max(hgl);
+                min_elev = min_elev.min(hgl);
+            }
+            if let Some(egl) = point.egl {
+                max_elev = max_elev.max(egl);
             }
         }
 
@@ -296,17 +361,35 @@ impl<'a> ProfileView<'a> {
     }
 
     /// Draw HGL line
-    /// Note: HGL data will be integrated from analysis results in future enhancement
-    fn draw_hgl(&self, _svg: &mut SvgBuilder, _min_elev: f64, _max_elev: f64) {
-        // TODO: Get HGL from analysis results
-        // For now, this is a placeholder
+    fn draw_hgl(&self, svg: &mut SvgBuilder, min_elev: f64, max_elev: f64) {
+        let mut points = Vec::new();
+
+        for point in &self.profile_points {
+            if let Some(hgl) = point.hgl {
+                let (x, y) = self.transform(point.station, hgl, min_elev, max_elev);
+                points.push((x, y));
+            }
+        }
+
+        if points.len() >= 2 {
+            svg.polyline(&points, "none", "#2196F3", 2.5);
+        }
     }
 
     /// Draw EGL line
-    /// Note: EGL data will be integrated from analysis results in future enhancement
-    fn draw_egl(&self, _svg: &mut SvgBuilder, _min_elev: f64, _max_elev: f64) {
-        // TODO: Get EGL from analysis results
-        // For now, this is a placeholder
+    fn draw_egl(&self, svg: &mut SvgBuilder, min_elev: f64, max_elev: f64) {
+        let mut points = Vec::new();
+
+        for point in &self.profile_points {
+            if let Some(egl) = point.egl {
+                let (x, y) = self.transform(point.station, egl, min_elev, max_elev);
+                points.push((x, y));
+            }
+        }
+
+        if points.len() >= 2 {
+            svg.polyline(&points, "none", "#FF9800", 2.5);
+        }
     }
 
     /// Draw node markers

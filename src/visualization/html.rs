@@ -3,6 +3,7 @@
 //! Generates standalone HTML files that embed SVG visualizations
 //! with interactive features like pan, zoom, and tooltips.
 
+use crate::analysis::Analysis;
 use crate::network::Network;
 use crate::visualization::{NetworkPlanView, ProfileView};
 
@@ -43,12 +44,39 @@ impl<'a> HtmlViewer<'a> {
         self.create_html_template(&svg_content, "Profile View")
     }
 
+    /// Generate HTML page with profile view including HGL/EGL from analysis
+    pub fn generate_profile_view_with_analysis(
+        &self,
+        node_path: &[&str],
+        analysis: &Analysis,
+    ) -> String {
+        let profile_view = ProfileView::with_analysis(self.network, node_path, analysis);
+        let svg_content = profile_view.to_svg();
+
+        self.create_html_template(&svg_content, "Profile View (HGL/EGL)")
+    }
+
     /// Generate HTML page with both views
     pub fn generate_combined_view(&self, node_path: &[&str]) -> String {
         let plan_view = NetworkPlanView::new(self.network);
         let plan_svg = plan_view.to_svg();
 
         let profile_view = ProfileView::new(self.network, node_path);
+        let profile_svg = profile_view.to_svg();
+
+        self.create_combined_html(&plan_svg, &profile_svg)
+    }
+
+    /// Generate HTML page with both views including HGL/EGL from analysis
+    pub fn generate_combined_view_with_analysis(
+        &self,
+        node_path: &[&str],
+        analysis: &Analysis,
+    ) -> String {
+        let plan_view = NetworkPlanView::new(self.network);
+        let plan_svg = plan_view.to_svg();
+
+        let profile_view = ProfileView::with_analysis(self.network, node_path, analysis);
         let profile_svg = profile_view.to_svg();
 
         self.create_combined_html(&plan_svg, &profile_svg)

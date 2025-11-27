@@ -297,7 +297,7 @@ fn run_analysis(cli: Cli) -> Result<(), Box<dyn std::error::Error>> {
     }
 
     // Export visualizations if requested
-    export_visualizations(&cli, &network)?;
+    export_visualizations(&cli, &network, &analysis)?;
 
     Ok(())
 }
@@ -459,6 +459,7 @@ fn write_csv_output(
 fn export_visualizations(
     cli: &Cli,
     network: &network::Network,
+    analysis: &analysis::Analysis,
 ) -> Result<(), Box<dyn std::error::Error>> {
     use visualization::{NetworkPlanView, ProfileView, HtmlViewer};
 
@@ -472,7 +473,7 @@ fn export_visualizations(
 
     // Export profile view if requested
     if let Some(ref path) = cli.export_profile {
-        println!("\nExporting profile view...");
+        println!("\nExporting profile view with HGL/EGL...");
 
         // Determine node path for profile
         let node_path: Vec<&str> = if let Some(ref path_str) = cli.profile_path {
@@ -487,15 +488,16 @@ fn export_visualizations(
             println!("  Warning: No valid profile path found. Skipping profile export.");
         } else {
             println!("  Profile path: {}", node_path.join(" → "));
-            let profile_view = ProfileView::new(network, &node_path);
+            // Use analysis-aware profile view to include HGL/EGL
+            let profile_view = ProfileView::with_analysis(network, &node_path, analysis);
             profile_view.save_to_file(path.to_str().unwrap())?;
-            println!("  Profile view saved to: {}", path.display());
+            println!("  Profile view with HGL/EGL saved to: {}", path.display());
         }
     }
 
     // Export HTML viewer if requested
     if let Some(ref path) = cli.export_html {
-        println!("\nExporting interactive HTML viewer...");
+        println!("\nExporting interactive HTML viewer with HGL/EGL...");
 
         // Determine node path for profile
         let node_path: Vec<&str> = if let Some(ref path_str) = cli.profile_path {
@@ -510,12 +512,12 @@ fn export_visualizations(
             // Only plan view if no profile path available
             viewer.generate_plan_view()
         } else {
-            // Combined view with both plan and profile
-            viewer.generate_combined_view(&node_path)
+            // Combined view with both plan and profile (with HGL/EGL)
+            viewer.generate_combined_view_with_analysis(&node_path, analysis)
         };
 
         viewer.save_to_file(path.to_str().unwrap(), &html_content)?;
-        println!("  Interactive viewer saved to: {}", path.display());
+        println!("  Interactive viewer with HGL/EGL saved to: {}", path.display());
         println!("  Open in browser to view the network");
     }
 
