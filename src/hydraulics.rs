@@ -449,9 +449,63 @@ impl EnergyLoss {
         k_bend * velocity.powi(2) / (2.0 * self.gravity)
     }
 
+    /// Calculate junction loss using momentum equation (HEC-22 Equation 9.9)
+    ///
+    /// H_j = [(Q_o·V_o) - (Q_i·V_i) - (Q_l·V_l·cos θ_j)] / [0.5g(A_o + A_i)] + h_i - h_o
+    ///
+    /// This is the preferred method from HEC-22 Chapter 9.1.6.5 for calculating
+    /// energy losses at pipe junctions where flows combine.
+    ///
+    /// # Arguments
+    /// * `q_outlet` - Outlet flow rate (cfs or cms)
+    /// * `q_inlet` - Inlet (main trunk) flow rate (cfs or cms)
+    /// * `q_lateral` - Lateral pipe flow rate (cfs or cms)
+    /// * `v_outlet` - Outlet pipe velocity (ft/s or m/s)
+    /// * `v_inlet` - Inlet pipe velocity (ft/s or m/s)
+    /// * `v_lateral` - Lateral pipe velocity (ft/s or m/s)
+    /// * `a_outlet` - Outlet cross-sectional area (sq ft or sq m)
+    /// * `a_inlet` - Inlet cross-sectional area (sq ft or sq m)
+    /// * `theta_j` - Angle between inflow trunk pipe and lateral pipe (degrees)
+    ///
+    /// # Returns
+    /// Junction loss (ft or m)
+    pub fn junction_loss(
+        &self,
+        q_outlet: f64,
+        q_inlet: f64,
+        q_lateral: f64,
+        v_outlet: f64,
+        v_inlet: f64,
+        v_lateral: f64,
+        a_outlet: f64,
+        a_inlet: f64,
+        theta_j: f64,
+    ) -> f64 {
+        // Convert angle from degrees to radians
+        let theta_rad = theta_j.to_radians();
+
+        // Calculate velocity heads
+        let h_outlet = v_outlet.powi(2) / (2.0 * self.gravity);
+        let h_inlet = v_inlet.powi(2) / (2.0 * self.gravity);
+
+        // Momentum term: [(Q_o·V_o) - (Q_i·V_i) - (Q_l·V_l·cos θ_j)]
+        let momentum_term = (q_outlet * v_outlet) - (q_inlet * v_inlet) - (q_lateral * v_lateral * theta_rad.cos());
+
+        // Denominator: 0.5g(A_o + A_i)
+        let denominator = 0.5 * self.gravity * (a_outlet + a_inlet);
+
+        // HEC-22 Equation 9.9
+        let junction_loss = (momentum_term / denominator) + h_inlet - h_outlet;
+
+        junction_loss
+    }
+
     /// Calculate junction loss using K-method (approximate)
     ///
     /// H_j = K × (V_outlet²/2g)
+    ///
+    /// Note: This is an approximate method. For more accurate results,
+    /// use the `junction_loss` method which implements HEC-22 Equation 9.9.
     ///
     /// Typical K values:
     /// - Straight through: 0.05 - 0.15
@@ -632,5 +686,76 @@ mod tests {
             mannings.flow_regime(2.0),
             FlowRegime::Supercritical
         );
+    }
+
+    #[test]
+    fn test_junction_loss() {
+        let energy_loss = EnergyLoss::us_customary();
+
+        // Test case: 90-degree junction with lateral inflow
+        // Outlet: 24" pipe, Q=10 cfs
+        // Inlet: 18" pipe, Q=6 cfs
+        // Lateral: 18" pipe, Q=4 cfs, 90 degrees
+
+        let q_outlet = 10.0; // cfs
+        let q_inlet = 6.0;   // cfs
+        let q_lateral = 4.0; // cfs
+
+        // Calculate areas
+        let d_outlet: f64 = 2.0; // ft (24 inches)
+        let d_inlet: f64 = 1.5;  // ft (18 inches)
+        let a_outlet = std::f64::consts::PI * d_outlet.powi(2) / 4.0;
+        let a_inlet = std::f64::consts::PI * d_inlet.powi(2) / 4.0;
+
+        // Calculate velocities
+        let v_outlet = q_outlet / a_outlet;
+        let v_inlet = q_inlet / a_inlet;
+        let v_lateral = q_lateral / a_inlet;
+
+        let theta_j = 90.0; // degrees
+
+        let hj = energy_loss.junction_loss(
+            q_outlet, q_inlet, q_lateral,
+            v_outlet, v_inlet, v_lateral,
+            a_outlet, a_inlet,
+            theta_j
+        );
+
+        // Junction loss should be positive for this configuration
+        assert!(hj > 0.0, "Junction loss should be positive, got {}", hj);
+
+        // For this case, loss should be reasonable (not excessive)
+        assert!(hj < 2.0, "Junction loss seems excessive: {}", hj);
+    }
+
+    #[test]
+    fn test_junction_loss_straight_through() {
+        let energy_loss = EnergyLoss::us_customary();
+
+        // Test case: straight through junction (180 degrees), no lateral
+        // This should result in minimal loss
+
+        let q_outlet = 5.0;
+        let q_inlet = 5.0;
+        let q_lateral = 0.0;
+
+        let d: f64 = 1.5; // Same diameter
+        let a = std::f64::consts::PI * d.powi(2) / 4.0;
+
+        let v_outlet = q_outlet / a;
+        let v_inlet = q_inlet / a;
+        let v_lateral = 0.0;
+
+        let theta_j = 180.0; // Straight through
+
+        let hj = energy_loss.junction_loss(
+            q_outlet, q_inlet, q_lateral,
+            v_outlet, v_inlet, v_lateral,
+            a, a,
+            theta_j
+        );
+
+        // For straight through with same diameter, loss should be minimal/near zero
+        assert!(hj.abs() < 0.01, "Straight through junction loss should be near zero, got {}", hj);
     }
 }
