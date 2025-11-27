@@ -50,6 +50,23 @@ struct Cli {
     /// Output format
     #[arg(short = 'f', long, value_enum, default_value = "text")]
     format: OutputFormat,
+
+    /// Export network plan view as SVG
+    #[arg(long, value_name = "FILE")]
+    export_network_plan: Option<PathBuf>,
+
+    /// Export profile view as SVG
+    #[arg(long, value_name = "FILE")]
+    export_profile: Option<PathBuf>,
+
+    /// Export interactive HTML viewer
+    #[arg(long, value_name = "FILE")]
+    export_html: Option<PathBuf>,
+
+    /// Node path for profile view (comma-separated node IDs)
+    /// Example: "IN-001,MH-001,OUT-001"
+    #[arg(long, value_name = "PATH")]
+    profile_path: Option<String>,
 }
 
 #[derive(Debug, Clone, ValueEnum)]
@@ -239,7 +256,7 @@ fn run_analysis(cli: Cli) -> Result<(), Box<dyn std::error::Error>> {
     match cli.format {
         OutputFormat::Text => {
             let report = format_text_report(&network, &analysis, &cli.units);
-            if let Some(output_path) = cli.output {
+            if let Some(ref output_path) = cli.output {
                 std::fs::write(output_path, &report)?;
                 println!("Results written to file");
             } else {
@@ -248,7 +265,7 @@ fn run_analysis(cli: Cli) -> Result<(), Box<dyn std::error::Error>> {
         }
         OutputFormat::Json => {
             let json = serde_json::to_string_pretty(&analysis)?;
-            if let Some(output_path) = cli.output {
+            if let Some(ref output_path) = cli.output {
                 std::fs::write(output_path, &json)?;
                 println!("Results written to file");
             } else {
@@ -256,8 +273,8 @@ fn run_analysis(cli: Cli) -> Result<(), Box<dyn std::error::Error>> {
             }
         }
         OutputFormat::Csv => {
-            if let Some(output_path) = cli.output {
-                write_csv_output(&analysis, &output_path)?;
+            if let Some(ref output_path) = cli.output {
+                write_csv_output(&analysis, output_path)?;
                 println!("Results written to CSV files");
             } else {
                 println!("CSV output requires --output flag to specify base filename");
@@ -278,6 +295,9 @@ fn run_analysis(cli: Cli) -> Result<(), Box<dyn std::error::Error>> {
             println!("\n✓ No design violations found");
         }
     }
+
+    // Export visualizations if requested
+    export_visualizations(&cli, &network)?;
 
     Ok(())
 }
@@ -434,4 +454,105 @@ fn write_csv_output(
     }
 
     Ok(())
+}
+
+fn export_visualizations(
+    cli: &Cli,
+    network: &network::Network,
+) -> Result<(), Box<dyn std::error::Error>> {
+    use visualization::{NetworkPlanView, ProfileView, HtmlViewer};
+
+    // Export network plan view if requested
+    if let Some(ref path) = cli.export_network_plan {
+        println!("\nExporting network plan view...");
+        let plan_view = NetworkPlanView::new(network);
+        plan_view.save_to_file(path.to_str().unwrap())?;
+        println!("  Network plan saved to: {}", path.display());
+    }
+
+    // Export profile view if requested
+    if let Some(ref path) = cli.export_profile {
+        println!("\nExporting profile view...");
+
+        // Determine node path for profile
+        let node_path: Vec<&str> = if let Some(ref path_str) = cli.profile_path {
+            // User provided explicit path
+            path_str.split(',').map(|s| s.trim()).collect()
+        } else {
+            // Auto-generate path from outfall to first inlet (simple linear path)
+            find_profile_path(network)
+        };
+
+        if node_path.is_empty() {
+            println!("  Warning: No valid profile path found. Skipping profile export.");
+        } else {
+            println!("  Profile path: {}", node_path.join(" → "));
+            let profile_view = ProfileView::new(network, &node_path);
+            profile_view.save_to_file(path.to_str().unwrap())?;
+            println!("  Profile view saved to: {}", path.display());
+        }
+    }
+
+    // Export HTML viewer if requested
+    if let Some(ref path) = cli.export_html {
+        println!("\nExporting interactive HTML viewer...");
+
+        // Determine node path for profile
+        let node_path: Vec<&str> = if let Some(ref path_str) = cli.profile_path {
+            path_str.split(',').map(|s| s.trim()).collect()
+        } else {
+            find_profile_path(network)
+        };
+
+        let viewer = HtmlViewer::new(network);
+
+        let html_content = if node_path.is_empty() {
+            // Only plan view if no profile path available
+            viewer.generate_plan_view()
+        } else {
+            // Combined view with both plan and profile
+            viewer.generate_combined_view(&node_path)
+        };
+
+        viewer.save_to_file(path.to_str().unwrap(), &html_content)?;
+        println!("  Interactive viewer saved to: {}", path.display());
+        println!("  Open in browser to view the network");
+    }
+
+    Ok(())
+}
+
+/// Find a simple profile path from outfall upstream
+fn find_profile_path<'a>(network: &'a network::Network) -> Vec<&'a str> {
+    // Find first outfall ID
+    let outfall_id = match network.outfalls().first() {
+        Some(node) => &node.id,
+        None => return vec![],
+    };
+
+    let mut path = vec![];
+    let mut current_id = outfall_id.as_str();
+
+    // Trace upstream from outfall
+    path.push(current_id);
+
+    // Follow upstream conduits (simple linear path)
+    for _ in 0..100 {  // Prevent infinite loops
+        // Find conduit flowing into current node
+        let upstream_conduit = network.conduits
+            .iter()
+            .find(|c| c.to_node == current_id);
+
+        match upstream_conduit {
+            Some(conduit) => {
+                current_id = conduit.from_node.as_str();
+                path.push(current_id);
+            }
+            None => break,
+        }
+    }
+
+    // Reverse to go from upstream to downstream
+    path.reverse();
+    path
 }
