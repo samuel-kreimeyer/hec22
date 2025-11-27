@@ -76,8 +76,10 @@ The profile view is critical for hydraulic analysis:
    - Located at invert elevation
 
 5. **Violations in this example**:
-   - IN-001: HGL = 106.37 ft, Rim = 105.50 ft → 0.87 ft of flooding!
-   - IN-002: HGL = 103.69 ft, Rim = 103.20 ft → 0.49 ft of flooding!
+   - IN-001: HGL = 108.00 ft, Rim = 105.50 ft → 2.50 ft of flooding!
+   - IN-002: HGL = 105.32 ft, Rim = 103.20 ft → 2.12 ft of flooding!
+
+   **Note**: These HGL values include junction losses (HEC-22 Equation 9.9). The higher HGL values at the inlets reflect the additional energy required to overcome energy dissipation at the junction structures where multiple pipes converge.
 
 ## Technical Details
 

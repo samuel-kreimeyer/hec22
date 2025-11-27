@@ -135,6 +135,10 @@ impl HglSolver {
         // Build network traversal order (topological sort from outfalls upstream)
         let traversal_order = self.topological_sort(network)?;
 
+        // Storage for conduit flow results (needed for junction loss calculation)
+        let mut conduit_velocities: HashMap<String, f64> = HashMap::new();
+        let mut conduit_areas: HashMap<String, f64> = HashMap::new();
+
         // Process each conduit in order
         for conduit_id in traversal_order {
             let conduit = network
@@ -161,8 +165,111 @@ impl HglSolver {
             node_hgls.insert(conduit.from_node.clone(), upstream_hgl);
             node_egls.insert(conduit.from_node.clone(), upstream_egl);
 
+            // Store velocity and area for junction loss calculations
+            if let Some(velocity) = conduit_result.velocity {
+                conduit_velocities.insert(conduit.id.clone(), velocity);
+            }
+            if let Some(depth) = conduit_result.depth {
+                // Calculate area from depth for circular pipe
+                if let Some(ref pipe) = conduit.pipe {
+                    if let Some(diameter) = pipe.diameter {
+                        let d = diameter / 12.0; // Convert inches to feet
+                        let area = self.circular_pipe_area(d, depth);
+                        conduit_areas.insert(conduit.id.clone(), area);
+                    }
+                }
+            }
+
             if let Some(ref mut results) = analysis.conduit_results {
                 results.push(conduit_result);
+            }
+        }
+
+        // Apply junction losses (HEC-22 Section 9.1, Equation 9.9)
+        //
+        // Junction losses occur when multiple conduits converge at a junction structure.
+        // The energy loss is due to turbulence and momentum changes as flows mix.
+        //
+        // Per HEC-22 Section 9.1, the recommended approach is to:
+        // 1. Identify junctions with multiple incoming conduits
+        // 2. Calculate junction loss using Equation 9.9 (momentum-based method)
+        // 3. Add the junction loss to the HGL at upstream nodes
+        //
+        // This creates the characteristic "sudden drop" in HGL at junction structures
+        // visible in HEC-22 Figure 9.6.
+        for node in &network.nodes {
+            if !node.is_junction() {
+                continue;
+            }
+
+            let upstream_conduits = network.upstream_conduits(&node.id);
+            let downstream_conduits = network.downstream_conduits(&node.id);
+
+            // Junction losses only apply when multiple pipes converge
+            if upstream_conduits.len() < 2 || downstream_conduits.is_empty() {
+                continue;
+            }
+
+            // Get the outlet conduit (typically only one)
+            let outlet_conduit = &downstream_conduits[0];
+            let q_outlet = flows.get(&outlet_conduit.id).cloned().unwrap_or(0.0);
+            let v_outlet = conduit_velocities.get(&outlet_conduit.id).cloned().unwrap_or(0.0);
+            let a_outlet = conduit_areas.get(&outlet_conduit.id).cloned().unwrap_or(1.0);
+
+            if q_outlet <= 0.0 {
+                continue;
+            }
+
+            // Find the main inlet (highest flow) and lateral inlet
+            let mut inlet_conduits: Vec<_> = upstream_conduits.iter().collect();
+            inlet_conduits.sort_by(|a, b| {
+                let flow_a = flows.get(&a.id).cloned().unwrap_or(0.0);
+                let flow_b = flows.get(&b.id).cloned().unwrap_or(0.0);
+                flow_b.partial_cmp(&flow_a).unwrap_or(std::cmp::Ordering::Equal)
+            });
+
+            // Main inlet (highest flow)
+            let inlet_conduit = inlet_conduits[0];
+            let q_inlet = flows.get(&inlet_conduit.id).cloned().unwrap_or(0.0);
+            let v_inlet = conduit_velocities.get(&inlet_conduit.id).cloned().unwrap_or(0.0);
+            let a_inlet = conduit_areas.get(&inlet_conduit.id).cloned().unwrap_or(1.0);
+
+            // Lateral inlet (if exists)
+            let (q_lateral, v_lateral, _a_lateral) = if inlet_conduits.len() > 1 {
+                let lateral = inlet_conduits[1];
+                let q = flows.get(&lateral.id).cloned().unwrap_or(0.0);
+                let v = conduit_velocities.get(&lateral.id).cloned().unwrap_or(0.0);
+                let a = conduit_areas.get(&lateral.id).cloned().unwrap_or(1.0);
+                (q, v, a)
+            } else {
+                (0.0, 0.0, 1.0)
+            };
+
+            // Junction angle (default to 90 degrees if not specified)
+            let theta_j = 90.0;
+
+            // Calculate junction loss using HEC-22 Equation 9.9
+            let junction_head_loss = self.energy_loss.junction_loss(
+                q_outlet,
+                q_inlet,
+                q_lateral,
+                v_outlet,
+                v_inlet,
+                v_lateral,
+                a_outlet,
+                a_inlet,
+                theta_j,
+            );
+
+            // Apply junction loss to upstream nodes
+            // The HGL at the upstream end of inlet pipes must be higher to overcome junction loss
+            for inlet in &upstream_conduits {
+                if let Some(upstream_hgl) = node_hgls.get_mut(&inlet.from_node) {
+                    *upstream_hgl += junction_head_loss;
+                }
+                if let Some(upstream_egl) = node_egls.get_mut(&inlet.from_node) {
+                    *upstream_egl += junction_head_loss;
+                }
             }
         }
 
@@ -409,6 +516,34 @@ impl HglSolver {
             flow_regime: None,
             headloss: None,
         }
+    }
+
+    /// Calculate flow area for a circular pipe at a given depth
+    ///
+    /// Uses the circular segment formula:
+    /// A = (D²/4) × (θ - sin(θ))
+    /// where θ is the central angle in radians
+    fn circular_pipe_area(&self, diameter: f64, depth: f64) -> f64 {
+        if depth <= 0.0 {
+            return 0.0;
+        }
+        if depth >= diameter {
+            // Full pipe
+            return std::f64::consts::PI * diameter * diameter / 4.0;
+        }
+
+        // Partial flow - calculate area of circular segment
+        let r = diameter / 2.0;
+        let h = depth;
+
+        // Central angle θ = 2 × arccos((r - h) / r)
+        let cos_half_theta = (r - h) / r;
+        let theta = 2.0 * cos_half_theta.acos();
+
+        // Area = (r² / 2) × (θ - sin(θ))
+        let area = (r * r / 2.0) * (theta - theta.sin());
+
+        area
     }
 
     /// Perform topological sort to get conduit processing order
