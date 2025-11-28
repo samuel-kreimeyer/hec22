@@ -348,27 +348,16 @@ impl<'a> ProfileView<'a> {
     }
 
     /// Draw pipe crown line (top of pipe)
+    /// Shows sudden vertical steps when pipe diameter changes at junctions
     fn draw_pipe_crown(&self, svg: &mut SvgBuilder, min_elev: f64, max_elev: f64) {
         let mut points = Vec::new();
 
-        // For each segment between nodes, calculate crown elevation
+        // For each node, check both upstream and downstream pipe diameters
         for i in 0..self.profile_points.len() {
             let point = &self.profile_points[i];
 
-            // Find conduit connecting to this node
-            let pipe_diameter = if i < self.profile_points.len() - 1 {
-                let next_point = &self.profile_points[i + 1];
-                // Find conduit between this node and next node
-                self.network.conduits.iter()
-                    .find(|c| {
-                        (&c.from_node == &point.node_id && &c.to_node == &next_point.node_id) ||
-                        (&c.from_node == &next_point.node_id && &c.to_node == &point.node_id)
-                    })
-                    .and_then(|c| c.pipe.as_ref())
-                    .and_then(|p| p.diameter)
-                    .map(|d| d / 12.0) // Convert inches to feet
-            } else if i > 0 {
-                // For last point, use the previous conduit's diameter
+            // Get diameter of pipe UPSTREAM of this node (entering the node)
+            let upstream_diameter = if i > 0 {
                 let prev_point = &self.profile_points[i - 1];
                 self.network.conduits.iter()
                     .find(|c| {
@@ -377,14 +366,49 @@ impl<'a> ProfileView<'a> {
                     })
                     .and_then(|c| c.pipe.as_ref())
                     .and_then(|p| p.diameter)
+                    .map(|d| d / 12.0) // Convert inches to feet
+            } else {
+                None
+            };
+
+            // Get diameter of pipe DOWNSTREAM of this node (leaving the node)
+            let downstream_diameter = if i < self.profile_points.len() - 1 {
+                let next_point = &self.profile_points[i + 1];
+                self.network.conduits.iter()
+                    .find(|c| {
+                        (&c.from_node == &point.node_id && &c.to_node == &next_point.node_id) ||
+                        (&c.from_node == &next_point.node_id && &c.to_node == &point.node_id)
+                    })
+                    .and_then(|c| c.pipe.as_ref())
+                    .and_then(|p| p.diameter)
                     .map(|d| d / 12.0)
             } else {
                 None
             };
 
-            if let Some(diameter) = pipe_diameter {
+            let (x, _y_invert) = self.transform(point.station, point.invert_elev, min_elev, max_elev);
+
+            // Add upstream crown point (if upstream pipe exists)
+            if let Some(diameter) = upstream_diameter {
                 let crown_elev = point.invert_elev + diameter;
-                let (x, y) = self.transform(point.station, crown_elev, min_elev, max_elev);
+                let (_, y) = self.transform(point.station, crown_elev, min_elev, max_elev);
+                points.push((x, y));
+            }
+
+            // If pipe diameter changes at this junction, add downstream crown point
+            // This creates a vertical step showing the size change
+            if let (Some(up_d), Some(down_d)) = (upstream_diameter, downstream_diameter) {
+                if (up_d - down_d).abs() > 0.01 {
+                    // Diameters differ - add point showing downstream crown
+                    let crown_elev = point.invert_elev + down_d;
+                    let (_, y) = self.transform(point.station, crown_elev, min_elev, max_elev);
+                    points.push((x, y));
+                }
+            } else if downstream_diameter.is_some() && upstream_diameter.is_none() {
+                // First node - add downstream crown point
+                let diameter = downstream_diameter.unwrap();
+                let crown_elev = point.invert_elev + diameter;
+                let (_, y) = self.transform(point.station, crown_elev, min_elev, max_elev);
                 points.push((x, y));
             }
         }
