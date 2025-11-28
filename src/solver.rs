@@ -324,6 +324,10 @@ impl HglSolver {
     }
 
     /// Get tailwater elevation at outfall
+    ///
+    /// Returns HGL elevation at the outfall, which includes water depth above the invert.
+    /// For visualization purposes, this should show the actual water surface elevation,
+    /// not just the flow line (invert).
     fn get_tailwater_elevation(&self, outfall: &Node) -> Result<f64, String> {
         let outfall_props = outfall
             .outfall
@@ -332,8 +336,15 @@ impl HglSolver {
 
         match outfall_props.boundary_condition {
             BoundaryCondition::Free => {
-                // Free outfall: use critical depth at invert
-                Ok(outfall.invert_elevation)
+                // Free outfall: assume tailwater depth
+                // If tailwater_elevation is specified, use it
+                // Otherwise, assume 1.0 ft depth for visualization
+                if let Some(tw) = outfall_props.tailwater_elevation {
+                    Ok(tw)
+                } else {
+                    // Assume 1 ft of tailwater depth for free outfall visualization
+                    Ok(outfall.invert_elevation + 1.0)
+                }
             }
             BoundaryCondition::FixedStage => {
                 // Fixed stage: use specified tailwater
@@ -342,10 +353,10 @@ impl HglSolver {
                     .ok_or_else(|| "Fixed stage outfall missing tailwater elevation".to_string())
             }
             BoundaryCondition::NormalDepth => {
-                // Normal depth: use specified tailwater or invert
+                // Normal depth: use specified tailwater or assume 1.0 ft depth
                 Ok(outfall_props
                     .tailwater_elevation
-                    .unwrap_or(outfall.invert_elevation))
+                    .unwrap_or(outfall.invert_elevation + 1.0))
             }
             BoundaryCondition::Tidal => {
                 // Tidal: for steady-state analysis, use mean tide level

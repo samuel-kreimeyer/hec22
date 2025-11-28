@@ -80,6 +80,24 @@ impl SvgBuilder {
         self.elements.push(elem);
     }
 
+    /// Add a polyline with custom stroke-dasharray (for dashed/dotted lines)
+    pub fn polyline_dashed(&mut self, points: &[(f64, f64)], fill: &str, stroke: &str, stroke_width: f64, dasharray: &str) {
+        let mut points_str = String::new();
+        for (i, (x, y)) in points.iter().enumerate() {
+            if i > 0 {
+                points_str.push(' ');
+            }
+            write!(&mut points_str, "{},{}", x, y).unwrap();
+        }
+
+        let mut elem = String::new();
+        write!(&mut elem,
+            r#"<polyline points="{}" fill="{}" stroke="{}" stroke-width="{}" stroke-dasharray="{}"/>"#,
+            points_str, fill, stroke, stroke_width, dasharray
+        ).unwrap();
+        self.elements.push(elem);
+    }
+
     /// Add text
     pub fn text(&mut self, x: f64, y: f64, content: &str, font_size: f64, anchor: &str, fill: &str) {
         let mut elem = String::new();

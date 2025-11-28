@@ -206,6 +206,7 @@ impl<'a> ProfileView<'a> {
         // Draw profile elements
         if self.config.show_pipe {
             self.draw_pipe_profile(&mut svg, min_elev, max_elev);
+            self.draw_pipe_crown(&mut svg, min_elev, max_elev);
         }
         if self.config.show_ground {
             self.draw_ground_line(&mut svg, min_elev, max_elev);
@@ -324,8 +325,8 @@ impl<'a> ProfileView<'a> {
             let elev = min_elev + (max_elev - min_elev) * (i as f64 / num_ticks as f64);
             let (_, y) = self.transform(0.0, elev, min_elev, max_elev);
 
-            // Grid line
-            svg.line(x_start, y, x_start + plot_width, y, "#ddd", 1.0);
+            // Grid line (thin)
+            svg.line(x_start, y, x_start + plot_width, y, "#ddd", 0.5);
 
             // Elevation label
             svg.text(x_start - 10.0, y + 4.0, &format!("{:.1}", elev), 10.0, "end", "#000");
@@ -346,15 +347,69 @@ impl<'a> ProfileView<'a> {
         }
     }
 
+    /// Draw pipe crown line (top of pipe)
+    fn draw_pipe_crown(&self, svg: &mut SvgBuilder, min_elev: f64, max_elev: f64) {
+        let mut points = Vec::new();
+
+        // For each segment between nodes, calculate crown elevation
+        for i in 0..self.profile_points.len() {
+            let point = &self.profile_points[i];
+
+            // Find conduit connecting to this node
+            let pipe_diameter = if i < self.profile_points.len() - 1 {
+                let next_point = &self.profile_points[i + 1];
+                // Find conduit between this node and next node
+                self.network.conduits.iter()
+                    .find(|c| {
+                        (&c.from_node == &point.node_id && &c.to_node == &next_point.node_id) ||
+                        (&c.from_node == &next_point.node_id && &c.to_node == &point.node_id)
+                    })
+                    .and_then(|c| c.pipe.as_ref())
+                    .and_then(|p| p.diameter)
+                    .map(|d| d / 12.0) // Convert inches to feet
+            } else if i > 0 {
+                // For last point, use the previous conduit's diameter
+                let prev_point = &self.profile_points[i - 1];
+                self.network.conduits.iter()
+                    .find(|c| {
+                        (&c.from_node == &prev_point.node_id && &c.to_node == &point.node_id) ||
+                        (&c.from_node == &point.node_id && &c.to_node == &prev_point.node_id)
+                    })
+                    .and_then(|c| c.pipe.as_ref())
+                    .and_then(|p| p.diameter)
+                    .map(|d| d / 12.0)
+            } else {
+                None
+            };
+
+            if let Some(diameter) = pipe_diameter {
+                let crown_elev = point.invert_elev + diameter;
+                let (x, y) = self.transform(point.station, crown_elev, min_elev, max_elev);
+                points.push((x, y));
+            }
+        }
+
+        if points.len() >= 2 {
+            // Draw crown line as thin dashed line
+            svg.polyline_dashed(&points, "none", "#666", 1.5, "4 2");
+        }
+    }
+
     /// Draw ground line (rim elevations)
     fn draw_ground_line(&self, svg: &mut SvgBuilder, min_elev: f64, max_elev: f64) {
         let mut points = Vec::new();
 
         for point in &self.profile_points {
-            if let Some(rim) = point.rim_elev {
-                let (x, y) = self.transform(point.station, rim, min_elev, max_elev);
-                points.push((x, y));
-            }
+            // Use rim elevation if available, otherwise use invert for outfall
+            let ground_elev = if let Some(rim) = point.rim_elev {
+                rim
+            } else {
+                // For outfall without rim, use invert elevation (flow line)
+                point.invert_elev
+            };
+
+            let (x, y) = self.transform(point.station, ground_elev, min_elev, max_elev);
+            points.push((x, y));
         }
 
         if points.len() >= 2 {
@@ -363,6 +418,7 @@ impl<'a> ProfileView<'a> {
     }
 
     /// Draw HGL line with junction losses shown as discrete drops
+    /// Uses dash-dot pattern: "8 3 2 3" (8px dash, 3px gap, 2px dot, 3px gap)
     fn draw_hgl(&self, svg: &mut SvgBuilder, min_elev: f64, max_elev: f64) {
         let mut points = Vec::new();
 
@@ -384,11 +440,12 @@ impl<'a> ProfileView<'a> {
         }
 
         if points.len() >= 2 {
-            svg.polyline(&points, "none", "#2196F3", 2.5);
+            svg.polyline_dashed(&points, "none", "#2196F3", 2.5, "8 3 2 3");
         }
     }
 
     /// Draw EGL line with junction losses shown as discrete drops
+    /// Uses dash-dot pattern: "8 3 2 3" (8px dash, 3px gap, 2px dot, 3px gap)
     fn draw_egl(&self, svg: &mut SvgBuilder, min_elev: f64, max_elev: f64) {
         let mut points = Vec::new();
 
@@ -410,7 +467,7 @@ impl<'a> ProfileView<'a> {
         }
 
         if points.len() >= 2 {
-            svg.polyline(&points, "none", "#FF9800", 2.5);
+            svg.polyline_dashed(&points, "none", "#FF9800", 2.5, "8 3 2 3");
         }
     }
 
@@ -428,20 +485,20 @@ impl<'a> ProfileView<'a> {
             // Get node type from network
             if let Some(node) = node_map.get(point.node_id.as_str()) {
                 if node.is_junction() && point.rim_elev.is_some() {
-                    // Draw junction as a rectangle from invert to rim
+                    // Draw junction as a rectangle from invert to rim (outline only, no fill)
                     let rim = point.rim_elev.unwrap();
                     let (_, y_rim) = self.transform(point.station, rim, min_elev, max_elev);
 
                     let rect_width = 20.0; // Width of junction box in pixels
                     let rect_height = y_invert - y_rim; // Height from rim to invert (positive in SVG coords)
 
-                    // Draw junction box (manhole/junction chamber)
+                    // Draw junction box (manhole/junction chamber) - outline only
                     svg.rect(
                         x - rect_width / 2.0,
                         y_rim,
                         rect_width,
                         rect_height,
-                        "#E3F2FD",  // Light blue fill
+                        "none",     // No fill
                         "#1565C0",  // Dark blue stroke
                         2.0
                     );
