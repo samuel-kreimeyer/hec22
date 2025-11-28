@@ -61,6 +61,7 @@ struct ProfilePoint {
     rim_elev: Option<f64>,
     hgl: Option<f64>,
     egl: Option<f64>,
+    junction_loss: Option<f64>,
 }
 
 /// Profile view generator
@@ -136,12 +137,12 @@ impl<'a> ProfileView<'a> {
             .map(|n| (n.id.as_str(), n))
             .collect();
 
-        // Create HGL/EGL lookup from analysis results if available
-        let hgl_egl_map: HashMap<&str, (Option<f64>, Option<f64>)> = if let Some(analysis) = analysis {
+        // Create HGL/EGL/JunctionLoss lookup from analysis results if available
+        let node_data_map: HashMap<&str, (Option<f64>, Option<f64>, Option<f64>)> = if let Some(analysis) = analysis {
             if let Some(ref node_results) = analysis.node_results {
                 node_results
                     .iter()
-                    .map(|nr| (nr.node_id.as_str(), (nr.hgl, nr.egl)))
+                    .map(|nr| (nr.node_id.as_str(), (nr.hgl, nr.egl, nr.junction_loss)))
                     .collect()
             } else {
                 HashMap::new()
@@ -164,11 +165,11 @@ impl<'a> ProfileView<'a> {
                     }
                 }
 
-                // Get HGL/EGL from analysis results if available
-                let (hgl, egl) = hgl_egl_map
+                // Get HGL/EGL/JunctionLoss from analysis results if available
+                let (hgl, egl, junction_loss) = node_data_map
                     .get(node_id.as_str())
                     .copied()
-                    .unwrap_or((None, None));
+                    .unwrap_or((None, None, None));
 
                 points.push(ProfilePoint {
                     station: cumulative_station,
@@ -177,6 +178,7 @@ impl<'a> ProfileView<'a> {
                     rim_elev: node.rim_elevation,
                     hgl,
                     egl,
+                    junction_loss,
                 });
             }
         }
@@ -360,14 +362,24 @@ impl<'a> ProfileView<'a> {
         }
     }
 
-    /// Draw HGL line
+    /// Draw HGL line with junction losses shown as discrete drops
     fn draw_hgl(&self, svg: &mut SvgBuilder, min_elev: f64, max_elev: f64) {
         let mut points = Vec::new();
 
-        for point in &self.profile_points {
+        for (i, point) in self.profile_points.iter().enumerate() {
             if let Some(hgl) = point.hgl {
                 let (x, y) = self.transform(point.station, hgl, min_elev, max_elev);
                 points.push((x, y));
+
+                // If this junction has a junction loss, add a discrete vertical drop
+                if let Some(junction_loss) = point.junction_loss {
+                    if junction_loss > 0.0 {
+                        // Add point at outlet-side HGL (after the drop)
+                        let outlet_hgl = hgl - junction_loss;
+                        let (x_out, y_out) = self.transform(point.station, outlet_hgl, min_elev, max_elev);
+                        points.push((x_out, y_out));
+                    }
+                }
             }
         }
 
@@ -376,7 +388,7 @@ impl<'a> ProfileView<'a> {
         }
     }
 
-    /// Draw EGL line
+    /// Draw EGL line with junction losses shown as discrete drops
     fn draw_egl(&self, svg: &mut SvgBuilder, min_elev: f64, max_elev: f64) {
         let mut points = Vec::new();
 
@@ -384,6 +396,16 @@ impl<'a> ProfileView<'a> {
             if let Some(egl) = point.egl {
                 let (x, y) = self.transform(point.station, egl, min_elev, max_elev);
                 points.push((x, y));
+
+                // If this junction has a junction loss, add a discrete vertical drop
+                if let Some(junction_loss) = point.junction_loss {
+                    if junction_loss > 0.0 {
+                        // Add point at outlet-side EGL (after the drop)
+                        let outlet_egl = egl - junction_loss;
+                        let (x_out, y_out) = self.transform(point.station, outlet_egl, min_elev, max_elev);
+                        points.push((x_out, y_out));
+                    }
+                }
             }
         }
 

@@ -117,6 +117,7 @@ impl HglSolver {
         let mut node_egls: HashMap<String, f64> = HashMap::new();
         let mut node_depths: HashMap<String, f64> = HashMap::new();
         let mut node_velocities: HashMap<String, f64> = HashMap::new();
+        let mut node_junction_losses: HashMap<String, f64> = HashMap::new();
 
         // Step 1: Determine tailwater at outfall(s)
         let outfalls = network.outfalls();
@@ -261,6 +262,9 @@ impl HglSolver {
                 theta_j,
             );
 
+            // Store junction loss for this node
+            node_junction_losses.insert(node.id.clone(), junction_head_loss);
+
             // Apply junction loss to upstream nodes
             // The HGL at the upstream end of inlet pipes must be higher to overcome junction loss
             for inlet in &upstream_conduits {
@@ -296,6 +300,7 @@ impl HglSolver {
                     velocity: Some(velocity),
                     flooding: Some(flooding),
                     pressure_head: Some(hgl - node.invert_elevation),
+                    junction_loss: node_junction_losses.get(&node.id).copied(),
                 });
 
                 // Check for HGL violations
