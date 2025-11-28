@@ -196,6 +196,11 @@ pub struct NodeResult {
     #[serde(skip_serializing_if = "Option::is_none")]
     #[serde(rename = "pressureHead")]
     pub pressure_head: Option<f64>,
+
+    /// Junction loss at this node (ft or m) - only for junctions
+    #[serde(skip_serializing_if = "Option::is_none")]
+    #[serde(rename = "junctionLoss")]
+    pub junction_loss: Option<f64>,
 }
 
 /// Computed results for a conduit
