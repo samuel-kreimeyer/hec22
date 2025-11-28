@@ -20,7 +20,10 @@ use crate::analysis::{
 use crate::conduit::{Conduit, ConduitType};
 use crate::drainage::DrainageArea;
 use crate::gutter::{UniformGutter, GUTTER_K_US, GUTTER_K_SI};
-use crate::hydraulics::{EnergyLoss, FlowRegime, ManningsEquation, PipeFlowResult};
+use crate::hydraulics::{
+    EnergyLoss, FlowRegime, ManningsEquation, PipeFlowResult,
+    FhwaAccessHoleMethod, InflowPipe, BenchingType, AccessHoleResult,
+};
 use crate::inlet::{
     BarConfiguration as InletBarConfig, CombinationInletOnGrade, CurbOpeningInletOnGrade,
     GrateInletOnGrade, InletInterceptionResult, ThroatType as InletThroatType,
@@ -73,6 +76,7 @@ pub struct HglSolver {
     config: SolverConfig,
     mannings: ManningsEquation,
     energy_loss: EnergyLoss,
+    fhwa_access_hole: FhwaAccessHoleMethod,
 }
 
 impl HglSolver {
@@ -80,11 +84,13 @@ impl HglSolver {
     pub fn new(config: SolverConfig) -> Self {
         let mannings = ManningsEquation { k: config.manning_k };
         let energy_loss = EnergyLoss { gravity: config.gravity };
+        let fhwa_access_hole = FhwaAccessHoleMethod { gravity: config.gravity };
 
         Self {
             config,
             mannings,
             energy_loss,
+            fhwa_access_hole,
         }
     }
 
@@ -186,18 +192,19 @@ impl HglSolver {
             }
         }
 
-        // Apply junction losses (HEC-22 Section 9.1, Equation 9.9)
+        // Apply access hole/junction losses using FHWA Access Hole Method
+        // (HEC-22 Equations 9.11-9.31)
         //
-        // Junction losses occur when multiple conduits converge at a junction structure.
-        // The energy loss is due to turbulence and momentum changes as flows mix.
+        // For junctions and manholes, HEC-22 recommends the comprehensive FHWA
+        // Access Hole Method which accounts for:
+        // - Outlet control vs inlet control conditions (Equations 9.13-9.18)
+        // - Benching configuration effects (Equation 9.20)
+        // - Angled inflow effects (Equations 9.21-9.23)
+        // - Plunging flow effects (Equations 9.24-9.26)
         //
-        // Per HEC-22 Section 9.1, the recommended approach is to:
-        // 1. Identify junctions with multiple incoming conduits
-        // 2. Calculate junction loss using Equation 9.9 (momentum-based method)
-        // 3. Add the junction loss to the HGL at upstream nodes
-        //
-        // This creates the characteristic "sudden drop" in HGL at junction structures
-        // visible in HEC-22 Figure 9.6.
+        // This method is more accurate than the simple Equation 9.9 and provides
+        // realistic energy losses at access holes. For simple junctions without
+        // access holes, falls back to Equation 9.9.
         for node in &network.nodes {
             if !node.is_junction() {
                 continue;
@@ -206,71 +213,51 @@ impl HglSolver {
             let upstream_conduits = network.upstream_conduits(&node.id);
             let downstream_conduits = network.downstream_conduits(&node.id);
 
-            // Junction losses only apply when multiple pipes converge
-            if upstream_conduits.len() < 2 || downstream_conduits.is_empty() {
+            // Skip if no converging flows
+            if upstream_conduits.is_empty() || downstream_conduits.is_empty() {
                 continue;
             }
 
             // Get the outlet conduit (typically only one)
             let outlet_conduit = &downstream_conduits[0];
             let q_outlet = flows.get(&outlet_conduit.id).cloned().unwrap_or(0.0);
-            let v_outlet = conduit_velocities.get(&outlet_conduit.id).cloned().unwrap_or(0.0);
-            let a_outlet = conduit_areas.get(&outlet_conduit.id).cloned().unwrap_or(1.0);
 
             if q_outlet <= 0.0 {
                 continue;
             }
 
-            // Find the main inlet (highest flow) and lateral inlet
-            let mut inlet_conduits: Vec<_> = upstream_conduits.iter().collect();
-            inlet_conduits.sort_by(|a, b| {
-                let flow_a = flows.get(&a.id).cloned().unwrap_or(0.0);
-                let flow_b = flows.get(&b.id).cloned().unwrap_or(0.0);
-                flow_b.partial_cmp(&flow_a).unwrap_or(std::cmp::Ordering::Equal)
-            });
+            // Determine if this is a manhole/access hole (use FHWA method) or simple junction
+            let use_fhwa_method = upstream_conduits.len() >= 1; // Use FHWA for all junctions
 
-            // Main inlet (highest flow)
-            let inlet_conduit = inlet_conduits[0];
-            let q_inlet = flows.get(&inlet_conduit.id).cloned().unwrap_or(0.0);
-            let v_inlet = conduit_velocities.get(&inlet_conduit.id).cloned().unwrap_or(0.0);
-            let a_inlet = conduit_areas.get(&inlet_conduit.id).cloned().unwrap_or(1.0);
-
-            // Lateral inlet (if exists)
-            let (q_lateral, v_lateral, _a_lateral) = if inlet_conduits.len() > 1 {
-                let lateral = inlet_conduits[1];
-                let q = flows.get(&lateral.id).cloned().unwrap_or(0.0);
-                let v = conduit_velocities.get(&lateral.id).cloned().unwrap_or(0.0);
-                let a = conduit_areas.get(&lateral.id).cloned().unwrap_or(1.0);
-                (q, v, a)
+            let junction_head_loss = if use_fhwa_method {
+                // FHWA Access Hole Method (Equations 9.11-9.31)
+                self.calculate_access_hole_loss(
+                    node,
+                    &outlet_conduit,
+                    &upstream_conduits,
+                    &flows,
+                    &conduit_velocities,
+                    &conduit_areas,
+                    &node_egls,
+                    network,
+                )
             } else {
-                (0.0, 0.0, 1.0)
+                // Fallback to simple Equation 9.9 for very simple junctions
+                self.calculate_simple_junction_loss(
+                    &upstream_conduits,
+                    &downstream_conduits,
+                    &flows,
+                    &conduit_velocities,
+                    &conduit_areas,
+                )
             };
-
-            // Junction angle (default to 90 degrees if not specified)
-            let theta_j = 90.0;
-
-            // Calculate junction loss using HEC-22 Equation 9.9
-            let junction_head_loss = self.energy_loss.junction_loss(
-                q_outlet,
-                q_inlet,
-                q_lateral,
-                v_outlet,
-                v_inlet,
-                v_lateral,
-                a_outlet,
-                a_inlet,
-                theta_j,
-            );
 
             // Store junction loss for this node
             node_junction_losses.insert(node.id.clone(), junction_head_loss);
 
-            // Apply junction loss to upstream nodes
-            // The HGL at the upstream end of inlet pipes must be higher to overcome junction loss
+            // Apply junction loss to upstream EGL
+            // The EGL at the upstream end of inlet pipes must be higher to overcome junction loss
             for inlet in &upstream_conduits {
-                if let Some(upstream_hgl) = node_hgls.get_mut(&inlet.from_node) {
-                    *upstream_hgl += junction_head_loss;
-                }
                 if let Some(upstream_egl) = node_egls.get_mut(&inlet.from_node) {
                     *upstream_egl += junction_head_loss;
                 }
@@ -354,6 +341,171 @@ impl HglSolver {
                     .ok_or_else(|| "Tidal outfall missing tailwater elevation".to_string())
             }
         }
+    }
+
+    /// Calculate access hole loss using FHWA Access Hole Method (Equations 9.11-9.31)
+    ///
+    /// This is the comprehensive method recommended by HEC-22 for analyzing energy
+    /// losses at manholes and access holes. It accounts for:
+    /// - Control conditions (outlet vs inlet control)
+    /// - Benching configuration
+    /// - Angled inflows
+    /// - Plunging flows
+    fn calculate_access_hole_loss(
+        &self,
+        node: &Node,
+        outlet_conduit: &Conduit,
+        upstream_conduits: &[&Conduit],
+        flows: &HashMap<String, f64>,
+        velocities: &HashMap<String, f64>,
+        areas: &HashMap<String, f64>,
+        node_egls: &HashMap<String, f64>,
+        network: &Network,
+    ) -> f64 {
+        // Get outlet pipe properties
+        let q_outlet = flows.get(&outlet_conduit.id).cloned().unwrap_or(0.0);
+        let v_outlet = velocities.get(&outlet_conduit.id).cloned().unwrap_or(0.0);
+        let a_outlet = areas.get(&outlet_conduit.id).cloned().unwrap_or(1.0);
+
+        // Get outlet pipe diameter (assuming circular pipe)
+        let d_outlet = if let Some(pipe_props) = &outlet_conduit.pipe {
+            pipe_props.diameter.unwrap_or(24.0) / 12.0 // Convert inches to feet
+        } else {
+            2.0 // Default 24" diameter
+        };
+
+        // Get outflow EGL at the junction
+        let outflow_egl = node_egls.get(&node.id).cloned().unwrap_or(node.invert_elevation);
+        let outflow_invert = node.invert_elevation;
+
+        // Build inflow pipe configurations
+        let mut inflow_pipes = Vec::new();
+        for (idx, conduit) in upstream_conduits.iter().enumerate() {
+            let flow = flows.get(&conduit.id).cloned().unwrap_or(0.0);
+            let velocity = velocities.get(&conduit.id).cloned().unwrap_or(0.0);
+            let area = areas.get(&conduit.id).cloned().unwrap_or(1.0);
+
+            // Get diameter (assuming circular pipe)
+            let diameter = if let Some(pipe_props) = &conduit.pipe {
+                pipe_props.diameter.unwrap_or(24.0) / 12.0 // inches to feet
+            } else {
+                2.0 // Default 24"
+            };
+
+            // Determine angle: first pipe is straight through (180°), others at 90°
+            let angle = if idx == 0 { 180.0 } else { 90.0 };
+
+            // Calculate invert offset (elevation difference from access hole invert)
+            let from_node = upstream_conduits.iter()
+                .find(|c| c.id == conduit.id)
+                .and_then(|c| {
+                    network.nodes.iter().find(|n| n.id == c.from_node)
+                });
+
+            let invert_offset = if let Some(from) = from_node {
+                (from.invert_elevation - node.invert_elevation).max(0.0)
+            } else {
+                0.0
+            };
+
+            inflow_pipes.push(InflowPipe {
+                flow,
+                velocity,
+                diameter,
+                area,
+                angle,
+                invert_offset,
+            });
+        }
+
+        // Determine benching type (default to Flat, could be configured per node)
+        // In future, this could be a property of the junction node
+        let benching = BenchingType::Flat;
+
+        // Perform FHWA access hole analysis
+        let result = self.fhwa_access_hole.analyze_access_hole(
+            outflow_egl,
+            outflow_invert,
+            v_outlet,
+            q_outlet,
+            d_outlet,
+            a_outlet,
+            &inflow_pipes,
+            benching,
+            node.invert_elevation, // Access hole invert
+        );
+
+        // Return the energy loss computed by FHWA method
+        // This is the difference between the access hole EGL and the outflow EGL
+        result.final_energy_level - (outflow_egl - outflow_invert)
+    }
+
+    /// Calculate simple junction loss using Equation 9.9 (fallback method)
+    ///
+    /// This is the simpler momentum-based method. Only used as fallback
+    /// for very simple junctions. For manholes and access holes, the FHWA
+    /// method is preferred.
+    fn calculate_simple_junction_loss(
+        &self,
+        upstream_conduits: &[&Conduit],
+        downstream_conduits: &[&Conduit],
+        flows: &HashMap<String, f64>,
+        velocities: &HashMap<String, f64>,
+        areas: &HashMap<String, f64>,
+    ) -> f64 {
+        if upstream_conduits.len() < 2 || downstream_conduits.is_empty() {
+            return 0.0;
+        }
+
+        // Get outlet conduit
+        let outlet_conduit = &downstream_conduits[0];
+        let q_outlet = flows.get(&outlet_conduit.id).cloned().unwrap_or(0.0);
+        let v_outlet = velocities.get(&outlet_conduit.id).cloned().unwrap_or(0.0);
+        let a_outlet = areas.get(&outlet_conduit.id).cloned().unwrap_or(1.0);
+
+        if q_outlet <= 0.0 {
+            return 0.0;
+        }
+
+        // Find main inlet and lateral
+        let mut inlet_conduits: Vec<_> = upstream_conduits.iter().collect();
+        inlet_conduits.sort_by(|a, b| {
+            let flow_a = flows.get(&a.id).cloned().unwrap_or(0.0);
+            let flow_b = flows.get(&b.id).cloned().unwrap_or(0.0);
+            flow_b.partial_cmp(&flow_a).unwrap_or(std::cmp::Ordering::Equal)
+        });
+
+        // Main inlet (highest flow)
+        let inlet_conduit = inlet_conduits[0];
+        let q_inlet = flows.get(&inlet_conduit.id).cloned().unwrap_or(0.0);
+        let v_inlet = velocities.get(&inlet_conduit.id).cloned().unwrap_or(0.0);
+        let a_inlet = areas.get(&inlet_conduit.id).cloned().unwrap_or(1.0);
+
+        // Lateral inlet (if exists)
+        let (q_lateral, v_lateral) = if inlet_conduits.len() > 1 {
+            let lateral = inlet_conduits[1];
+            let q = flows.get(&lateral.id).cloned().unwrap_or(0.0);
+            let v = velocities.get(&lateral.id).cloned().unwrap_or(0.0);
+            (q, v)
+        } else {
+            (0.0, 0.0)
+        };
+
+        // Junction angle (default to 90 degrees)
+        let theta_j = 90.0;
+
+        // Calculate junction loss using HEC-22 Equation 9.9
+        self.energy_loss.junction_loss(
+            q_outlet,
+            q_inlet,
+            q_lateral,
+            v_outlet,
+            v_inlet,
+            v_lateral,
+            a_outlet,
+            a_inlet,
+            theta_j,
+        )
     }
 
     /// Solve for HGL/EGL through a single conduit
