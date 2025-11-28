@@ -136,9 +136,11 @@ impl HglSolver {
         // Build network traversal order (topological sort from outfalls upstream)
         let traversal_order = self.topological_sort(network)?;
 
-        // Storage for conduit flow results (needed for junction loss calculation)
+        // Storage for conduit flow results (needed for manhole loss calculation)
         let mut conduit_velocities: HashMap<String, f64> = HashMap::new();
         let mut conduit_areas: HashMap<String, f64> = HashMap::new();
+        let mut conduit_depths: HashMap<String, f64> = HashMap::new();
+        let mut conduit_diameters: HashMap<String, f64> = HashMap::new();
 
         // Process each conduit in order
         for conduit_id in traversal_order {
@@ -166,15 +168,18 @@ impl HglSolver {
             node_hgls.insert(conduit.from_node.clone(), upstream_hgl);
             node_egls.insert(conduit.from_node.clone(), upstream_egl);
 
-            // Store velocity and area for junction loss calculations
+            // Store flow properties for manhole loss calculations
             if let Some(velocity) = conduit_result.velocity {
                 conduit_velocities.insert(conduit.id.clone(), velocity);
             }
             if let Some(depth) = conduit_result.depth {
+                conduit_depths.insert(conduit.id.clone(), depth);
+
                 // Calculate area from depth for circular pipe
                 if let Some(ref pipe) = conduit.pipe {
                     if let Some(diameter) = pipe.diameter {
                         let d = diameter / 12.0; // Convert inches to feet
+                        conduit_diameters.insert(conduit.id.clone(), d);
                         let area = self.circular_pipe_area(d, depth);
                         conduit_areas.insert(conduit.id.clone(), area);
                     }
@@ -186,18 +191,19 @@ impl HglSolver {
             }
         }
 
-        // Apply junction losses (HEC-22 Section 9.1, Equation 9.9)
+        // Apply manhole/junction losses (HEC-22 Sections 9.6.6-9.6.7 and 9.1)
         //
-        // Junction losses occur when multiple conduits converge at a junction structure.
-        // The energy loss is due to turbulence and momentum changes as flows mix.
+        // Losses are calculated differently depending on structure type:
+        // - Manholes: Use HEC-22 Sections 9.6.6-9.6.7 (Equations 9.18-9.23)
+        // - Y/T Junctions: Use HEC-22 Equation 9.9
         //
-        // Per HEC-22 Section 9.1, the recommended approach is to:
-        // 1. Identify junctions with multiple incoming conduits
-        // 2. Calculate junction loss using Equation 9.9 (momentum-based method)
-        // 3. Add the junction loss to the HGL at upstream nodes
+        // Manhole losses account for:
+        // 1. Outlet controlled conditions (plunging flow, benching)
+        // 2. Submerged inlet controlled conditions
+        // 3. Unsubmerged inlet controlled conditions
+        // 4. Angle corrections for lateral inflows
         //
-        // This creates the characteristic "sudden drop" in HGL at junction structures
-        // visible in HEC-22 Figure 9.6.
+        // The controlling condition (maximum energy requirement) governs the loss.
         for node in &network.nodes {
             if !node.is_junction() {
                 continue;
@@ -206,73 +212,63 @@ impl HglSolver {
             let upstream_conduits = network.upstream_conduits(&node.id);
             let downstream_conduits = network.downstream_conduits(&node.id);
 
-            // Junction losses only apply when multiple pipes converge
+            // Losses only apply when multiple pipes converge
             if upstream_conduits.len() < 2 || downstream_conduits.is_empty() {
                 continue;
             }
 
             // Get the outlet conduit (typically only one)
             let outlet_conduit = &downstream_conduits[0];
-            let q_outlet = flows.get(&outlet_conduit.id).cloned().unwrap_or(0.0);
             let v_outlet = conduit_velocities.get(&outlet_conduit.id).cloned().unwrap_or(0.0);
-            let a_outlet = conduit_areas.get(&outlet_conduit.id).cloned().unwrap_or(1.0);
+            let d_outlet = conduit_depths.get(&outlet_conduit.id).cloned().unwrap_or(0.0);
+            let diameter_outlet = conduit_diameters.get(&outlet_conduit.id).cloned().unwrap_or(1.0);
 
-            if q_outlet <= 0.0 {
+            if v_outlet <= 0.0 {
                 continue;
             }
 
-            // Find the main inlet (highest flow) and lateral inlet
-            let mut inlet_conduits: Vec<_> = upstream_conduits.iter().collect();
-            inlet_conduits.sort_by(|a, b| {
-                let flow_a = flows.get(&a.id).cloned().unwrap_or(0.0);
-                let flow_b = flows.get(&b.id).cloned().unwrap_or(0.0);
-                flow_b.partial_cmp(&flow_a).unwrap_or(std::cmp::Ordering::Equal)
-            });
+            // Calculate manhole loss for each inlet pipe (use worst case)
+            let mut max_manhole_loss: f64 = 0.0;
 
-            // Main inlet (highest flow)
-            let inlet_conduit = inlet_conduits[0];
-            let q_inlet = flows.get(&inlet_conduit.id).cloned().unwrap_or(0.0);
-            let v_inlet = conduit_velocities.get(&inlet_conduit.id).cloned().unwrap_or(0.0);
-            let a_inlet = conduit_areas.get(&inlet_conduit.id).cloned().unwrap_or(1.0);
+            for (idx, inlet_conduit) in upstream_conduits.iter().enumerate() {
+                let v_inlet = conduit_velocities.get(&inlet_conduit.id).cloned().unwrap_or(0.0);
+                let d_inlet = conduit_depths.get(&inlet_conduit.id).cloned().unwrap_or(0.0);
+                let diameter_inlet = conduit_diameters.get(&inlet_conduit.id).cloned().unwrap_or(1.0);
 
-            // Lateral inlet (if exists)
-            let (q_lateral, v_lateral, _a_lateral) = if inlet_conduits.len() > 1 {
-                let lateral = inlet_conduits[1];
-                let q = flows.get(&lateral.id).cloned().unwrap_or(0.0);
-                let v = conduit_velocities.get(&lateral.id).cloned().unwrap_or(0.0);
-                let a = conduit_areas.get(&lateral.id).cloned().unwrap_or(1.0);
-                (q, v, a)
-            } else {
-                (0.0, 0.0, 1.0)
-            };
+                // Determine relative angle
+                // For now, assume first inlet is aligned (0°), others are lateral (90°)
+                // TODO: Calculate actual angles from node coordinates
+                let relative_angle = if idx == 0 { 0.0 } else { 90.0 };
 
-            // Junction angle (default to 90 degrees if not specified)
-            let theta_j = 90.0;
+                // Assume flat benching (not plunging)
+                let plunge = false;
 
-            // Calculate junction loss using HEC-22 Equation 9.9
-            let junction_head_loss = self.energy_loss.junction_loss(
-                q_outlet,
-                q_inlet,
-                q_lateral,
-                v_outlet,
-                v_inlet,
-                v_lateral,
-                a_outlet,
-                a_inlet,
-                theta_j,
-            );
+                // Calculate manhole loss per HEC-22 Sections 9.6.6-9.6.7
+                let manhole_loss = self.energy_loss.manhole_loss(
+                    d_outlet,
+                    v_outlet,
+                    d_inlet,
+                    v_inlet,
+                    diameter_inlet,
+                    diameter_outlet,
+                    relative_angle,
+                    plunge,
+                );
 
-            // Store junction loss for this node
-            node_junction_losses.insert(node.id.clone(), junction_head_loss);
+                max_manhole_loss = max_manhole_loss.max(manhole_loss);
+            }
 
-            // Apply junction loss to upstream nodes
-            // The HGL at the upstream end of inlet pipes must be higher to overcome junction loss
+            // Store manhole loss for this node
+            node_junction_losses.insert(node.id.clone(), max_manhole_loss);
+
+            // Apply manhole loss to upstream nodes
+            // The HGL at the upstream end of inlet pipes must be higher to overcome manhole loss
             for inlet in &upstream_conduits {
                 if let Some(upstream_hgl) = node_hgls.get_mut(&inlet.from_node) {
-                    *upstream_hgl += junction_head_loss;
+                    *upstream_hgl += max_manhole_loss;
                 }
                 if let Some(upstream_egl) = node_egls.get_mut(&inlet.from_node) {
-                    *upstream_egl += junction_head_loss;
+                    *upstream_egl += max_manhole_loss;
                 }
             }
         }

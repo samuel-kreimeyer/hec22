@@ -519,6 +519,150 @@ impl EnergyLoss {
         k_junction * v_outlet.powi(2) / (2.0 * self.gravity)
     }
 
+    /// Calculate manhole loss per HEC-22 Sections 9.6.6-9.6.7
+    ///
+    /// Manhole losses are calculated using an energy balance approach:
+    /// H_manhole = Eai - Ei
+    ///
+    /// Where:
+    /// - Eai = Initial energy (maximum of outlet controlled, submerged inlet
+    ///         controlled, or unsubmerged inlet controlled conditions)
+    /// - Ei = Outflow pipe energy head (depth + pressure head + velocity head)
+    ///
+    /// This method assumes flat benching in the manhole.
+    ///
+    /// # Algorithm (HEC-22 Sections 9.6.6-9.6.7)
+    ///
+    /// 1. Calculate outflow pipe energy head (Ei):
+    ///    Ei = d_outlet + (p_outlet / γ) + (V_outlet² / 2g)
+    ///    For open channel flow: Ei ≈ d_outlet + V_outlet²/2g
+    ///
+    /// 2. Calculate initial energy (Eai) for each inlet pipe as MAX of:
+    ///
+    ///    a) Outlet Controlled (Equation 9.18):
+    ///       Eai_oc = Ei + K_oc × (V_outlet² / 2g)
+    ///       where K_oc depends on plunge condition and benching
+    ///
+    ///    b) Submerged Inlet Controlled (Equation 9.19):
+    ///       Eai_sub = d_inlet + (V_inlet² / 2g) + K_θ × (V_inlet² / 2g)
+    ///       where K_θ is angle correction from Equations 9.21-9.23
+    ///
+    ///    c) Unsubmerged Inlet Controlled (Equation 9.20):
+    ///       Eai_unsub = (d_inlet + D_inlet) + K_θ × (V_inlet² / 2g)
+    ///
+    /// 3. Manhole loss = Eai - Ei (use the controlling condition)
+    ///
+    /// # Arguments
+    /// * `d_outlet` - Flow depth in outlet pipe (ft or m)
+    /// * `v_outlet` - Velocity in outlet pipe (ft/s or m/s)
+    /// * `d_inlet` - Flow depth in inlet pipe (ft or m)
+    /// * `v_inlet` - Velocity in inlet pipe (ft/s or m/s)
+    /// * `diameter_inlet` - Diameter of inlet pipe (ft or m)
+    /// * `diameter_outlet` - Diameter of outlet pipe (ft or m)
+    /// * `relative_angle` - Angle between inlet and outlet pipes (degrees)
+    ///                      0° = aligned, 90° = perpendicular
+    /// * `plunge` - Whether inlet plunges into manhole (true) or benched (false)
+    ///
+    /// # Returns
+    /// Manhole head loss (ft or m)
+    ///
+    /// # References
+    /// - HEC-22 Section 9.6.6: Outlet Controlled Conditions
+    /// - HEC-22 Section 9.6.7: Inlet Controlled Conditions
+    /// - HEC-22 Equations 9.18, 9.19, 9.20
+    /// - HEC-22 Equations 9.21, 9.22, 9.23: Angle corrections
+    pub fn manhole_loss(
+        &self,
+        d_outlet: f64,
+        v_outlet: f64,
+        d_inlet: f64,
+        v_inlet: f64,
+        diameter_inlet: f64,
+        diameter_outlet: f64,
+        relative_angle: f64,
+        plunge: bool,
+    ) -> f64 {
+        // Calculate velocity heads
+        let hv_outlet = v_outlet.powi(2) / (2.0 * self.gravity);
+        let hv_inlet = v_inlet.powi(2) / (2.0 * self.gravity);
+
+        // Step 1: Calculate outflow pipe energy head (Ei)
+        // Ei = depth + velocity head (assuming atmospheric pressure at free surface)
+        let ei = d_outlet + hv_outlet;
+
+        // Step 2: Calculate angle correction factor K_θ (Equations 9.21-9.23)
+        let k_theta = self.manhole_angle_correction(relative_angle, diameter_inlet, diameter_outlet);
+
+        // Step 3a: Outlet Controlled Condition (Equation 9.18)
+        // Eai_oc = Ei + K_oc × hv_outlet
+        let k_oc = if plunge {
+            1.4 // Plunging flow, no benching (conservative)
+        } else {
+            0.5 // Benched flow
+        };
+        let eai_outlet_controlled = ei + k_oc * hv_outlet;
+
+        // Step 3b: Submerged Inlet Controlled (Equation 9.19)
+        // Eai_sub = d_inlet + hv_inlet + K_θ × hv_inlet
+        let eai_submerged = d_inlet + hv_inlet + k_theta * hv_inlet;
+
+        // Step 3c: Unsubmerged Inlet Controlled (Equation 9.20)
+        // Eai_unsub = (d_inlet + D_inlet) + K_θ × hv_inlet
+        let eai_unsubmerged = (d_inlet + diameter_inlet) + k_theta * hv_inlet;
+
+        // Step 4: Initial energy is the MAXIMUM of the three conditions
+        let eai = eai_outlet_controlled
+            .max(eai_submerged)
+            .max(eai_unsubmerged);
+
+        // Step 5: Manhole loss = Eai - Ei
+        let manhole_loss = eai - ei;
+
+        // Return loss (should be positive)
+        manhole_loss.max(0.0)
+    }
+
+    /// Calculate angle correction factor K_θ for angled inflows into manholes
+    ///
+    /// Per HEC-22 Equations 9.21, 9.22, and 9.23:
+    ///
+    /// For θ = 0° to 60°:
+    ///   K_θ = 0.25 (Equation 9.21)
+    ///
+    /// For θ = 60° to 90°:
+    ///   K_θ = (Q_inlet / Q_outlet)² × [1.4 - Cd²]  (Equation 9.22)
+    ///   where Cd = (D_inlet / D_outlet)²
+    ///
+    /// For lateral inflows (θ ≈ 90°):
+    ///   K_θ ≈ 0.5 to 1.0 (depending on diameter ratio)
+    ///
+    /// # Arguments
+    /// * `angle` - Angle between inlet and outlet flow paths (degrees)
+    /// * `diameter_inlet` - Diameter of inlet pipe (ft or m)
+    /// * `diameter_outlet` - Diameter of outlet pipe (ft or m)
+    ///
+    /// # Returns
+    /// Angle correction factor K_θ (dimensionless)
+    fn manhole_angle_correction(
+        &self,
+        angle: f64,
+        diameter_inlet: f64,
+        diameter_outlet: f64,
+    ) -> f64 {
+        if angle <= 60.0 {
+            // Equation 9.21: Small angle
+            0.25
+        } else {
+            // Equation 9.22/9.23: Large angle (approaching 90°)
+            // Simplified approach assuming equal flows
+            let cd = (diameter_inlet / diameter_outlet).powi(2);
+            let k_theta = 1.4 - cd.powi(2);
+
+            // Clamp to reasonable range
+            k_theta.max(0.25).min(1.5)
+        }
+    }
+
     /// Calculate total head loss for a conduit
     ///
     /// H_total = H_friction + H_entrance + H_exit + H_bend
