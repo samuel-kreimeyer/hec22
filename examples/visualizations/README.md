@@ -1,6 +1,6 @@
 # Visualization Examples
 
-This directory contains example visualizations generated from the HEC-22 drainage analysis system using the template network in `templates/`.
+This directory contains example visualizations generated from the HEC-22 drainage analysis system using the example network in `examples/complete_network/`.
 
 ## Files
 
@@ -41,9 +41,9 @@ These visualizations were generated using:
 
 ```bash
 ./target/release/hec22 \
-  --nodes templates/nodes.csv \
-  --conduits templates/conduits.csv \
-  --drainage-areas templates/drainage_areas.csv \
+  --nodes examples/complete_network/nodes.csv \
+  --conduits examples/complete_network/conduits.csv \
+  --drainage-areas examples/complete_network/drainage_areas.csv \
   --intensity 4.0 \
   --export-network-plan examples/visualizations/network_plan.svg \
   --export-profile examples/visualizations/profile_with_hgl_egl.svg \
