@@ -34,9 +34,9 @@ The tool requires at minimum two CSV files: nodes and conduits. A third file for
 ```bash
 # Basic usage with template files
 cargo run -- \
-  --nodes templates/nodes.csv \
-  --conduits templates/conduits.csv \
-  --drainage-areas templates/drainage_areas.csv \
+  --nodes examples/complete_network/nodes.csv \
+  --conduits examples/complete_network/conduits.csv \
+  --drainage-areas examples/complete_network/drainage_areas.csv \
   --intensity 4.0
 ```
 
@@ -166,7 +166,7 @@ DA-002,1.0,0.75,12.0,IN-002,residential
 Human-readable tables with node and conduit results, plus design violations.
 
 ```bash
-cargo run -- -n templates/nodes.csv -c templates/conduits.csv -a templates/drainage_areas.csv -i 4.0
+cargo run -- -n examples/complete_network/nodes.csv -c examples/complete_network/conduits.csv -a examples/complete_network/drainage_areas.csv -i 4.0
 ```
 
 Example output:
@@ -202,9 +202,9 @@ Structured JSON for programmatic processing or integration with other tools.
 
 ```bash
 cargo run -- \
-  -n templates/nodes.csv \
-  -c templates/conduits.csv \
-  -a templates/drainage_areas.csv \
+  -n examples/complete_network/nodes.csv \
+  -c examples/complete_network/conduits.csv \
+  -a examples/complete_network/drainage_areas.csv \
   -i 4.0 \
   --format json \
   --output results.json
@@ -216,9 +216,9 @@ Generates two CSV files: `<basename>.nodes.csv` and `<basename>.conduits.csv`
 
 ```bash
 cargo run -- \
-  -n templates/nodes.csv \
-  -c templates/conduits.csv \
-  -a templates/drainage_areas.csv \
+  -n examples/complete_network/nodes.csv \
+  -c examples/complete_network/conduits.csv \
+  -a examples/complete_network/drainage_areas.csv \
   -i 4.0 \
   --format csv \
   --output results
@@ -424,7 +424,7 @@ cargo run -- -n nodes.csv -c conduits.csv -a areas.csv -f json | \
 
 ## Support and Documentation
 
-- **Full documentation:** See `templates/README.md` for detailed CSV format specifications
+- **Full documentation:** See `examples/complete_network/README.md` for detailed CSV format specifications
 - **HEC-22 Manual:** https://www.fhwa.dot.gov/engineering/hydraulics/pubs/10009/10009.pdf
 - **GitHub Repository:** https://github.com/samuel-kreimeyer/hec22
 - **Issues:** Report bugs at https://github.com/samuel-kreimeyer/hec22/issues

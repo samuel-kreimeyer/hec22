@@ -69,9 +69,9 @@ Where:
 ### 3. CSV Template Expansion (Added)
 
 **Files Modified:**
-- `templates/nodes.csv`
-- `templates/nodes_extended_example.csv`
-- `templates/README.md`
+- `examples/complete_network/nodes.csv`
+- `examples/complete_network/nodes_extended_example.csv`
+- `examples/complete_network/README.md`
 
 **New Inlet Parameters Added:**
 

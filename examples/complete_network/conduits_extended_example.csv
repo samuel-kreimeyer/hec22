@@ -1,0 +1,6 @@
+id,type,from_node,to_node,shape,diameter,width,height,length,slope,manning_n,material,cross_slope,long_slope
+P-001,pipe,IN-001,MH-001,circular,18,,,120,0.005,0.013,RCP,,
+P-002,pipe,IN-002,MH-001,elliptical,,36,24,100,0.008,0.013,RCP,,
+P-003,pipe,MH-001,MH-002,rectangular,,48,48,120,0.0375,0.013,Concrete,,
+P-004,pipe,MH-002,MH-003,arch,,72,48,120,0.025,0.024,CMP,,
+P-005,pipe,MH-003,OUT-001,circular,30,,,120,0.0458,0.013,RCP,,

@@ -248,7 +248,7 @@ The `hec22` command-line tool is a production-ready application for hydraulic an
 
 **Input Formats:**
 - CSV files for nodes, conduits, drainage areas, and IDF curves
-- Ready-to-use templates in `templates/` directory
+- Ready-to-use examples in `examples/complete_network/` directory
 - Support for US Customary and SI Metric units
 
 **Analysis Capabilities:**
@@ -282,18 +282,18 @@ cargo build --release
 
 # Run analysis with fixed intensity
 ./target/release/hec22 \
-  --nodes templates/nodes.csv \
-  --conduits templates/conduits.csv \
-  --drainage-areas templates/drainage_areas.csv \
+  --nodes examples/complete_network/nodes.csv \
+  --conduits examples/complete_network/conduits.csv \
+  --drainage-areas examples/complete_network/drainage_areas.csv \
   --intensity 4.0 \
   --output results.txt
 
 # Run analysis with IDF curves (automatic intensity lookup)
 ./target/release/hec22 \
-  --nodes templates/nodes.csv \
-  --conduits templates/conduits.csv \
-  --drainage-areas templates/drainage_areas.csv \
-  --idf-curves templates/idf_curves.csv \
+  --nodes examples/complete_network/nodes.csv \
+  --conduits examples/complete_network/conduits.csv \
+  --drainage-areas examples/complete_network/drainage_areas.csv \
+  --idf-curves examples/complete_network/idf_curves.csv \
   --return-period 10 \
   --output results.txt
 ```
@@ -400,7 +400,7 @@ hec22/
 │   └── bin/
 │       └── atlas14_fetch.rs           # ATLAS14 utility for fetching NOAA data
 │
-├── templates/                         # CSV templates for network input
+├── examples/complete_network/      # CSV examples for network input
 │   ├── README.md                      # Template documentation
 │   ├── nodes.csv                      # Node definitions
 │   ├── conduits.csv                   # Pipe/conduit definitions
@@ -514,7 +514,7 @@ This roadmap defines the phased development of the HEC-22 drainage analysis syst
 - [x] **Input validation** - Check for missing nodes, disconnected networks, invalid slopes
 - [x] **Multiple output formats** - Text, JSON, CSV
 - [x] **Error messages** - Clear, actionable error messages for non-programmers
-- [x] **Comprehensive CSV templates** - Ready-to-use templates in `templates/` directory
+- [x] **Comprehensive CSV templates** - Ready-to-use examples in `examples/complete_network/` directory
 - [ ] **Progress reporting** - Show analysis progress for large networks (planned)
 
 #### 2.3 HGL Analysis & Reporting ✅
