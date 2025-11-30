@@ -33,7 +33,7 @@ fn test_sag_grate_sizing() {
     let allowable_spread = 9.84; // ft
     let grate_width = 2.0; // ft
     let clogging_factor = 0.50; // 50%
-    let grate_type = inlet::GrateType::P1_7_8; // P-1-7/8-4 from HEC-22 Table 7.5
+    let grate_type = inlet::GrateType::P1_7_8_4; // P-1-7/8-4 from HEC-22 Table 7.5 (80% open)
 
     println!("Given Parameters:");
     println!("  Cross slope (Sx): {:.3} ft/ft", sx);
@@ -114,19 +114,19 @@ fn test_sag_grate_sizing() {
     );
 
     // Note on expected vs. actual result:
-    // User initially expected double 2x3 (12 sq ft total)
-    // With correct HEC-22 Table 7.5 opening ratio (90% for P-1-7/8-4):
-    //   Algorithm finds: 1x2x2 ft (4 sq ft total)
-    // The user's expectation may have been based on:
-    //   - Incorrect opening ratio assumption
-    //   - Additional safety factors
-    //   - Design standards preferring larger grates
-    println!("\nNote: User initially expected double 2x3 (12 sq ft)");
-    println!("      With correct HEC-22 Table 7.5 opening ratio ({}%):",
+    // User expected double 2x3 (12 sq ft total)
+    // With correct HEC-22 Table 7.5 opening ratio (80% for P-1-7/8-4):
+    //   Algorithm may find different configuration
+    // Design standards often prefer larger/multiple grates for:
+    //   - Safety factors
+    //   - Maintenance access
+    //   - Redundancy if one grate clogs
+    println!("\nNote: User expected double 2x3 (12 sq ft)");
+    println!("      With HEC-22 Table 7.5 opening ratio ({}%):",
              (opening_ratio * 100.0) as i32);
     println!("      Algorithm found: {} x {}x{} ({:.0} sq ft)",
              count, grate_width, length, total_area);
-    println!("      Solution meets hydraulic requirements with correct grate properties.");
+    println!("      Both solutions may be valid depending on design criteria.");
 
     // Verify capacity exceeds design flow
     assert!(
@@ -298,7 +298,7 @@ fn test_complete_sag_inlet_design_workflow() {
              allowable_spread, sx, max_ponding_depth);
 
     // Step 4: Size the grate using P-1-7/8-4 from HEC-22 Table 7.5
-    let grate_type = inlet::GrateType::P1_7_8; // 90% open
+    let grate_type = inlet::GrateType::P1_7_8_4; // 80% open
     let (length, count) = inlet::GrateInletSag::design_for_sag(
         design_flow,
         max_ponding_depth,

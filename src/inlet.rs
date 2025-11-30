@@ -65,18 +65,18 @@ pub enum BarConfiguration {
 /// These values are from FHWA HEC-22 Chapter 7, Table 7.5.
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum GrateType {
-    /// P-1-7/8-4: Parallel bar grate, 1-7/8" bar spacing, 90% open
+    /// P-1-7/8-4: Parallel bar grate, 1-7/8" spacing, 4" width, 80% open
+    P1_7_8_4,
+    /// P-1-7/8: Parallel bar grate, 1-7/8" spacing, 90% open
     P1_7_8,
-    /// P-1-1/8-4: Parallel bar grate, 1-1/8" bar spacing, 80% open
+    /// P-1-1/8: Parallel bar grate, 1-1/8" spacing, 60% open
     P1_1_8,
-    /// P-50: Parallel bar grate, 50% bearing bars, 86% open
-    P50,
-    /// P-30: Parallel bar grate, 30% bearing bars, 60% open
-    P30,
-    /// Curved vane grate (varies by manufacturer), typical 80% open
-    CurvedVane,
-    /// Reticuline grate, 86% open
+    /// Reticuline grate, 80% open
     Reticuline,
+    /// Curved vane grate, 35% open
+    CurvedVane,
+    /// 30° tilt-bar grate, 34% open
+    TiltBar30,
     /// Custom grate with specified opening ratio
     Custom(f64),
 }
@@ -87,12 +87,12 @@ impl GrateType {
     /// Values from HEC-22 Table 7.5
     pub fn opening_ratio(&self) -> f64 {
         match self {
-            GrateType::P1_7_8 => 0.90,      // P-1-7/8-4: 90% open
-            GrateType::P1_1_8 => 0.80,      // P-1-1/8-4: 80% open
-            GrateType::P50 => 0.86,         // P-50: 86% open
-            GrateType::P30 => 0.60,         // P-30: 60% open
-            GrateType::CurvedVane => 0.80,  // Curved vane: ~80% (varies)
-            GrateType::Reticuline => 0.86,  // Reticuline: 86% open
+            GrateType::P1_7_8_4 => 0.80,    // P-1-7/8-4: 80% open
+            GrateType::P1_7_8 => 0.90,      // P-1-7/8: 90% open
+            GrateType::P1_1_8 => 0.60,      // P-1-1/8: 60% open
+            GrateType::Reticuline => 0.80,  // Reticuline: 80% open
+            GrateType::CurvedVane => 0.35,  // Curved vane: 35% open
+            GrateType::TiltBar30 => 0.34,   // 30° tilt-bar: 34% open
             GrateType::Custom(ratio) => *ratio,
         }
     }
@@ -100,12 +100,12 @@ impl GrateType {
     /// Get the designation string for this grate type
     pub fn designation(&self) -> &str {
         match self {
-            GrateType::P1_7_8 => "P-1-7/8-4",
-            GrateType::P1_1_8 => "P-1-1/8-4",
-            GrateType::P50 => "P-50",
-            GrateType::P30 => "P-30",
-            GrateType::CurvedVane => "Curved Vane",
+            GrateType::P1_7_8_4 => "P-1-7/8-4",
+            GrateType::P1_7_8 => "P-1-7/8",
+            GrateType::P1_1_8 => "P-1-1/8",
             GrateType::Reticuline => "Reticuline",
+            GrateType::CurvedVane => "Curved Vane",
+            GrateType::TiltBar30 => "30° Tilt-Bar",
             GrateType::Custom(_) => "Custom",
         }
     }
