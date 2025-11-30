@@ -132,7 +132,7 @@ impl HglSolver {
         }
 
         for outfall in outfalls {
-            let tailwater = self.get_tailwater_elevation(outfall)?;
+            let tailwater = self.get_tailwater_elevation(outfall, network, flows)?;
             node_hgls.insert(outfall.id.clone(), tailwater);
 
             // For outfall, EGL = HGL (assume minimal velocity)
@@ -311,7 +311,12 @@ impl HglSolver {
     }
 
     /// Get tailwater elevation at outfall
-    fn get_tailwater_elevation(&self, outfall: &Node) -> Result<f64, String> {
+    fn get_tailwater_elevation(
+        &self,
+        outfall: &Node,
+        network: &Network,
+        flows: &HashMap<String, f64>,
+    ) -> Result<f64, String> {
         let outfall_props = outfall
             .outfall
             .as_ref()
@@ -319,8 +324,35 @@ impl HglSolver {
 
         match outfall_props.boundary_condition {
             BoundaryCondition::Free => {
-                // Free outfall: use critical depth at invert
-                Ok(outfall.invert_elevation)
+                // Free outfall: tailwater depth = average of (critical depth, pipe diameter)
+                // Find the conduit connecting to this outfall
+                let outfall_conduit = network.conduits.iter()
+                    .find(|c| c.to_node == outfall.id)
+                    .ok_or_else(|| format!("No conduit found connecting to outfall {}", outfall.id))?;
+
+                // Get pipe diameter (convert from inches to feet if US units)
+                let diameter = if let Some(pipe_props) = &outfall_conduit.pipe {
+                    pipe_props.diameter.unwrap_or(24.0) / 12.0 // inches to feet
+                } else {
+                    2.0 // Default 24" = 2 ft
+                };
+
+                // Get flow rate for this conduit
+                let flow = flows.get(&outfall_conduit.id).cloned().unwrap_or(0.0);
+
+                // Calculate critical depth
+                let critical_depth = if flow > 0.0 {
+                    self.mannings.critical_depth(flow, diameter, self.config.gravity)
+                        .unwrap_or(diameter / 2.0) // Default to half-diameter if calculation fails
+                } else {
+                    diameter / 2.0 // No flow: use half-diameter
+                };
+
+                // Tailwater depth = average of critical depth and pipe diameter
+                let tailwater_depth = (critical_depth + diameter) / 2.0;
+
+                // Return invert elevation + tailwater depth
+                Ok(outfall.invert_elevation + tailwater_depth)
             }
             BoundaryCondition::FixedStage => {
                 // Fixed stage: use specified tailwater

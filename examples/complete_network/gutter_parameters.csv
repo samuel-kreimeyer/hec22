@@ -1,0 +1,3 @@
+node_id,cross_slope,long_slope,curb_height,gutter_width,manning_n,depression,depression_width
+IN-001,0.02,0.015,6.0,2.0,0.016,2.0,2.0
+IN-002,0.025,0.012,6.0,2.0,0.016,1.5,2.0
