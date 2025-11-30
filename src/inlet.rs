@@ -59,6 +59,58 @@ pub enum BarConfiguration {
     Perpendicular,
 }
 
+/// Standard grate types with opening ratios from HEC-22 Table 7.5
+///
+/// Opening ratio is the ratio of clear opening area to total grate area.
+/// These values are from FHWA HEC-22 Chapter 7, Table 7.5.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub enum GrateType {
+    /// P-1-7/8-4: Parallel bar grate, 1-7/8" bar spacing, 90% open
+    P1_7_8,
+    /// P-1-1/8-4: Parallel bar grate, 1-1/8" bar spacing, 80% open
+    P1_1_8,
+    /// P-50: Parallel bar grate, 50% bearing bars, 86% open
+    P50,
+    /// P-30: Parallel bar grate, 30% bearing bars, 60% open
+    P30,
+    /// Curved vane grate (varies by manufacturer), typical 80% open
+    CurvedVane,
+    /// Reticuline grate, 86% open
+    Reticuline,
+    /// Custom grate with specified opening ratio
+    Custom(f64),
+}
+
+impl GrateType {
+    /// Get the opening ratio (clear opening / total area) for this grate type
+    ///
+    /// Values from HEC-22 Table 7.5
+    pub fn opening_ratio(&self) -> f64 {
+        match self {
+            GrateType::P1_7_8 => 0.90,      // P-1-7/8-4: 90% open
+            GrateType::P1_1_8 => 0.80,      // P-1-1/8-4: 80% open
+            GrateType::P50 => 0.86,         // P-50: 86% open
+            GrateType::P30 => 0.60,         // P-30: 60% open
+            GrateType::CurvedVane => 0.80,  // Curved vane: ~80% (varies)
+            GrateType::Reticuline => 0.86,  // Reticuline: 86% open
+            GrateType::Custom(ratio) => *ratio,
+        }
+    }
+
+    /// Get the designation string for this grate type
+    pub fn designation(&self) -> &str {
+        match self {
+            GrateType::P1_7_8 => "P-1-7/8-4",
+            GrateType::P1_1_8 => "P-1-1/8-4",
+            GrateType::P50 => "P-50",
+            GrateType::P30 => "P-30",
+            GrateType::CurvedVane => "Curved Vane",
+            GrateType::Reticuline => "Reticuline",
+            GrateType::Custom(_) => "Custom",
+        }
+    }
+}
+
 impl GrateInletOnGrade {
     /// Create a new grate inlet
     pub fn new(
@@ -426,9 +478,8 @@ impl GrateInletSag {
     /// * `max_ponding_depth` - Maximum allowable ponding depth (ft)
     /// * `grate_width` - Standard grate width (ft), typically 2 or 3 ft
     /// * `clogging_factor` - Expected clogging (0.0 to 1.0)
-    /// * `opening_ratio` - Grate opening ratio (0.0 to 1.0), typically:
-    ///                     P-1-7/8-4: 0.50, P-1-1/8: 0.60, Curved vane: 0.80-0.90
-    ///                     If None, assumes 100% open (overly conservative)
+    /// * `grate_type` - Grate type with opening ratio from HEC-22 Table 7.5
+    ///                  If None, assumes 100% open (overly conservative)
     ///
     /// # Returns
     /// Tuple of (length, count) where:
@@ -437,15 +488,15 @@ impl GrateInletSag {
     ///
     /// # Example
     /// ```
-    /// use hec22::inlet::GrateInletSag;
+    /// use hec22::inlet::{GrateInletSag, GrateType};
     ///
     /// // Design for 6.71 cfs with max 0.492 ft ponding, P-1-7/8-4 grate
     /// let (length, count) = GrateInletSag::design_for_sag(
-    ///     6.71,      // design flow
-    ///     0.492,     // max ponding depth
-    ///     2.0,       // grate width
-    ///     0.5,       // 50% clogging
-    ///     Some(0.50) // P-1-7/8-4 opening ratio
+    ///     6.71,                      // design flow
+    ///     0.492,                     // max ponding depth
+    ///     2.0,                       // grate width
+    ///     0.5,                       // 50% clogging
+    ///     Some(GrateType::P1_7_8)    // P-1-7/8-4 grate (90% open)
     /// );
     /// println!("Required: {} grates of 2 x {} ft", count, length);
     /// ```
@@ -454,11 +505,14 @@ impl GrateInletSag {
         max_ponding_depth: f64,
         grate_width: f64,
         clogging_factor: f64,
-        opening_ratio: Option<f64>,
+        grate_type: Option<GrateType>,
     ) -> (f64, usize) {
         // Try different configurations starting with single grate
         // Standard grate lengths: 2, 3, 4, 5 ft
         let standard_lengths = vec![2.0, 3.0, 4.0, 5.0];
+
+        // Get opening ratio from grate type
+        let opening_ratio = grate_type.map(|gt| gt.opening_ratio());
 
         // Try increasing number of grates
         for count in 1..=10 {
@@ -476,10 +530,10 @@ impl GrateInletSag {
         // Calculate required area using orifice equation at max depth
         let co = 0.67;
         let g = 32.17;
-        let opening_ratio = opening_ratio.unwrap_or(1.0);
+        let opening_ratio_val = opening_ratio.unwrap_or(1.0);
         let required_net_area = design_flow / (co * (2.0 * g * max_ponding_depth).sqrt());
         let required_open_area = required_net_area / (1.0 - clogging_factor);
-        let required_gross_area = required_open_area / opening_ratio;
+        let required_gross_area = required_open_area / opening_ratio_val;
         let required_length = (required_gross_area / grate_width).ceil();
 
         (required_length, 1)
