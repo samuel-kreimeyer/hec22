@@ -566,26 +566,23 @@ mod tests {
         network.add_node(node2);
 
         // Add conduit
-        let conduit = Conduit {
-            id: "C-001".to_string(),
-            from_node: "IN-001".to_string(),
-            to_node: "MH-001".to_string(),
-            conduit_type: ConduitType::Pipe,
-            length: 100.0,
-            slope: Some(0.01),
-            manning_n: 0.013,
-            upstream_invert: Some(100.0),
-            downstream_invert: Some(99.0),
-            pipe: Some(PipeProperties {
+        let conduit = Conduit::new_pipe(
+            "C-001".to_string(),
+            "IN-001".to_string(),
+            "MH-001".to_string(),
+            100.0,
+            PipeProperties {
                 shape: PipeShape::Circular,
                 diameter: Some(1.5),
                 width: None,
                 height: None,
-                material: PipeMaterial::Rcp,
-                barrel_count: Some(1),
-            }),
-            gutter: None,
-        };
+                material: Some(PipeMaterial::RCP),
+                manning_n: 0.013,
+                entrance_loss: Some(0.5),
+                exit_loss: Some(1.0),
+                bend_loss: Some(0.0),
+            },
+        );
         network.add_conduit(conduit);
 
         // Generate profile

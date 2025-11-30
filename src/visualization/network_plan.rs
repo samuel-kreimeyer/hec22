@@ -7,7 +7,7 @@
 //! - Optional labels and annotations
 
 use crate::network::Network;
-use crate::node::NodeType;
+use crate::node::{Node, NodeType};
 use crate::visualization::svg::{SvgBuilder, bounding_box, add_padding};
 use std::collections::HashMap;
 
