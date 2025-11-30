@@ -135,8 +135,61 @@ impl HglSolver {
             let tailwater = self.get_tailwater_elevation(outfall, network, flows)?;
             node_hgls.insert(outfall.id.clone(), tailwater);
 
-            // For outfall, EGL = HGL (assume minimal velocity)
-            node_egls.insert(outfall.id.clone(), tailwater);
+            // Calculate outfall EGL = HGL + velocity_head
+            // Velocity comes from the discharge conduit (pipe flowing into outfall)
+            let discharge_conduit = network
+                .conduits
+                .iter()
+                .find(|c| c.to_node == outfall.id)
+                .ok_or_else(|| format!("No conduit found discharging to outfall {}", outfall.id))?;
+
+            let flow = flows.get(&discharge_conduit.id).cloned().unwrap_or(0.0);
+
+            // Calculate velocity in discharge conduit to determine velocity head
+            let velocity_head = if flow > 0.0 {
+                // Get pipe properties
+                if let Some(pipe_props) = &discharge_conduit.pipe {
+                    let diameter = pipe_props.diameter.unwrap_or(24.0) / 12.0; // inches to feet
+                    let slope = discharge_conduit.effective_slope().unwrap_or(0.001);
+
+                    // Calculate flow properties at normal depth
+                    let yn = self.mannings.normal_depth(
+                        flow,
+                        diameter,
+                        slope,
+                        pipe_props.manning_n,
+                        self.config.gravity,
+                    );
+
+                    if let Some(depth) = yn {
+                        let flow_result = self.mannings.partial_pipe_flow(
+                            diameter,
+                            depth,
+                            slope,
+                            pipe_props.manning_n,
+                            self.config.gravity,
+                        );
+                        flow_result.velocity_head
+                    } else {
+                        // If can't calculate normal depth, use full pipe flow
+                        let flow_result = self.mannings.partial_pipe_flow(
+                            diameter,
+                            diameter,
+                            slope,
+                            pipe_props.manning_n,
+                            self.config.gravity,
+                        );
+                        flow_result.velocity_head
+                    }
+                } else {
+                    0.0 // Not a pipe, assume minimal velocity
+                }
+            } else {
+                0.0 // No flow, no velocity head
+            };
+
+            // EGL = HGL + velocity_head from discharge conduit
+            node_egls.insert(outfall.id.clone(), tailwater + velocity_head);
         }
 
         // Build network traversal order (topological sort from outfalls upstream)
