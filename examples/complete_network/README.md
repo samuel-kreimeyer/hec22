@@ -84,22 +84,39 @@ Combined flow = 8.16 + 12.25 + 5.87 = **26.28 cfs**
 
 ## Running the Analysis
 
-To analyze this network, you would:
+To analyze this network using the HEC-22 CLI:
 
-1. Load all CSV files
-2. Build the drainage network
-3. Apply the design storm (DS-10YR)
-4. Compute peak flows using IDF curves and drainage area properties
+```bash
+# Run analysis with IDF curves (automatic intensity lookup)
+./target/release/hec22 \
+  --nodes examples/complete_network/nodes.csv \
+  --conduits examples/complete_network/conduits.csv \
+  --drainage-areas examples/complete_network/drainage_areas.csv \
+  --idf-curves templates/idf_curves.csv \
+  --return-period 10 \
+  --output results.txt
+```
+
+The analysis workflow:
+1. Load network CSV files (nodes, conduits, drainage areas)
+2. Load IDF curves from templates/
+3. Build the drainage network
+4. Compute peak flows using IDF curves and drainage area properties (Q = C × i × A)
 5. Run hydraulic analysis to compute HGL/EGL profiles
 6. Check for flooding and capacity issues
 
 ## Files
 
+### Network-Specific Files (in this directory)
 - **nodes.csv** - Network nodes (inlets, manholes, outfall)
 - **conduits.csv** - Pipes with various shapes
 - **drainage_areas.csv** - Subcatchments with design storm references
-- **idf_curves.csv** - IDF data for return periods 2, 5, 10, 25, 50, 100 years
-- **design_storms.csv** - Design storm definitions
+
+### Shared Template Files (in templates/ directory)
+- **../../templates/idf_curves.csv** - IDF data for return periods 2, 5, 10, 25, 50, 100 years
+- **../../templates/design_storms.csv** - Design storm definitions
+
+Note: IDF curves and design storms are located in the templates/ directory to avoid duplication across examples.
 
 ## Key Insights
 
