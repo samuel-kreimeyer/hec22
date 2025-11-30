@@ -425,7 +425,10 @@ hec22/
 │
 ├── docs/                              # Documentation
 │   ├── ATLAS14_UTILITY.md             # ATLAS14 utility documentation
-│   └── COMPLETE_NETWORK_EXAMPLE.md    # Complete network example documentation
+│   ├── COMPLETE_NETWORK_EXAMPLE.md    # Complete network example documentation
+│   └── development/                   # Developer documentation
+│       ├── INLET_EQUATION_FIXES.md    # Inlet equation corrections changelog
+│       └── RUST_TYPES.md              # Rust type system documentation
 │
 ├── tests/                             # Integration and verification tests
 │   ├── README.md                      # Test documentation
