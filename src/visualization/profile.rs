@@ -435,13 +435,13 @@ impl<'a> ProfileView<'a> {
                     let rect_width = 20.0; // Width of junction box in pixels
                     let rect_height = y_invert - y_rim; // Height from rim to invert (positive in SVG coords)
 
-                    // Draw junction box (manhole/junction chamber)
+                    // Draw junction box (manhole/junction chamber) - hollow to show HGL/EGL behind
                     svg.rect(
                         x - rect_width / 2.0,
                         y_rim,
                         rect_width,
                         rect_height,
-                        "#E3F2FD",  // Light blue fill
+                        "none",     // Transparent fill to see grade lines
                         "#1565C0",  // Dark blue stroke
                         2.0
                     );

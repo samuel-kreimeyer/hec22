@@ -162,7 +162,7 @@ hec22 --nodes nodes_si.csv \
 
 ### Step 1: Prepare Input Files
 
-Create CSV files following the templates in `/templates`:
+Create CSV files following the templates in `/examples/complete_network`:
 
 1. **nodes.csv** - Define all inlets, junctions (manholes), and outfalls
 2. **conduits.csv** - Define all pipes with diameters, lengths, slopes
@@ -439,7 +439,7 @@ DESIGN VIOLATIONS
 
 ## See Also
 
-- **[Templates README](../../templates/README.md)** - CSV file format reference
+- **[Templates README](../../examples/complete_network/README.md)** - CSV file format reference
 - **[ATLAS14 Utility](../../docs/ATLAS14_UTILITY.md)** - Fetching NOAA rainfall data
 - **[Component Definitions](component_definitions.md)** - Detailed data model documentation
 - **[Design Workflow](design_workflow.md)** - Complete design process guidance
