@@ -357,12 +357,24 @@ impl GrateInletSag {
     /// Q = min(Q_weir, Q_orifice)
     ///
     /// where Q_weir = C_w × P × d^1.5 (low head)
-    ///       Q_orifice = C_o × A × (2gd)^0.5 (high head)
-    pub fn capacity(&self, ponding_depth: f64) -> f64 {
-        // Net open area after clogging
+    ///       Q_orifice = C_o × A_net × (2gd)^0.5 (high head)
+    ///
+    /// # Arguments
+    /// * `ponding_depth` - Water depth above grate (ft)
+    /// * `opening_ratio` - Grate opening ratio (0.0 to 1.0), typically 0.35-0.90
+    ///                     For P-grates: ~0.5-0.6, Curved vane: ~0.80-0.90
+    ///                     If None, assumes 100% open area (conservative)
+    pub fn capacity_with_opening_ratio(&self, ponding_depth: f64, opening_ratio: Option<f64>) -> f64 {
+        // Gross area
+        let gross_area = self.length * self.width * self.count as f64;
         let perimeter = 2.0 * (self.length + self.width) * self.count as f64;
-        let area = self.length * self.width * self.count as f64;
-        let net_area = area * (1.0 - self.clogging_factor);
+
+        // Apply opening ratio (grate bar reduction)
+        let opening_ratio = opening_ratio.unwrap_or(1.0);
+        let open_area = gross_area * opening_ratio;
+
+        // Apply clogging factor to open area
+        let net_area = open_area * (1.0 - self.clogging_factor);
 
         // Weir flow (low head)
         let cw = 3.0; // Weir coefficient
@@ -375,6 +387,14 @@ impl GrateInletSag {
 
         // Capacity is minimum of weir and orifice
         q_weir.min(q_orifice)
+    }
+
+    /// Calculate capacity using weir and orifice equations (simplified version)
+    ///
+    /// This version assumes 100% grate opening ratio. For more accurate results
+    /// with specific grate types, use `capacity_with_opening_ratio()`.
+    pub fn capacity(&self, ponding_depth: f64) -> f64 {
+        self.capacity_with_opening_ratio(ponding_depth, None)
     }
 
     /// Check if flooding occurs (capacity exceeded)
@@ -394,6 +414,75 @@ impl GrateInletSag {
 
         // Flow exceeds capacity even at rim - flooding occurs
         (true, max_depth)
+    }
+
+    /// Design a grate size for given flow and allowable ponding depth
+    ///
+    /// This function determines the required grate dimensions to handle a given
+    /// design flow while keeping ponding depth within acceptable limits.
+    ///
+    /// # Arguments
+    /// * `design_flow` - Required flow capacity (cfs)
+    /// * `max_ponding_depth` - Maximum allowable ponding depth (ft)
+    /// * `grate_width` - Standard grate width (ft), typically 2 or 3 ft
+    /// * `clogging_factor` - Expected clogging (0.0 to 1.0)
+    /// * `opening_ratio` - Grate opening ratio (0.0 to 1.0), typically:
+    ///                     P-1-7/8-4: 0.50, P-1-1/8: 0.60, Curved vane: 0.80-0.90
+    ///                     If None, assumes 100% open (overly conservative)
+    ///
+    /// # Returns
+    /// Tuple of (length, count) where:
+    /// - length: grate length in feet (whole number)
+    /// - count: number of grates needed
+    ///
+    /// # Example
+    /// ```
+    /// use hec22::inlet::GrateInletSag;
+    ///
+    /// // Design for 6.71 cfs with max 0.492 ft ponding, P-1-7/8-4 grate
+    /// let (length, count) = GrateInletSag::design_for_sag(
+    ///     6.71,      // design flow
+    ///     0.492,     // max ponding depth
+    ///     2.0,       // grate width
+    ///     0.5,       // 50% clogging
+    ///     Some(0.50) // P-1-7/8-4 opening ratio
+    /// );
+    /// println!("Required: {} grates of 2 x {} ft", count, length);
+    /// ```
+    pub fn design_for_sag(
+        design_flow: f64,
+        max_ponding_depth: f64,
+        grate_width: f64,
+        clogging_factor: f64,
+        opening_ratio: Option<f64>,
+    ) -> (f64, usize) {
+        // Try different configurations starting with single grate
+        // Standard grate lengths: 2, 3, 4, 5 ft
+        let standard_lengths = vec![2.0, 3.0, 4.0, 5.0];
+
+        // Try increasing number of grates
+        for count in 1..=10 {
+            for &length in &standard_lengths {
+                let grate = GrateInletSag::new(length, grate_width, count, clogging_factor);
+                let capacity = grate.capacity_with_opening_ratio(max_ponding_depth, opening_ratio);
+
+                if capacity >= design_flow {
+                    return (length, count);
+                }
+            }
+        }
+
+        // If standard sizes don't work, use larger custom length
+        // Calculate required area using orifice equation at max depth
+        let co = 0.67;
+        let g = 32.17;
+        let opening_ratio = opening_ratio.unwrap_or(1.0);
+        let required_net_area = design_flow / (co * (2.0 * g * max_ponding_depth).sqrt());
+        let required_open_area = required_net_area / (1.0 - clogging_factor);
+        let required_gross_area = required_open_area / opening_ratio;
+        let required_length = (required_gross_area / grate_width).ceil();
+
+        (required_length, 1)
     }
 }
 
