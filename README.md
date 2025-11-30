@@ -402,31 +402,30 @@ hec22/
 │
 ├── templates/                         # CSV templates for network input
 │   ├── README.md                      # Template documentation
-│   ├── nodes.csv                      # Node definitions
-│   ├── conduits.csv                   # Pipe/conduit definitions
-│   ├── drainage_areas.csv             # Drainage area definitions
-│   ├── idf_curves.csv                 # IDF curve data
-│   ├── design_storms.csv              # Design storm definitions (planned)
-│   ├── nodes_extended_example.csv     # Extended examples with shapes
-│   └── conduits_extended_example.csv  # Extended examples with pipe types
+│   ├── nodes.csv                      # Basic node template
+│   ├── conduits.csv                   # Basic conduit template
+│   ├── drainage_areas.csv             # Basic drainage area template
+│   ├── idf_curves.csv                 # IDF curve data (shared)
+│   ├── design_storms.csv              # Design storm definitions (shared)
+│   ├── gutter_parameters.csv          # Gutter parameters template
+│   ├── nodes_extended_example.csv     # Extended examples with rectangular manholes
+│   ├── conduits_extended_example.csv  # Extended examples with various pipe shapes
+│   ├── nodes_complete_network.csv     # Complete network example nodes
+│   ├── conduits_complete_network.csv  # Complete network example conduits
+│   └── drainage_areas_complete_network.csv  # Complete network example drainage areas
 │
-├── examples/                          # Example networks and workflows
+├── examples/                          # Example Rust code workflows
 │   ├── build_network.rs               # Network construction example
 │   ├── gutter_spread.rs               # Gutter spread calculation
 │   ├── hydraulic_solver.rs            # HGL/EGL solver example
 │   ├── inlet_bypass_workflow.rs       # Inlet interception analysis
 │   ├── inlet_capacity.rs              # Inlet capacity calculations
 │   ├── load_json.rs                   # JSON network loading
-│   └── complete_network/              # Complete example network
-│       ├── README.md                  # Network description
-│       ├── nodes.csv                  # Example nodes (various shapes)
-│       ├── conduits.csv               # Example pipes (circular, rectangular, etc.)
-│       ├── drainage_areas.csv         # Example drainage areas
-│       ├── idf_curves.csv             # Example IDF data
-│       └── design_storms.csv          # Example design storms
+│   └── visualizations/                # Visualization examples
 │
 ├── docs/                              # Documentation
-│   └── ATLAS14_UTILITY.md             # ATLAS14 utility documentation
+│   ├── ATLAS14_UTILITY.md             # ATLAS14 utility documentation
+│   └── COMPLETE_NETWORK_EXAMPLE.md    # Complete network example documentation
 │
 ├── tests/                             # Integration and verification tests
 │   ├── README.md                      # Test documentation

@@ -89,16 +89,16 @@ To analyze this network using the HEC-22 CLI:
 ```bash
 # Run analysis with IDF curves (automatic intensity lookup)
 ./target/release/hec22 \
-  --nodes examples/complete_network/nodes.csv \
-  --conduits examples/complete_network/conduits.csv \
-  --drainage-areas examples/complete_network/drainage_areas.csv \
+  --nodes templates/nodes_complete_network.csv \
+  --conduits templates/conduits_complete_network.csv \
+  --drainage-areas templates/drainage_areas_complete_network.csv \
   --idf-curves templates/idf_curves.csv \
   --return-period 10 \
   --output results.txt
 ```
 
 The analysis workflow:
-1. Load network CSV files (nodes, conduits, drainage areas)
+1. Load network CSV files from templates/ directory
 2. Load IDF curves from templates/
 3. Build the drainage network
 4. Compute peak flows using IDF curves and drainage area properties (Q = C × i × A)
@@ -107,16 +107,16 @@ The analysis workflow:
 
 ## Files
 
-### Network-Specific Files (in this directory)
-- **nodes.csv** - Network nodes (inlets, manholes, outfall)
-- **conduits.csv** - Pipes with various shapes
-- **drainage_areas.csv** - Subcatchments with design storm references
+All files for this example are located in the `templates/` directory:
 
-### Shared Template Files (in templates/ directory)
-- **../../templates/idf_curves.csv** - IDF data for return periods 2, 5, 10, 25, 50, 100 years
-- **../../templates/design_storms.csv** - Design storm definitions
+### Network Files
+- **templates/nodes_complete_network.csv** - Network nodes (inlets, manholes, outfall)
+- **templates/conduits_complete_network.csv** - Pipes with various shapes
+- **templates/drainage_areas_complete_network.csv** - Subcatchments with design storm references
 
-Note: IDF curves and design storms are located in the templates/ directory to avoid duplication across examples.
+### Shared Data Files
+- **templates/idf_curves.csv** - IDF data for return periods 2, 5, 10, 25, 50, 100 years
+- **templates/design_storms.csv** - Design storm definitions
 
 ## Key Insights
 

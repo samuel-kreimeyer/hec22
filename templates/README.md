@@ -5,18 +5,24 @@ This directory contains CSV templates for defining drainage networks using the H
 ## Overview of Templates
 
 ### Core Templates (✅ Fully Implemented)
-- **nodes.csv** - Network nodes (inlets, junctions, outfalls)
-- **conduits.csv** - Pipes and channels connecting nodes
-- **drainage_areas.csv** - Subcatchment/drainage area definitions
-- **idf_curves.csv** - Intensity-Duration-Frequency curves for rainfall analysis
-
-### Planned Templates (🚧 Future Features)
-- **design_storms.csv** - Design storm event definitions (planned for future release)
-- **gutter_parameters.csv** - Gutter and curb inlet parameters (planned for future release)
+- **nodes.csv** - Basic network nodes template (inlets, junctions, outfalls)
+- **conduits.csv** - Basic pipes and channels template
+- **drainage_areas.csv** - Basic subcatchment/drainage area template
+- **idf_curves.csv** - Intensity-Duration-Frequency curves for rainfall analysis (shared)
+- **design_storms.csv** - Design storm event definitions (shared)
+- **gutter_parameters.csv** - Gutter and curb inlet parameters
 
 ### Extended Examples
 - **nodes_extended_example.csv** - Shows rectangular manholes
 - **conduits_extended_example.csv** - Shows various pipe shapes (circular, rectangular, elliptical, arch)
+
+### Complete Network Example
+A complete, fully-integrated example network demonstrating all features:
+- **nodes_complete_network.csv** - 7-node network with various inlet types and manhole shapes
+- **conduits_complete_network.csv** - 6 pipes with circular, elliptical, rectangular, and arch shapes
+- **drainage_areas_complete_network.csv** - 3 drainage areas with different land uses
+
+See [docs/COMPLETE_NETWORK_EXAMPLE.md](../docs/COMPLETE_NETWORK_EXAMPLE.md) for detailed documentation and peak flow calculations.
 
 ## Quick Start
 
