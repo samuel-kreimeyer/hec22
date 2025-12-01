@@ -1822,7 +1822,7 @@ mod tests {
         let fhwa = FhwaAccessHoleMethod::us_customary();
 
         let flow = 10.0; // cfs
-        let diameter = 2.0; // ft (24 inches)
+        let diameter: f64 = 2.0; // ft (24 inches)
         let area = std::f64::consts::PI * diameter.powi(2) / 4.0;
 
         let di = fhwa.discharge_intensity(flow, area, diameter);
@@ -1887,7 +1887,7 @@ mod tests {
         let fhwa = FhwaAccessHoleMethod::us_customary();
 
         // Simple test case: single straight-through inflow
-        let outflow_diameter = 2.0; // ft (24 inches)
+        let outflow_diameter: f64 = 2.0; // ft (24 inches)
         let outflow_area = std::f64::consts::PI * outflow_diameter.powi(2) / 4.0;
         let outflow_flow = 10.0; // cfs
         let outflow_velocity = outflow_flow / outflow_area;

@@ -493,15 +493,31 @@ impl<'a> HtmlViewer<'a> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::network::{Node, NodeType};
+    use crate::node::{Node, InletProperties, InletType, InletLocation};
 
     #[test]
     fn test_html_viewer_basic() {
         let mut network = Network::new();
 
-        let mut node1 = Node::new("IN-001".to_string(), NodeType::Inlet);
-        node1.x = Some(0.0);
-        node1.y = Some(0.0);
+        let mut node1 = Node::new_inlet(
+            "IN-001".to_string(),
+            100.0,
+            105.0,
+            InletProperties {
+                inlet_type: InletType::Grate,
+                location: InletLocation::OnGrade,
+                grate: None,
+                curb_opening: None,
+                local_depression: None,
+                clogging_factor: None,
+            },
+        );
+        node1.coordinates = Some(crate::node::Coordinates {
+            x: Some(0.0),
+            y: Some(0.0),
+            latitude: None,
+            longitude: None,
+        });
         network.add_node(node1);
 
         let viewer = HtmlViewer::new(&network);

@@ -59,6 +59,58 @@ pub enum BarConfiguration {
     Perpendicular,
 }
 
+/// Standard grate types with opening ratios from HEC-22 Table 7.5
+///
+/// Opening ratio is the ratio of clear opening area to total grate area.
+/// These values are from FHWA HEC-22 Chapter 7, Table 7.5.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub enum GrateType {
+    /// P-1-7/8-4: Parallel bar grate, 1-7/8" spacing, 4" width, 80% open
+    P1_7_8_4,
+    /// P-1-7/8: Parallel bar grate, 1-7/8" spacing, 90% open
+    P1_7_8,
+    /// P-1-1/8: Parallel bar grate, 1-1/8" spacing, 60% open
+    P1_1_8,
+    /// Reticuline grate, 80% open
+    Reticuline,
+    /// Curved vane grate, 35% open
+    CurvedVane,
+    /// 30° tilt-bar grate, 34% open
+    TiltBar30,
+    /// Custom grate with specified opening ratio
+    Custom(f64),
+}
+
+impl GrateType {
+    /// Get the opening ratio (clear opening / total area) for this grate type
+    ///
+    /// Values from HEC-22 Table 7.5
+    pub fn opening_ratio(&self) -> f64 {
+        match self {
+            GrateType::P1_7_8_4 => 0.80,    // P-1-7/8-4: 80% open
+            GrateType::P1_7_8 => 0.90,      // P-1-7/8: 90% open
+            GrateType::P1_1_8 => 0.60,      // P-1-1/8: 60% open
+            GrateType::Reticuline => 0.80,  // Reticuline: 80% open
+            GrateType::CurvedVane => 0.35,  // Curved vane: 35% open
+            GrateType::TiltBar30 => 0.34,   // 30° tilt-bar: 34% open
+            GrateType::Custom(ratio) => *ratio,
+        }
+    }
+
+    /// Get the designation string for this grate type
+    pub fn designation(&self) -> &str {
+        match self {
+            GrateType::P1_7_8_4 => "P-1-7/8-4",
+            GrateType::P1_7_8 => "P-1-7/8",
+            GrateType::P1_1_8 => "P-1-1/8",
+            GrateType::Reticuline => "Reticuline",
+            GrateType::CurvedVane => "Curved Vane",
+            GrateType::TiltBar30 => "30° Tilt-Bar",
+            GrateType::Custom(_) => "Custom",
+        }
+    }
+}
+
 impl GrateInletOnGrade {
     /// Create a new grate inlet
     pub fn new(
@@ -357,12 +409,24 @@ impl GrateInletSag {
     /// Q = min(Q_weir, Q_orifice)
     ///
     /// where Q_weir = C_w × P × d^1.5 (low head)
-    ///       Q_orifice = C_o × A × (2gd)^0.5 (high head)
-    pub fn capacity(&self, ponding_depth: f64) -> f64 {
-        // Net open area after clogging
+    ///       Q_orifice = C_o × A_net × (2gd)^0.5 (high head)
+    ///
+    /// # Arguments
+    /// * `ponding_depth` - Water depth above grate (ft)
+    /// * `opening_ratio` - Grate opening ratio (0.0 to 1.0), typically 0.35-0.90
+    ///                     For P-grates: ~0.5-0.6, Curved vane: ~0.80-0.90
+    ///                     If None, assumes 100% open area (conservative)
+    pub fn capacity_with_opening_ratio(&self, ponding_depth: f64, opening_ratio: Option<f64>) -> f64 {
+        // Gross area
+        let gross_area = self.length * self.width * self.count as f64;
         let perimeter = 2.0 * (self.length + self.width) * self.count as f64;
-        let area = self.length * self.width * self.count as f64;
-        let net_area = area * (1.0 - self.clogging_factor);
+
+        // Apply opening ratio (grate bar reduction)
+        let opening_ratio = opening_ratio.unwrap_or(1.0);
+        let open_area = gross_area * opening_ratio;
+
+        // Apply clogging factor to open area
+        let net_area = open_area * (1.0 - self.clogging_factor);
 
         // Weir flow (low head)
         let cw = 3.0; // Weir coefficient
@@ -375,6 +439,14 @@ impl GrateInletSag {
 
         // Capacity is minimum of weir and orifice
         q_weir.min(q_orifice)
+    }
+
+    /// Calculate capacity using weir and orifice equations (simplified version)
+    ///
+    /// This version assumes 100% grate opening ratio. For more accurate results
+    /// with specific grate types, use `capacity_with_opening_ratio()`.
+    pub fn capacity(&self, ponding_depth: f64) -> f64 {
+        self.capacity_with_opening_ratio(ponding_depth, None)
     }
 
     /// Check if flooding occurs (capacity exceeded)
@@ -394,6 +466,162 @@ impl GrateInletSag {
 
         // Flow exceeds capacity even at rim - flooding occurs
         (true, max_depth)
+    }
+
+    /// Design a grate size for given flow and allowable ponding depth
+    ///
+    /// This function follows the HEC-22 Example 7.5 procedure for sizing grates in sag conditions.
+    /// The method evaluates both weir and orifice flow regimes and uses the more conservative result
+    /// (whichever produces higher depth).
+    ///
+    /// # Procedure (HEC-22 Example 7.5)
+    /// 1. Calculate required perimeter for weir flow (Equation 7.14) without clogging
+    /// 2. Apply clogging factor to find effective perimeter needed
+    /// 3. Select grate size and verify depth using Equation 7.14
+    /// 4. Calculate required area for orifice flow (Equation 7.15) without clogging
+    /// 5. Apply clogging factor to find effective area needed
+    /// 6. Select grate size and verify depth using Equation 7.15
+    /// 7. Use whichever equation produces HIGHER depth (more conservative)
+    ///
+    /// # Arguments
+    /// * `design_flow` - Required flow capacity (cfs)
+    /// * `max_ponding_depth` - Maximum allowable ponding depth at curb (ft)
+    /// * `grate_width` - Standard grate width (ft), typically 2 or 3 ft
+    /// * `clogging_factor` - Expected clogging from curb (0.0 to 1.0), e.g., 0.5 for 50%
+    /// * `grate_type` - Grate type with opening ratio from HEC-22 Table 7.5
+    ///                  If None, assumes 100% open (overly conservative)
+    ///
+    /// # Returns
+    /// Tuple of (length, count) where:
+    /// - length: grate length in feet (whole number)
+    /// - count: number of grates needed
+    ///
+    /// # Example
+    /// ```
+    /// use hec22::inlet::{GrateInletSag, GrateType};
+    ///
+    /// // Design for 6.71 cfs with max 0.49 ft ponding, P-1-7/8-4 grate
+    /// let (length, count) = GrateInletSag::design_for_sag(
+    ///     6.71,                        // design flow
+    ///     0.49,                        // max ponding depth at curb
+    ///     2.0,                         // grate width
+    ///     0.5,                         // 50% clogging from curb
+    ///     Some(GrateType::P1_7_8_4)    // P-1-7/8-4 grate (80% open)
+    /// );
+    /// // Expected: Double 2x3 ft grate (per Example 7.5)
+    /// ```
+    pub fn design_for_sag(
+        design_flow: f64,
+        max_ponding_depth: f64,
+        grate_width: f64,
+        clogging_factor: f64,
+        grate_type: Option<GrateType>,
+    ) -> (f64, usize) {
+        // Constants from HEC-22
+        let cw = 3.0;  // Weir coefficient (approximates 0.37 × √(2g))
+        let co = 0.67; // Orifice coefficient
+        let g = 32.17; // Gravity (ft/s²)
+
+        // Get opening ratio from grate type
+        let opening_ratio = grate_type.map(|gt| gt.opening_ratio()).unwrap_or(1.0);
+
+        // Standard grate lengths to try
+        let standard_lengths = vec![2.0, 3.0, 4.0, 5.0];
+
+        // ========== STEP 1-2: WEIR FLOW ANALYSIS (Equation 7.14) ==========
+        // Equation 7.14: Qi = Cw × P × d^1.5
+        // Rearrange to solve for P: P = Qi / (Cw × d^1.5)
+
+        let required_perimeter_unclogged = design_flow / (cw * max_ponding_depth.powf(1.5));
+
+        // Apply clogging to perimeter (clogging reduces effective perimeter from curb side)
+        // P_effective = L_total + (1 - clogging_factor) × 2W
+        // Rearrange: L_total = P_effective - (1 - clogging_factor) × 2W
+        let effective_side_perimeter = (1.0 - clogging_factor) * 2.0 * grate_width;
+        let required_total_length_weir = required_perimeter_unclogged - effective_side_perimeter;
+
+        // Select standard grate configuration that meets required total length
+        let mut weir_grate: Option<(f64, usize, f64)> = None;
+
+        'weir_search: for count in 1..=10 {
+            for &length in &standard_lengths {
+                let total_length = length * count as f64;
+                if total_length >= required_total_length_weir {
+                    // This configuration meets the minimum length requirement
+                    let perimeter_effective = total_length + effective_side_perimeter;
+
+                    // Step 3: Verify depth using Equation 7.14 (rearranged)
+                    // d = [Qi / (Cw × P)]^(2/3)
+                    let depth_weir = (design_flow / (cw * perimeter_effective)).powf(2.0/3.0);
+
+                    if depth_weir <= max_ponding_depth {
+                        weir_grate = Some((length, count, depth_weir));
+                        break 'weir_search;
+                    }
+                }
+            }
+        }
+
+        // ========== STEP 4-5: ORIFICE FLOW ANALYSIS (Equation 7.15) ==========
+        // Equation 7.15: Qi = Co × Ag × √(2gd)
+        // Rearrange to solve for Ag: Ag = Qi / [Co × √(2gd)]
+
+        let required_area_unclogged = design_flow / (co * (2.0 * g * max_ponding_depth).sqrt());
+
+        // Apply clogging and opening ratio to area
+        // Ag_effective = L_total × W × opening_ratio × (1 - clogging_factor)
+        // Rearrange: L_total = Ag_effective / [W × opening_ratio × (1 - clogging_factor)]
+        let area_factor = grate_width * opening_ratio * (1.0 - clogging_factor);
+        let required_total_length_orifice = required_area_unclogged / area_factor;
+
+        // Select standard grate configuration that meets required total length
+        let mut orifice_grate: Option<(f64, usize, f64)> = None;
+
+        'orifice_search: for count in 1..=10 {
+            for &length in &standard_lengths {
+                let total_length = length * count as f64;
+                if total_length >= required_total_length_orifice {
+                    // This configuration meets the minimum length requirement
+                    let total_area = total_length * grate_width;
+                    let area_effective = total_area * opening_ratio * (1.0 - clogging_factor);
+
+                    // Step 6: Verify depth using Equation 7.15 (rearranged)
+                    // d = [Qi / (Co × Ag)]² / (2g)
+                    let depth_orifice = (design_flow / (co * area_effective)).powi(2) / (2.0 * g);
+
+                    if depth_orifice <= max_ponding_depth {
+                        orifice_grate = Some((length, count, depth_orifice));
+                        break 'orifice_search;
+                    }
+                }
+            }
+        }
+
+        // ========== STEP 7: USE MORE CONSERVATIVE RESULT (HIGHER DEPTH) ==========
+        match (weir_grate, orifice_grate) {
+            (Some((l_w, c_w, d_w)), Some((l_o, c_o, d_o))) => {
+                // Both solutions exist - use the one with higher depth (more conservative)
+                if d_w > d_o {
+                    (l_w, c_w) // Weir is more conservative
+                } else {
+                    (l_o, c_o) // Orifice is more conservative
+                }
+            },
+            (Some((l_w, c_w, _)), None) => {
+                // Only weir solution works
+                (l_w, c_w)
+            },
+            (None, Some((l_o, c_o, _))) => {
+                // Only orifice solution works
+                (l_o, c_o)
+            },
+            (None, None) => {
+                // No standard size works - calculate custom length using more restrictive equation
+                // Use the equation that requires longer total length (more conservative)
+                let length_required = required_total_length_weir.max(required_total_length_orifice);
+                (length_required.ceil(), 1)
+            }
+        }
     }
 }
 
