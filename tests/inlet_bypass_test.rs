@@ -480,27 +480,35 @@ fn test_curb_inlet_efficiency_example() {
     println!();
 
     // Gutter properties
-    let cross_slope = 0.04;  // 4%
-    let running_slope = 0.02; // 2%
+    let cross_slope = 0.04;  // 4% roadway cross slope
+    let gutter_slope = 0.04; // 4% gutter cross slope (same as roadway for uniform section)
+    let running_slope = 0.02; // 2% longitudinal slope
     let manning_n = 0.016;
+    let depression = 2.0 / 12.0; // 2 inches = 0.167 ft local depression
+    let gutter_width = 2.0; // 2 ft gutter width
 
-    let gutter = gutter::UniformGutter::new(
+    // Use CompositeGutter to properly account for depression and frontal flow
+    // This matches HEC-22 Example 7.2 methodology
+    let gutter = gutter::CompositeGutter::new(
         manning_n,
-        cross_slope,
-        running_slope,
-        None,
+        gutter_slope,     // Gutter cross slope Sw
+        cross_slope,      // Roadway cross slope Sx
+        running_slope,    // Longitudinal slope SL
+        gutter_width,     // Gutter width W
+        depression,       // Local depression depth a
     );
 
     // Curb inlet properties
     let curb_length = 4.0; // 4 ft
     let curb_height = 4.0 / 12.0; // 4 inches
-    let _depression = 2.0 / 12.0; // 2 inches (for reference)
 
-    let inlet = inlet::CurbOpeningInletOnGrade::new(
+    let inlet = inlet::CurbOpeningInletOnGrade::new_with_depression(
         curb_length,
         curb_height,
         inlet::ThroatType::Horizontal,
         0.0, // no clogging
+        depression,
+        gutter_width,
     );
 
     // Test flow - 8 cfs
