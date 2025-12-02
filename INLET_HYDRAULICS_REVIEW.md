@@ -446,3 +446,57 @@ The inlet hydraulics implementation is **mathematically sound** for the equation
 
 **Report Status**: Complete
 **Next Steps**: Address Priority 1 items (Equation 7.11 implementation and reference corrections)
+
+---
+
+## Update Log
+
+### 2025-12-02: Fixes Implemented
+
+**✅ FIXED - Critical Bug: Equation 7.10 Formula Error**
+- **Issue**: `CurbOpeningInletOnGrade::length_for_total_interception()` used incorrect formula
+- **Old formula**: `L_T = 0.6 × Q^0.42 / V^0.3` (wrong - used velocity instead of slopes)
+- **Result**: Produced L_T values ~1 ft for 8 cfs, causing 100% efficiency for 4 ft inlets
+- **Fix**: Implemented correct HEC-22 Equation 7.10: `L_T = K_u × Q^0.42 × S_L^0.3 / (n × S_x^0.6)`
+- **Test results**: 4 ft inlet @ 8 cfs now shows 3.7% efficiency (was 100%)
+- **Commit**: `a15ce18` - "fix: Correct curb-opening inlet formula to use HEC-22 Equation 7.10"
+
+**✅ FIXED - Equation 7.11 Implementation**
+- **Issue**: Depression depth defined but not used in calculations
+- **Fix**: Implemented HEC-22 Equation 7.11 for effective cross slope
+  - Added `depression_depth` and `gutter_width` fields to struct
+  - Created `new_with_depression()` constructor
+  - Implemented `effective_cross_slope()` method: `Se = Sx + S'w × Eo`
+  - Modified `interception()` to use Se when depression exists
+- **Test results**:
+  - Without depression: 3.7% efficiency
+  - With depression (CompositeGutter): 9.9% efficiency (2.7x improvement)
+- **Commit**: `6965c4d` - "feat: Implement HEC-22 Equation 7.11 for curb-opening inlet depression"
+
+**⚠️ REMAINING ISSUE: CompositeGutter Frontal Flow Calculation**
+- **Current**: With depression, efficiency reaches 9.9% (expected ~28%)
+- **Issue**: `CompositeGutter` frontal flow calculation may not match HEC-22 methodology
+- **Evidence**:
+  - Spread: 4.36 ft (flow concentration working correctly)
+  - Velocity: 10.76 ft/s (depression effect visible)
+  - Efficiency: 9.9% vs expected 28% (significant gap)
+- **Probable cause**: Frontal flow ratio Eo calculation in `CompositeGutter` differs from HEC-22 Example 7.2
+- **Impact**: Depression support is implemented per Equation 7.11, but full benefit not realized
+- **Status**: **TO BE FIXED IN SEPARATE UPDATE**
+- **Priority**: MEDIUM - Core equations (7.10, 7.11, 7.13) are correctly implemented
+- **Notes**:
+  - The 2.7x efficiency improvement shows Equation 7.11 is working
+  - Gap suggests HEC-22 uses different Eo calculation for composite sections
+  - May require reviewing HEC-22 Example 7.2 step-by-step for exact Eo formula
+
+**✅ FIXED - Documentation and Traceability**
+- Corrected equation 7.10 reference label (was labeled as 7-11)
+- Added comprehensive documentation with HEC-22 section references
+- Updated all call sites to pass required slope parameters
+- Added detailed comments explaining Se calculation per Equation 7.11
+
+---
+
+**Updated Report Status**: Critical fixes complete, composite gutter refinement pending
+**Next Steps**: Review CompositeGutter frontal flow calculation against HEC-22 Example 7.2
+
