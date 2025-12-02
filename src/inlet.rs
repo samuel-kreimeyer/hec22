@@ -278,20 +278,33 @@ impl CurbOpeningInletOnGrade {
 
     /// Calculate interception efficiency
     ///
-    /// Uses weir flow equation for low flow, orifice for high flow
+    /// Uses HEC-22 Equation 7.10 for required length and Equation 7.13 for efficiency
+    ///
+    /// # Arguments
+    /// * `approach_flow` - Flow approaching the inlet (cfs)
+    /// * `gutter_result` - Gutter hydraulic analysis results
+    /// * `manning_n` - Manning's roughness coefficient
+    /// * `cross_slope` - Gutter cross slope (ft/ft)
+    /// * `longitudinal_slope` - Gutter longitudinal slope (ft/ft)
     pub fn interception(
         &self,
         approach_flow: f64,
         gutter_result: &GutterFlowResult,
+        manning_n: f64,
+        cross_slope: f64,
+        longitudinal_slope: f64,
     ) -> InletInterceptionResult {
-        let depth = gutter_result.depth_at_curb;
         let velocity = gutter_result.velocity;
 
-        // Efficiency based on length and flow conditions
-        // Simplified approach - full HEC-22 includes detailed weir/orifice calcs
+        // Calculate required length for 100% interception using HEC-22 Equation 7.10
+        let l_t = Self::length_for_total_interception(
+            approach_flow,
+            manning_n,
+            cross_slope,
+            longitudinal_slope,
+        );
 
-        // Length efficiency (HEC-22 Figure 7-8)
-        let l_t = Self::length_for_total_interception(approach_flow, velocity);
+        // Calculate efficiency using HEC-22 Equation 7.13
         let efficiency_gross = if self.length >= l_t {
             1.0
         } else {
@@ -316,13 +329,27 @@ impl CurbOpeningInletOnGrade {
 
     /// Calculate required length for 100% interception
     ///
-    /// L_T = K_u × Q^0.42 / S_L^0.3
+    /// L_T = K_u × Q^0.42 × S_L^0.3 / (n × S_x^0.6)
     ///
-    /// HEC-22 Equation 7-15
-    pub fn length_for_total_interception(flow: f64, velocity: f64) -> f64 {
-        // Simplified - actual equation depends on throat type
-        let ku = 0.6; // Coefficient varies by throat type
-        ku * flow.powf(0.42) / velocity.powf(0.3)
+    /// HEC-22 Equation 7.10 (Section 7.2.2)
+    ///
+    /// # Arguments
+    /// * `flow` - Flow rate (cfs)
+    /// * `manning_n` - Manning's roughness coefficient
+    /// * `cross_slope` - Cross slope (ft/ft)
+    /// * `longitudinal_slope` - Longitudinal slope (ft/ft)
+    ///
+    /// # Returns
+    /// Required length for 100% interception (ft)
+    pub fn length_for_total_interception(
+        flow: f64,
+        manning_n: f64,
+        cross_slope: f64,
+        longitudinal_slope: f64,
+    ) -> f64 {
+        let ku = 0.6; // US customary units
+        ku * flow.powf(0.42) * longitudinal_slope.powf(0.3)
+            / (manning_n * cross_slope.powf(0.6))
     }
 }
 
@@ -346,10 +373,20 @@ impl CombinationInletOnGrade {
     /// Calculate interception for combination inlet
     ///
     /// Grate intercepts first, then curb opening intercepts from bypass
+    ///
+    /// # Arguments
+    /// * `approach_flow` - Flow approaching the inlet (cfs)
+    /// * `gutter_result` - Gutter hydraulic analysis results
+    /// * `manning_n` - Manning's roughness coefficient
+    /// * `cross_slope` - Gutter cross slope (ft/ft)
+    /// * `longitudinal_slope` - Gutter longitudinal slope (ft/ft)
     pub fn interception(
         &self,
         approach_flow: f64,
         gutter_result: &GutterFlowResult,
+        manning_n: f64,
+        cross_slope: f64,
+        longitudinal_slope: f64,
     ) -> InletInterceptionResult {
         // Grate intercepts first
         let grate_result = self.grate.interception(approach_flow, gutter_result);
@@ -359,6 +396,9 @@ impl CombinationInletOnGrade {
             let curb_result = self.curb_opening.interception(
                 grate_result.bypass_flow,
                 gutter_result,
+                manning_n,
+                cross_slope,
+                longitudinal_slope,
             );
 
             let total_intercepted = grate_result.intercepted_flow + curb_result.intercepted_flow;
@@ -709,10 +749,14 @@ mod tests {
             0.10,
         );
 
-        let gutter = UniformGutter::new(0.016, 0.02, 0.01, None);
+        let manning_n = 0.016;
+        let cross_slope = 0.02;
+        let long_slope = 0.01;
+
+        let gutter = UniformGutter::new(manning_n, cross_slope, long_slope, None);
         let gutter_result = gutter.result_for_flow(3.0, GUTTER_K_US);
 
-        let result = inlet.interception(3.0, &gutter_result);
+        let result = inlet.interception(3.0, &gutter_result, manning_n, cross_slope, long_slope);
 
         assert!(result.intercepted_flow > 0.0);
         assert!(result.bypass_flow >= 0.0);
@@ -738,10 +782,14 @@ mod tests {
 
         let combo = CombinationInletOnGrade::new(grate, curb);
 
-        let gutter = UniformGutter::new(0.016, 0.02, 0.01, None);
+        let manning_n = 0.016;
+        let cross_slope = 0.02;
+        let long_slope = 0.01;
+
+        let gutter = UniformGutter::new(manning_n, cross_slope, long_slope, None);
         let gutter_result = gutter.result_for_flow(5.0, GUTTER_K_US);
 
-        let result = combo.interception(5.0, &gutter_result);
+        let result = combo.interception(5.0, &gutter_result, manning_n, cross_slope, long_slope);
 
         // Combination should intercept more than either alone
         assert!(result.efficiency > 0.0);

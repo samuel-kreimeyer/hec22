@@ -281,7 +281,13 @@ fn test_inlet_bypass_in_series() {
     println!("  Depth at curb: {:.3} ft", gutter_result_1.depth_at_curb);
     println!("  Velocity: {:.2} ft/s", gutter_result_1.velocity);
 
-    let interception_1 = inlet_1_curb.interception(approach_flow_1, &gutter_result_1);
+    let interception_1 = inlet_1_curb.interception(
+        approach_flow_1,
+        &gutter_result_1,
+        gutter_props.manning_n,
+        gutter_props.cross_slope,
+        gutter_props.longitudinal_slope,
+    );
 
     println!("  Intercepted: {:.2} cfs", interception_1.intercepted_flow);
     println!("  Bypass: {:.2} cfs", interception_1.bypass_flow);
@@ -306,7 +312,13 @@ fn test_inlet_bypass_in_series() {
     println!("  Gutter spread: {:.2} ft", gutter_result_3.spread);
     println!("  Depth at curb: {:.3} ft", gutter_result_3.depth_at_curb);
 
-    let interception_3 = inlet_3_curb.interception(approach_flow_3, &gutter_result_3);
+    let interception_3 = inlet_3_curb.interception(
+        approach_flow_3,
+        &gutter_result_3,
+        gutter_props.manning_n,
+        gutter_props.cross_slope,
+        gutter_props.longitudinal_slope,
+    );
 
     println!("  Intercepted: {:.2} cfs", interception_3.intercepted_flow);
     println!("  Bypass: {:.2} cfs", interception_3.bypass_flow);
@@ -504,7 +516,13 @@ fn test_curb_inlet_efficiency_example() {
     println!("  Velocity: {:.2} ft/s", gutter_result.velocity);
     println!();
 
-    let interception = inlet.interception(flow, &gutter_result);
+    let interception = inlet.interception(
+        flow,
+        &gutter_result,
+        manning_n,
+        cross_slope,
+        running_slope,
+    );
 
     println!("Inlet performance:");
     println!("  Intercepted: {:.2} cfs", interception.intercepted_flow);
