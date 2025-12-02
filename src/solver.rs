@@ -1117,11 +1117,11 @@ fn calculate_inlet_interception(
                 };
 
                 let inlet = CurbOpeningInletOnGrade::new(length, height, throat_type, clogging_factor);
-                inlet.interception(approach_flow, &gutter_result)
+                inlet.interception(approach_flow, &gutter_result, manning_n, cross_slope, longitudinal_slope)
             } else {
                 // Default curb opening
                 let inlet = CurbOpeningInletOnGrade::new(5.0, 0.5, InletThroatType::Horizontal, 0.10);
-                inlet.interception(approach_flow, &gutter_result)
+                inlet.interception(approach_flow, &gutter_result, manning_n, cross_slope, longitudinal_slope)
             }
         }
 
@@ -1163,7 +1163,7 @@ fn calculate_inlet_interception(
             let curb = CurbOpeningInletOnGrade::new(curb_length, curb_height, curb_throat, clogging_factor);
 
             let combo = CombinationInletOnGrade::new(grate, curb);
-            combo.interception(approach_flow, &gutter_result)
+            combo.interception(approach_flow, &gutter_result, manning_n, cross_slope, longitudinal_slope)
         }
 
         crate::node::InletType::Slotted => {
