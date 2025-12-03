@@ -6,21 +6,29 @@
 //!
 //! ## Gutter Types
 //!
-//! 1. **Uniform Cross-Slope**: Simple triangular section with constant slope
-//! 2. **Composite Section**: Gutter section + roadway with different slopes
-//! 3. **Parabolic Crown**: Curved roadway surface
+//! 1. **Uniform Cross-Slope**: Simple triangular section with constant slope (Section 5.3.2.1)
+//! 2. **Composite Section**: Gutter section + roadway with different slopes (Section 5.3.2.2)
+//! 3. **Parabolic Crown**: Curved roadway surface (Section 5.3.2.3)
 //!
 //! ## Key Equations
 //!
-//! For triangular sections:
-//! - Q = (0.56/n) × S_x^(5/3) × S_L^(1/2) × T^(8/3)
+//! ### Equation 5.2: Gutter Flow (Izzard's Modified Manning's Equation)
+//! ```
+//! Q = (Ku/n) × Sx^1.67 × SL^0.5 × T^2.67
+//! ```
 //!
 //! Where:
-//! - Q = flow rate (cfs)
-//! - n = Manning's roughness
-//! - S_x = cross slope (ft/ft)
-//! - S_L = longitudinal slope (ft/ft)
-//! - T = spread (ft)
+//! - Q = flow rate (cfs or m³/s)
+//! - Ku = 0.56 (US customary), 0.376 (SI metric)
+//! - n = Manning's roughness coefficient
+//! - Sx = cross slope (ft/ft or m/m)
+//! - SL = longitudinal slope (ft/ft or m/m)
+//! - T = spread (width of flow) (ft or m)
+//!
+//! ### Equation 5.4: Spread for Given Flow
+//! ```
+//! T = [(Qn)/(Ku × Sx^1.67 × SL^0.5)]^0.375
+//! ```
 
 use std::f64::consts::PI;
 
@@ -86,30 +94,41 @@ impl UniformGutter {
 
     /// Calculate flow capacity for a given spread
     ///
-    /// Q = (K/n) × S_x^(5/3) × S_L^(1/2) × T^(8/3)
-    /// where K = 0.56 for US customary, 0.376 for SI
+    /// **HEC-22 Equation 5.2:**
+    /// ```
+    /// Q = (Ku/n) × Sx^1.67 × SL^0.5 × T^2.67
+    /// ```
     ///
     /// # Arguments
     /// * `spread` - Spread from curb (ft or m)
-    /// * `k` - Unit constant (0.56 for US, 0.376 for SI)
+    /// * `k` - Unit constant Ku (0.56 for US customary, 0.376 for SI)
+    ///
+    /// # Reference
+    /// HEC-22 Chapter 5, Equation 5.2, Example 5.1
     pub fn flow_capacity(&self, spread: f64, k: f64) -> f64 {
         (k / self.manning_n)
-            * self.cross_slope.powf(5.0 / 3.0)
-            * self.longitudinal_slope.sqrt()
-            * spread.powf(8.0 / 3.0)
+            * self.cross_slope.powf(1.67)
+            * self.longitudinal_slope.powf(0.5)
+            * spread.powf(2.67)
     }
 
     /// Calculate spread for a given flow rate
     ///
-    /// Solves: T = [Q × n / (K × S_x^(5/3) × S_L^(1/2))]^(3/8)
+    /// **HEC-22 Equation 5.4:**
+    /// ```
+    /// T = [(Qn)/(Ku × Sx^1.67 × SL^0.5)]^0.375
+    /// ```
     ///
     /// # Arguments
     /// * `flow` - Flow rate (cfs or cms)
-    /// * `k` - Unit constant (0.56 for US, 0.376 for SI)
+    /// * `k` - Unit constant Ku (0.56 for US customary, 0.376 for SI)
+    ///
+    /// # Reference
+    /// HEC-22 Chapter 5, Equation 5.4, Example 5.1
     pub fn spread_for_flow(&self, flow: f64, k: f64) -> f64 {
         let numerator = flow * self.manning_n;
-        let denominator = k * self.cross_slope.powf(5.0 / 3.0) * self.longitudinal_slope.sqrt();
-        (numerator / denominator).powf(3.0 / 8.0)
+        let denominator = k * self.cross_slope.powf(1.67) * self.longitudinal_slope.powf(0.5);
+        (numerator / denominator).powf(0.375)
     }
 
     /// Calculate complete flow result for given spread
@@ -190,21 +209,60 @@ impl CompositeGutter {
         }
     }
 
-    /// Calculate equivalent cross slope S_x'
+    /// Calculate cross slope in depressed section
     ///
-    /// S_x' = S_x + a/W
-    /// where a is local depression (converted to ft) and W is gutter width
-    fn equivalent_cross_slope(&self, depression_ft: f64) -> f64 {
-        self.gutter_slope + (depression_ft / self.gutter_width)
+    /// **HEC-22 Equation 5.8:**
+    /// ```
+    /// Sw = Sx + a/W
+    /// ```
+    ///
+    /// # Arguments
+    /// * `depression_ft` - Gutter depression depth (ft or m)
+    ///
+    /// # Returns
+    /// Cross slope in the depressed gutter section (ft/ft or m/m)
+    ///
+    /// # Reference
+    /// HEC-22 Chapter 5, Equation 5.8, Example 5.2
+    fn depressed_section_slope(&self, depression_ft: f64) -> f64 {
+        self.roadway_slope + (depression_ft / self.gutter_width)
     }
 
-    /// Calculate flow efficiency ratio E_o
+    /// Calculate ratio of flow in depressed section to total flow
     ///
-    /// E_o = (1 + S_w/S_x')^(8/3) / [1 + (S_w/S_x')^(8/3)]
-    fn flow_efficiency_ratio(&self, sx_prime: f64) -> f64 {
-        let ratio = self.roadway_slope / sx_prime;
-        let term = (1.0 + ratio).powf(8.0 / 3.0);
-        term / (1.0 + ratio.powf(8.0 / 3.0))
+    /// **HEC-22 Equation 5.7:**
+    /// ```
+    /// Eo = 1 / [1 + (Sw/Sx) / [(1 + (Sw/Sx)/(T/W-1))^2.67 - 1]]
+    /// ```
+    ///
+    /// # Arguments
+    /// * `sw` - Cross slope in depressed section (ft/ft or m/m)
+    /// * `sx` - Cross slope of pavement (ft/ft or m/m)
+    /// * `t` - Total spread (ft or m)
+    /// * `w` - Width of depressed section (ft or m)
+    ///
+    /// # Returns
+    /// Ratio Eo = Qw/Q (flow in depressed section / total flow)
+    ///
+    /// # Reference
+    /// HEC-22 Chapter 5, Equation 5.7, Example 5.2
+    fn flow_ratio_depressed(&self, sw: f64, sx: f64, t: f64, w: f64) -> f64 {
+        let sw_over_sx = sw / sx;
+        let t_over_w = t / w;
+
+        // Handle edge case where T = W (no spread beyond gutter)
+        if (t_over_w - 1.0).abs() < 0.001 {
+            return 1.0; // All flow in gutter section
+        }
+
+        let denominator_term = (1.0 + sw_over_sx / (t_over_w - 1.0)).powf(2.67) - 1.0;
+
+        // Handle edge case where denominator_term is very small
+        if denominator_term.abs() < 1e-10 {
+            return 1.0;
+        }
+
+        1.0 / (1.0 + sw_over_sx / denominator_term)
     }
 
     /// Calculate spread width ratio W/T
@@ -212,27 +270,56 @@ impl CompositeGutter {
         self.gutter_width / spread
     }
 
-    /// Calculate frontal flow Q_w (flow in gutter section)
+    /// Calculate frontal flow Q_w (flow in depressed gutter section)
     ///
-    /// Q_w = Q × E_o
-    pub fn frontal_flow(&self, total_flow: f64, spread: f64, depression_ft: f64, k: f64) -> f64 {
-        let sx_prime = self.equivalent_cross_slope(depression_ft);
-        let eo = self.flow_efficiency_ratio(sx_prime);
+    /// **HEC-22 Equation 5.5:**
+    /// ```
+    /// Qw = Q × Eo
+    /// ```
+    ///
+    /// # Reference
+    /// HEC-22 Chapter 5, Equation 5.5, Example 5.2
+    pub fn frontal_flow(&self, total_flow: f64, spread: f64, depression_ft: f64, _k: f64) -> f64 {
+        let sw = self.depressed_section_slope(depression_ft);
+        let sx = self.roadway_slope;
+        let eo = self.flow_ratio_depressed(sw, sx, spread, self.gutter_width);
         total_flow * eo
     }
 
-    /// Calculate side flow Q_s (flow on roadway)
+    /// Calculate side flow Q_s (flow on roadway beyond gutter)
     ///
-    /// Q_s = Q × (1 - E_o)
-    pub fn side_flow(&self, total_flow: f64, spread: f64, depression_ft: f64, k: f64) -> f64 {
-        let sx_prime = self.equivalent_cross_slope(depression_ft);
-        let eo = self.flow_efficiency_ratio(sx_prime);
+    /// **HEC-22 Equation 5.6:**
+    /// ```
+    /// Qs = Q × (1 - Eo)
+    /// ```
+    ///
+    /// # Reference
+    /// HEC-22 Chapter 5, Equation 5.6, Example 5.2
+    pub fn side_flow(&self, total_flow: f64, spread: f64, depression_ft: f64, _k: f64) -> f64 {
+        let sw = self.depressed_section_slope(depression_ft);
+        let sx = self.roadway_slope;
+        let eo = self.flow_ratio_depressed(sw, sx, spread, self.gutter_width);
         total_flow * (1.0 - eo)
     }
 
     /// Calculate total flow capacity for composite section
     ///
-    /// Uses modified gutter equation accounting for composite geometry
+    /// **Algorithm from HEC-22 Example 5.2, Part A:**
+    /// 1. Compute Sw using Equation 5.8
+    /// 2. Compute Ts = T - W
+    /// 3. Compute Qs using Equation 5.2 with Sx and Ts
+    /// 4. Compute Eo using Equation 5.7
+    /// 5. Compute Q = Qs / (1 - Eo)
+    ///
+    /// # Arguments
+    /// * `spread` - Total spread T (ft or m)
+    /// * `k` - Unit constant Ku (0.56 for US customary, 0.376 for SI)
+    ///
+    /// # Returns
+    /// Total gutter flow capacity (cfs or cms)
+    ///
+    /// # Reference
+    /// HEC-22 Chapter 5, Example 5.2 Part A
     pub fn flow_capacity(&self, spread: f64, k: f64) -> f64 {
         // Convert depression to feet if in inches
         let depression_ft = if self.local_depression < 1.0 {
@@ -241,33 +328,153 @@ impl CompositeGutter {
             self.local_depression / 12.0 // Convert inches to feet
         };
 
-        let sx_prime = self.equivalent_cross_slope(depression_ft);
+        // Step 1: Compute cross slope in depressed section (Equation 5.8)
+        let sw = self.depressed_section_slope(depression_ft);
 
-        // Calculate spread ratio
-        let w_over_t = self.width_ratio(spread);
+        // Step 2: Compute width of spread beyond gutter section
+        let ts = spread - self.gutter_width;
 
-        // Calculate efficiency for spread ratio
-        let sw_over_sx = self.roadway_slope / sx_prime;
+        // If spread doesn't extend beyond gutter, use simple calculation
+        if ts <= 0.0 {
+            // All flow within depressed gutter section
+            return (k / self.manning_n)
+                * sw.powf(1.67)
+                * self.longitudinal_slope.powf(0.5)
+                * spread.powf(2.67);
+        }
 
-        // Total flow using composite section equation
-        let q_total = (k / self.manning_n)
-            * sx_prime.powf(5.0 / 3.0)
-            * self.longitudinal_slope.sqrt()
-            * spread.powf(8.0 / 3.0)
-            * (1.0 + sw_over_sx.powf(8.0 / 3.0) - (w_over_t).powf(8.0 / 3.0) * sw_over_sx.powf(8.0 / 3.0));
+        // Step 3: Compute flow in side section (roadway) using Equation 5.2
+        let qs = (k / self.manning_n)
+            * self.roadway_slope.powf(1.67)
+            * self.longitudinal_slope.powf(0.5)
+            * ts.powf(2.67);
 
-        q_total
+        // Step 4: Compute flow ratio Eo using Equation 5.7
+        let eo = self.flow_ratio_depressed(sw, self.roadway_slope, spread, self.gutter_width);
+
+        // Step 5: Compute total flow Q = Qs / (1 - Eo)
+        if (1.0 - eo).abs() < 1e-10 {
+            // All flow in gutter section
+            return (k / self.manning_n)
+                * sw.powf(1.67)
+                * self.longitudinal_slope.powf(0.5)
+                * self.gutter_width.powf(2.67);
+        }
+
+        qs / (1.0 - eo)
     }
 
     /// Calculate spread for a given flow rate (iterative)
+    ///
+    /// **Algorithm from HEC-22 Example 5.2, Part B:**
+    /// 1. Assume initial value of Qs
+    /// 2. Compute Qw = Q - Qs
+    /// 3. Compute Eo = Qw / Q
+    /// 4. Solve Equation 5.7 for T/W
+    /// 5. Compute T = W(T/W)
+    /// 6. Compute Ts = T - W
+    /// 7. Compute Qs from Equation 5.2 using Ts
+    /// 8. Compare computed Qs with assumed Qs
+    /// 9. If not converged, update Qs and repeat
+    ///
+    /// # Arguments
+    /// * `flow` - Total gutter flow Q (cfs or cms)
+    /// * `k` - Unit constant Ku (0.56 for US customary, 0.376 for SI)
+    ///
+    /// # Returns
+    /// Total spread T (ft or m)
+    ///
+    /// # Reference
+    /// HEC-22 Chapter 5, Example 5.2 Part B
     pub fn spread_for_flow(&self, flow: f64, k: f64) -> f64 {
-        // Iterative solution using bisection
-        let mut t_low = self.gutter_width;
-        let mut t_high = 50.0; // Maximum spread assumption
-        let tolerance = 0.001;
+        let depression_ft = if self.local_depression < 1.0 {
+            self.local_depression
+        } else {
+            self.local_depression / 12.0
+        };
+
+        let sw = self.depressed_section_slope(depression_ft);
+        let sw_over_sx = sw / self.roadway_slope;
+
+        // Initial guess: assume Qs is a small fraction of total flow
+        let mut qs_assumed = flow * 0.3;
+        let tolerance = 0.01;
         let max_iterations = 50;
 
-        for _ in 0..max_iterations {
+        for iteration in 0..max_iterations {
+            // Step 2: Compute Qw = Q - Qs
+            let qw = flow - qs_assumed;
+
+            // Step 3: Compute Eo = Qw / Q
+            let eo = qw / flow;
+
+            // Step 4: Solve Equation 5.7 for T/W
+            // From Equation 5.7:
+            // Eo = 1 / [1 + (Sw/Sx) / [(1 + (Sw/Sx)/(T/W-1))^2.67 - 1]]
+            // Rearranging to solve for T/W requires iteration or root-finding
+            // We'll use a nested iteration to find T/W that gives this Eo
+
+            let mut t_over_w = 2.0; // Initial guess for T/W
+            for _ in 0..20 {
+                let denominator_term = (1.0 + sw_over_sx / (t_over_w - 1.0)).powf(2.67) - 1.0;
+                let computed_eo = if denominator_term.abs() > 1e-10 {
+                    1.0 / (1.0 + sw_over_sx / denominator_term)
+                } else {
+                    1.0
+                };
+
+                // Adjust T/W based on error
+                let error = computed_eo - eo;
+                if error.abs() < 0.001 {
+                    break;
+                }
+
+                // Simple adjustment: if computed_eo > target, need larger T/W
+                if error > 0.0 {
+                    t_over_w += 0.1;
+                } else {
+                    t_over_w -= 0.05;
+                }
+
+                // Keep T/W reasonable
+                t_over_w = t_over_w.max(1.01).min(50.0);
+            }
+
+            // Step 5: Compute T = W(T/W)
+            let t = self.gutter_width * t_over_w;
+
+            // Step 6: Compute Ts = T - W
+            let ts = t - self.gutter_width;
+
+            // Step 7: Compute Qs from Equation 5.2
+            let qs_computed = (k / self.manning_n)
+                * self.roadway_slope.powf(1.67)
+                * self.longitudinal_slope.powf(0.5)
+                * ts.powf(2.67);
+
+            // Step 8: Check convergence
+            let error = (qs_computed - qs_assumed).abs();
+            if error < tolerance || error / flow.max(1.0) < 0.01 {
+                return t;
+            }
+
+            // Step 9: Update assumed Qs (use relaxation to improve convergence)
+            qs_assumed = 0.5 * qs_assumed + 0.5 * qs_computed;
+
+            // Fallback check
+            if iteration == max_iterations - 1 {
+                eprintln!(
+                    "Warning: Composite gutter spread_for_flow did not fully converge after {} iterations. Error: {:.4}",
+                    max_iterations, error
+                );
+                return t;
+            }
+        }
+
+        // Fallback: use simple bisection method
+        let mut t_low = self.gutter_width;
+        let mut t_high = 50.0;
+        for _ in 0..50 {
             let t_mid = (t_low + t_high) / 2.0;
             let q_mid = self.flow_capacity(t_mid, k);
 
@@ -279,10 +486,6 @@ impl CompositeGutter {
                 t_low = t_mid;
             } else {
                 t_high = t_mid;
-            }
-
-            if (t_high - t_low) < tolerance {
-                return t_mid;
             }
         }
 
