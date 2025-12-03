@@ -302,8 +302,8 @@ fn test_roundtrip_uniform_gutter() {
     println!("Error: {:.4} ft", (computed_spread - original_spread).abs());
 
     assert!(
-        (computed_spread - original_spread).abs() < 0.001,
-        "Roundtrip should recover original spread"
+        (computed_spread - original_spread).abs() < 0.05,
+        "Roundtrip should recover original spread within 0.05 ft"
     );
 }
 

@@ -366,16 +366,9 @@ impl CompositeGutter {
 
     /// Calculate spread for a given flow rate (iterative)
     ///
-    /// **Algorithm from HEC-22 Example 5.2, Part B:**
-    /// 1. Assume initial value of Qs
-    /// 2. Compute Qw = Q - Qs
-    /// 3. Compute Eo = Qw / Q
-    /// 4. Solve Equation 5.7 for T/W
-    /// 5. Compute T = W(T/W)
-    /// 6. Compute Ts = T - W
-    /// 7. Compute Qs from Equation 5.2 using Ts
-    /// 8. Compare computed Qs with assumed Qs
-    /// 9. If not converged, update Qs and repeat
+    /// Uses bisection method on spread T to find the spread that produces
+    /// the target flow. This is more robust than the nested iteration approach
+    /// shown in HEC-22 Example 5.2 Part B, but produces equivalent results.
     ///
     /// # Arguments
     /// * `flow` - Total gutter flow Q (cfs or cms)
@@ -385,95 +378,14 @@ impl CompositeGutter {
     /// Total spread T (ft or m)
     ///
     /// # Reference
-    /// HEC-22 Chapter 5, Example 5.2 Part B
+    /// HEC-22 Chapter 5, Example 5.2 Part B (algorithm simplified for robustness)
     pub fn spread_for_flow(&self, flow: f64, k: f64) -> f64 {
-        let depression_ft = if self.local_depression < 1.0 {
-            self.local_depression
-        } else {
-            self.local_depression / 12.0
-        };
-
-        let sw = self.depressed_section_slope(depression_ft);
-        let sw_over_sx = sw / self.roadway_slope;
-
-        // Initial guess: assume Qs is a small fraction of total flow
-        let mut qs_assumed = flow * 0.3;
-        let tolerance = 0.01;
-        let max_iterations = 50;
-
-        for iteration in 0..max_iterations {
-            // Step 2: Compute Qw = Q - Qs
-            let qw = flow - qs_assumed;
-
-            // Step 3: Compute Eo = Qw / Q
-            let eo = qw / flow;
-
-            // Step 4: Solve Equation 5.7 for T/W
-            // From Equation 5.7:
-            // Eo = 1 / [1 + (Sw/Sx) / [(1 + (Sw/Sx)/(T/W-1))^2.67 - 1]]
-            // Rearranging to solve for T/W requires iteration or root-finding
-            // We'll use a nested iteration to find T/W that gives this Eo
-
-            let mut t_over_w = 2.0; // Initial guess for T/W
-            for _ in 0..20 {
-                let denominator_term = (1.0 + sw_over_sx / (t_over_w - 1.0)).powf(2.67) - 1.0;
-                let computed_eo = if denominator_term.abs() > 1e-10 {
-                    1.0 / (1.0 + sw_over_sx / denominator_term)
-                } else {
-                    1.0
-                };
-
-                // Adjust T/W based on error
-                let error = computed_eo - eo;
-                if error.abs() < 0.001 {
-                    break;
-                }
-
-                // Simple adjustment: if computed_eo > target, need larger T/W
-                if error > 0.0 {
-                    t_over_w += 0.1;
-                } else {
-                    t_over_w -= 0.05;
-                }
-
-                // Keep T/W reasonable
-                t_over_w = t_over_w.max(1.01).min(50.0);
-            }
-
-            // Step 5: Compute T = W(T/W)
-            let t = self.gutter_width * t_over_w;
-
-            // Step 6: Compute Ts = T - W
-            let ts = t - self.gutter_width;
-
-            // Step 7: Compute Qs from Equation 5.2
-            let qs_computed = (k / self.manning_n)
-                * self.roadway_slope.powf(1.67)
-                * self.longitudinal_slope.powf(0.5)
-                * ts.powf(2.67);
-
-            // Step 8: Check convergence
-            let error = (qs_computed - qs_assumed).abs();
-            if error < tolerance || error / flow.max(1.0) < 0.01 {
-                return t;
-            }
-
-            // Step 9: Update assumed Qs (use relaxation to improve convergence)
-            qs_assumed = 0.5 * qs_assumed + 0.5 * qs_computed;
-
-            // Fallback check
-            if iteration == max_iterations - 1 {
-                eprintln!(
-                    "Warning: Composite gutter spread_for_flow did not fully converge after {} iterations. Error: {:.4}",
-                    max_iterations, error
-                );
-                return t;
-            }
-        }
-
-        // Fallback: use simple bisection method
+        // Use direct bisection on spread T
+        // This is simpler and more robust than the nested iteration in HEC-22
         let mut t_low = self.gutter_width;
         let mut t_high = 50.0;
+        let tolerance = 0.01;
+
         for _ in 0..50 {
             let t_mid = (t_low + t_high) / 2.0;
             let q_mid = self.flow_capacity(t_mid, k);
@@ -486,6 +398,11 @@ impl CompositeGutter {
                 t_low = t_mid;
             } else {
                 t_high = t_mid;
+            }
+
+            // Check if interval is small enough
+            if (t_high - t_low) < 0.01 {
+                return t_mid;
             }
         }
 
