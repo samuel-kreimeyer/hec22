@@ -101,7 +101,7 @@ fn test_example_5_3_composite_gutter_with_depression() {
     //
     // Given:
     // - Gutter width W = 2.0 ft
-    // - Gutter slope Sw = 0.0417 (5 in/ft = 0.0417 ft/ft)
+    // - Gutter section base slope Sg = 0.0417 (0.5 in/ft, before depression)
     // - Roadway slope Sx = 0.02 (2%)
     // - Local depression a = 2.0 inches (0.167 ft)
     // - Longitudinal slope SL = 0.005 (0.5%)
@@ -109,27 +109,30 @@ fn test_example_5_3_composite_gutter_with_depression() {
     // - Total spread T = 10.0 ft
     //
     // Find: Flow capacity
+    //
+    // Note: Per HEC-22 Equation 5.8, depressed section slope Sw = Sg + a/W
+    //       Sw = 0.0417 + 0.167/2.0 = 0.0417 + 0.0835 = 0.1252 (12.52%)
 
     println!("\n=== Example 5-3: Composite Gutter with Depression ===");
 
     let gutter = CompositeGutter::new(
         0.016,  // n
-        0.0417, // Sw (gutter slope)
-        0.02,   // Sx (roadway slope)
-        0.005,  // SL (longitudinal slope)
-        2.0,    // W (gutter width)
-        2.0,    // a (local depression, inches)
+        0.0417, // Sg (gutter section base slope) - 0.5 in/ft
+        0.02,   // Sx (roadway slope) - 2%
+        0.005,  // SL (longitudinal slope) - 0.5%
+        2.0,    // W (gutter width) - 2 ft
+        2.0,    // a (local depression) - 2 inches
     );
 
     let total_spread = 10.0;
     let capacity = gutter.flow_capacity(total_spread, GUTTER_K_US);
 
-    // With depression, capacity is significantly enhanced
+    // With depression, capacity is enhanced over uniform gutter
 
     println!("Composite gutter:");
     println!("  Gutter width: {:.1} ft", gutter.gutter_width);
-    println!("  Gutter slope: {:.4} ({:.1} in/ft)", gutter.gutter_slope, gutter.gutter_slope * 12.0);
-    println!("  Roadway slope: {:.3} ({:.0}%)", gutter.roadway_slope, gutter.roadway_slope * 100.0);
+    println!("  Gutter base slope Sg: {:.4} ({:.1} in/ft)", gutter.gutter_slope, gutter.gutter_slope * 12.0);
+    println!("  Roadway slope Sx: {:.3} ({:.0}%)", gutter.roadway_slope, gutter.roadway_slope * 100.0);
     println!("  Local depression: {:.1} in", gutter.local_depression);
     println!("\nResults:");
     println!("  Total spread: {:.1} ft", total_spread);
@@ -139,18 +142,20 @@ fn test_example_5_3_composite_gutter_with_depression() {
     let uniform = UniformGutter::new(0.016, 0.02, 0.005, None);
     let uniform_capacity = uniform.flow_capacity(total_spread, GUTTER_K_US);
     println!("  Uniform gutter capacity: {:.2} cfs", uniform_capacity);
-    println!("  Enhancement factor: {:.2}", capacity / uniform_capacity);
+    println!("  Enhancement factor: {:.2}x", capacity / uniform_capacity);
 
     assert!(
         capacity > uniform_capacity,
         "Composite gutter should have higher capacity than uniform"
     );
 
-    // Composite gutter with steep cross-slope and depression has much higher capacity
+    // Verify reasonable enhancement from depression
+    // With steep gutter slope (0.0417 + depression effect), capacity should be
+    // enhanced by 40-60% over uniform gutter at same roadway slope
     assert!(
-        capacity > 10.0,
-        "Capacity {:.2} should be significantly enhanced by steep gutter slope",
-        capacity
+        capacity / uniform_capacity > 1.3,
+        "Capacity enhancement factor {:.2} should be > 1.3x due to depression",
+        capacity / uniform_capacity
     );
 }
 

@@ -173,15 +173,17 @@ impl UniformGutter {
 
 /// Composite gutter section calculator
 ///
-/// For sections with a depressed gutter section and roadway with different slopes
+/// For sections with a depressed gutter section and roadway with different slopes.
+/// The gutter section has a base cross slope (Sg), and the depression adds additional
+/// slope according to Equation 5.8: Sw = Sg + a/W
 pub struct CompositeGutter {
     /// Manning's roughness coefficient
     pub manning_n: f64,
-    /// Gutter cross slope S_x (ft/ft)
+    /// Gutter section base cross slope Sg (ft/ft) - slope before depression is added
     pub gutter_slope: f64,
-    /// Roadway cross slope S_w (ft/ft)
+    /// Roadway cross slope Sx (ft/ft) - slope of the undepressed pavement section
     pub roadway_slope: f64,
-    /// Longitudinal slope S_L (ft/ft)
+    /// Longitudinal slope SL (ft/ft)
     pub longitudinal_slope: f64,
     /// Gutter width W (ft)
     pub gutter_width: f64,
@@ -213,8 +215,9 @@ impl CompositeGutter {
     ///
     /// **HEC-22 Equation 5.8:**
     /// ```
-    /// Sw = Sx + a/W
+    /// Sw = Sg + a/W
     /// ```
+    /// Where Sg is the gutter section base cross slope (before depression is added)
     ///
     /// # Arguments
     /// * `depression_ft` - Gutter depression depth (ft or m)
@@ -225,7 +228,7 @@ impl CompositeGutter {
     /// # Reference
     /// HEC-22 Chapter 5, Equation 5.8, Example 5.2
     fn depressed_section_slope(&self, depression_ft: f64) -> f64 {
-        self.roadway_slope + (depression_ft / self.gutter_width)
+        self.gutter_slope + (depression_ft / self.gutter_width)
     }
 
     /// Calculate ratio of flow in depressed section to total flow
