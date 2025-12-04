@@ -38,7 +38,7 @@ Tests verify gutter flow calculations from HEC-22 Chapter 5 "Gutter Flow and Gra
 
 ### `chapter9_verification.rs` - HGL/EGL Analysis
 
-**Status**: Framework created, requires API adjustments
+**Status**: ✅ 4 tests passing
 
 Tests designed to verify hydraulic grade line calculations from HEC-22 Chapter 9 "Storm Drain System Design":
 
@@ -204,5 +204,5 @@ When adding verification tests:
 
 ---
 
-*Last Updated: 2025-11-24*
-*Test Status: Chapter 5 complete (9/9 passing), Chapter 9 in progress*
+*Last Updated: 2025-12-04*
+*Test Status: Chapter 5 complete (9/9 passing), Chapter 9 complete (4/4 passing)*
