@@ -18,7 +18,7 @@ use hec22::*;
 #[test]
 fn test_outfall_egl_includes_velocity_head() {
     // Create a simple network: Inlet → Pipe → Outfall
-    let project = project::Project {
+    let _project = project::Project {
         name: "Outfall EGL Test".to_string(),
         description: Some("Verify outfall EGL = HGL + velocity_head".to_string()),
         location: None,
@@ -110,7 +110,7 @@ fn test_outfall_egl_includes_velocity_head() {
 
     // Compute flows: Q = C × i × A = 0.8 × 5.0 × 1.25 = 5.0 cfs
     let intensity = 5.0; // in/hr
-    let node_inflows = solver::compute_rational_flows(&vec![drainage_area], intensity);
+    let node_inflows = solver::compute_rational_flows(&[drainage_area], intensity);
     let conduit_flows = solver::route_flows(&network, &node_inflows)
         .expect("Flow routing should succeed");
 

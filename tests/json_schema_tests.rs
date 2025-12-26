@@ -83,7 +83,7 @@ fn test_load_network_with_violations() {
     // Verify violations are present
     assert!(analysis.violations.is_some());
     let violations = analysis.violations.as_ref().unwrap();
-    assert!(violations.len() > 0, "Should have violations");
+    assert!(!violations.is_empty(), "Should have violations");
 
     // Check for specific violation types
     let hgl_violations: Vec<_> = violations
@@ -101,9 +101,9 @@ fn test_load_network_with_violations() {
         .filter(|v| v.violation_type == analysis::ViolationType::Flooding)
         .collect();
 
-    assert!(hgl_violations.len() > 0, "Should have HGL violations");
-    assert!(spread_violations.len() > 0, "Should have spread violations");
-    assert!(flooding_violations.len() > 0, "Should have flooding violations");
+    assert!(!hgl_violations.is_empty(), "Should have HGL violations");
+    assert!(!spread_violations.is_empty(), "Should have spread violations");
+    assert!(!flooding_violations.is_empty(), "Should have flooding violations");
 
     // Verify severity levels
     let errors: Vec<_> = violations
@@ -111,7 +111,7 @@ fn test_load_network_with_violations() {
         .filter(|v| v.severity == analysis::Severity::Error)
         .collect();
 
-    assert!(errors.len() > 0, "Should have error-level violations");
+    assert!(!errors.is_empty(), "Should have error-level violations");
 }
 
 #[test]
@@ -274,8 +274,8 @@ fn test_analysis_violation_filtering() {
     let hgl_violations = analysis.get_violations_by_type(analysis::ViolationType::Hgl);
     let errors = analysis.get_errors();
 
-    assert!(hgl_violations.len() > 0);
-    assert!(errors.len() > 0);
+    assert!(!hgl_violations.is_empty());
+    assert!(!errors.is_empty());
     assert!(analysis.has_errors());
 
     // Verify error messages are present
@@ -332,13 +332,13 @@ fn test_upstream_downstream_queries() {
 
     // Test upstream conduits
     let upstream = network.upstream_conduits("MH-201");
-    assert!(upstream.len() > 0, "MH-201 should have upstream conduits");
+    assert!(!upstream.is_empty(), "MH-201 should have upstream conduits");
 
     // Test downstream conduits
     let downstream = network.downstream_conduits("IN-101");
-    assert!(downstream.len() > 0, "IN-101 should have downstream conduits");
+    assert!(!downstream.is_empty(), "IN-101 should have downstream conduits");
 
     // Outfall should have no downstream conduits
     let outfall_downstream = network.downstream_conduits("OUT-001");
-    assert_eq!(outfall_downstream.len(), 0, "Outfall should have no downstream conduits");
+    assert!(outfall_downstream.is_empty(), "Outfall should have no downstream conduits");
 }

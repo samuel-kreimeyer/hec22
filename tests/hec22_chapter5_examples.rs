@@ -30,11 +30,11 @@ fn test_example_5_1_triangular_gutter() {
 
     // Part A: Find spread for Q = 1.8 cfs
     println!("Part A: Find spread for Q = 1.8 cfs");
-    let q_partA = 1.8;
+    let q_part_a = 1.8;
     let expected_spread_a = 9.0;
-    let computed_spread_a = gutter.spread_for_flow(q_partA, GUTTER_K_US);
+    let computed_spread_a = gutter.spread_for_flow(q_part_a, GUTTER_K_US);
 
-    println!("  Given: Q = {:.1} cfs", q_partA);
+    println!("  Given: Q = {:.1} cfs", q_part_a);
     println!("  Computed spread: {:.2} ft", computed_spread_a);
     println!("  Expected spread: {:.1} ft", expected_spread_a);
     println!("  Error: {:.2} ft\n", (computed_spread_a - expected_spread_a).abs());
@@ -48,11 +48,11 @@ fn test_example_5_1_triangular_gutter() {
 
     // Part B: Find flow for T = 8.2 ft
     println!("Part B: Find flow for T = 8.2 ft");
-    let t_partB = 8.2;
+    let t_part_b = 8.2;
     let expected_flow_b = 1.4;
-    let computed_flow_b = gutter.flow_capacity(t_partB, GUTTER_K_US);
+    let computed_flow_b = gutter.flow_capacity(t_part_b, GUTTER_K_US);
 
-    println!("  Given: T = {:.1} ft", t_partB);
+    println!("  Given: T = {:.1} ft", t_part_b);
     println!("  Computed flow: {:.2} cfs", computed_flow_b);
     println!("  Expected flow: {:.1} cfs", expected_flow_b);
     println!("  Error: {:.2} cfs", (computed_flow_b - expected_flow_b).abs());
@@ -89,13 +89,13 @@ fn test_example_5_2_composite_gutter() {
 
     // Part A: Find flow for T = 8.2 ft
     println!("Part A: Find flow for T = 8.2 ft");
-    let t_partA = 8.2;
+    let t_part_a = 8.2;
     let expected_flow_a = 2.3;
-    let computed_flow_a = gutter.flow_capacity(t_partA, GUTTER_K_US);
+    let computed_flow_a = gutter.flow_capacity(t_part_a, GUTTER_K_US);
 
     println!("  Gutter width W = {:.1} ft", gutter.gutter_width);
     println!("  Depression a = {:.1} inches", gutter.local_depression);
-    println!("  Given: T = {:.1} ft", t_partA);
+    println!("  Given: T = {:.1} ft", t_part_a);
     println!("  Computed flow: {:.2} cfs", computed_flow_a);
     println!("  Expected flow: {:.1} cfs", expected_flow_a);
     println!("  Error: {:.2} cfs\n", (computed_flow_a - expected_flow_a).abs());
@@ -109,11 +109,11 @@ fn test_example_5_2_composite_gutter() {
 
     // Part B: Find spread for Q = 4.2 cfs (iterative)
     println!("Part B: Find spread for Q = 4.2 cfs (requires iteration)");
-    let q_partB = 4.2;
+    let q_part_b = 4.2;
     let expected_spread_b = 11.1;
-    let computed_spread_b = gutter.spread_for_flow(q_partB, GUTTER_K_US);
+    let computed_spread_b = gutter.spread_for_flow(q_part_b, GUTTER_K_US);
 
-    println!("  Given: Q = {:.1} cfs", q_partB);
+    println!("  Given: Q = {:.1} cfs", q_part_b);
     println!("  Computed spread: {:.2} ft", computed_spread_b);
     println!("  Expected spread: {:.1} ft", expected_spread_b);
     println!("  Error: {:.2} ft", (computed_spread_b - expected_spread_b).abs());

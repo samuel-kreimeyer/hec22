@@ -9,7 +9,6 @@
 //! This shows how bypass flows from on-grade inlets affect downstream inlets.
 
 use hec22::*;
-use std::collections::HashMap;
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("=== Complete Drainage Analysis with Inlet Bypass Tracking ===\n");

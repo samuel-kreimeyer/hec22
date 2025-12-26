@@ -423,7 +423,7 @@ fn test_simple_linear_network() {
     let json = drainage_network
         .to_json()
         .expect("Should serialize to JSON");
-    assert!(json.len() > 0, "JSON should not be empty");
+    assert!(!json.is_empty(), "JSON should not be empty");
 
     // Verify JSON deserialization works (roundtrip)
     let reparsed: DrainageNetwork =

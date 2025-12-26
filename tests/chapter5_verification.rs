@@ -10,6 +10,7 @@
 
 use hec22::gutter::{CompositeGutter, ParabolicCrown, UniformGutter, GUTTER_K_US};
 
+#[allow(dead_code)]
 const TOLERANCE: f64 = 0.02; // 2% tolerance for most calculations
 const SPREAD_TOLERANCE: f64 = 0.1; // 0.1 ft tolerance for spread
 

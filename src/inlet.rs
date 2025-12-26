@@ -15,7 +15,7 @@
 //! - **On-Grade**: Continuous longitudinal slope (has bypass flow)
 //! - **Sag**: Low point in vertical profile (captures all flow)
 
-use crate::gutter::{CompositeGutter, GutterFlowResult, UniformGutter, GUTTER_K_US};
+use crate::gutter::GutterFlowResult;
 
 /// Inlet interception result
 #[derive(Debug, Clone, PartialEq)]
@@ -808,6 +808,7 @@ impl CurbOpeningInletSag {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::gutter::{CompositeGutter, UniformGutter, GUTTER_K_US};
 
     #[test]
     fn test_grate_inlet_on_grade() {

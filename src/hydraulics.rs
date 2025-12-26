@@ -206,7 +206,7 @@ impl ManningsEquation {
     }
 
     /// Helper: Create result for empty pipe
-    fn empty_pipe_result(&self, diameter: f64) -> PipeFlowResult {
+    fn empty_pipe_result(&self, _diameter: f64) -> PipeFlowResult {
         PipeFlowResult {
             flow: 0.0,
             depth: 0.0,
@@ -676,9 +676,7 @@ impl EnergyLoss {
         let denominator = 0.5 * self.gravity * (a_outlet + a_inlet);
 
         // HEC-22 Equation 9.9
-        let junction_loss = (momentum_term / denominator) + h_inlet - h_outlet;
-
-        junction_loss
+        (momentum_term / denominator) + h_inlet - h_outlet
     }
 
     /// Calculate junction loss using K-method (approximate)
@@ -1965,7 +1963,7 @@ mod tests {
 
         let initial_energy = 3.0; // ft
         let outflow_diameter = 2.0; // ft
-        let ratio = initial_energy / outflow_diameter; // 1.5
+        let _ratio = initial_energy / outflow_diameter; // 1.5
 
         // Test all benching types
         let c_flat = fhwa.benching_coefficient(BenchingType::Flat, initial_energy, outflow_diameter);

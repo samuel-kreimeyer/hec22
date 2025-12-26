@@ -298,7 +298,7 @@ cargo build --release
   --output results.txt
 ```
 
-See [CLI_USAGE.md](CLI_USAGE.md) for comprehensive documentation, examples, and troubleshooting.
+See [CLI_USAGE.md](docs/user/CLI_USAGE.md) for comprehensive documentation, examples, and troubleshooting.
 
 ---
 
@@ -378,7 +378,6 @@ python extract_chapters.py --extract
 ```
 hec22/
 ├── README.md                          # This file
-├── CLI_USAGE.md                       # Comprehensive CLI usage guide
 ├── Cargo.toml                         # Rust project configuration
 ├── extract_chapters.py                # Script to extract PDF chapters
 │
@@ -424,11 +423,22 @@ hec22/
 │   └── visualizations/                # Visualization examples
 │
 ├── docs/                              # Documentation
-│   ├── ATLAS14_UTILITY.md             # ATLAS14 utility documentation
-│   ├── COMPLETE_NETWORK_EXAMPLE.md    # Complete network example documentation
-│   └── development/                   # Developer documentation
-│       ├── INLET_EQUATION_FIXES.md    # Inlet equation corrections changelog
-│       └── RUST_TYPES.md              # Rust type system documentation
+│   ├── README.md                      # Documentation index
+│   ├── user/                          # User documentation
+│   │   ├── CLI_USAGE.md               # CLI tool usage guide
+│   │   ├── ATLAS14_UTILITY.md         # ATLAS14 utility documentation
+│   │   └── COMPLETE_NETWORK_EXAMPLE.md # Complete network example
+│   ├── theory/                        # Theory and engineering notes
+│   │   ├── CHAPTER_5_EQUATIONS.md     # HEC-22 Chapter 5 equations
+│   │   └── flow_routing.md            # Flow routing methodology
+│   └── development/                   # Software development notes
+│       ├── CHANGELOG.md               # Project changelog
+│       ├── RUST_TYPES.md              # Rust type system documentation
+│       ├── INLET_EQUATION_FIXES.md    # Inlet equation corrections
+│       ├── INLET_HYDRAULICS_REVIEW.md # Inlet implementation review
+│       ├── GUTTER_FIX_SUMMARY.md      # Gutter flow fixes summary
+│       ├── GUTTER_IMPLEMENTATION_ERRORS.md # Gutter implementation errors
+│       └── issues.md                  # Development issues and notes
 │
 ├── tests/                             # Integration and verification tests
 │   ├── README.md                      # Test documentation
@@ -557,7 +567,7 @@ A civil engineer with a spreadsheet can run the tool and get HGL results in unde
 - Multiple output formats (text, JSON, CSV)
 - Automatic peak flow computation using IDF curves
 - Complete hydraulic analysis with violation detection
-- See [CLI_USAGE.md](CLI_USAGE.md) for detailed usage guide
+- See [CLI_USAGE.md](docs/user/CLI_USAGE.md) for detailed usage guide
 
 ---
 
@@ -737,7 +747,7 @@ Engineers can now:
 - Complete gutter spread reporting integration in CLI
 - Consider Phase 3 (Design Automation) for pipe sizing optimization
 
-See [CLI_USAGE.md](CLI_USAGE.md) for complete usage instructions.
+See [CLI_USAGE.md](docs/user/CLI_USAGE.md) for complete usage instructions.
 
 ## Contributing
 

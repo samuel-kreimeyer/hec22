@@ -30,8 +30,6 @@
 //! T = [(Qn)/(Ku × Sx^1.67 × SL^0.5)]^0.375
 //! ```
 
-use std::f64::consts::PI;
-
 /// Gutter section type
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum GutterSectionType {
@@ -269,6 +267,7 @@ impl CompositeGutter {
     }
 
     /// Calculate spread width ratio W/T
+    #[allow(dead_code)]
     fn width_ratio(&self, spread: f64) -> f64 {
         self.gutter_width / spread
     }

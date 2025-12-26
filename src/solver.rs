@@ -14,22 +14,22 @@
 //! The procedure starts at the outfall and works upstream through the network.
 
 use crate::analysis::{
-    Analysis, AnalysisMethod, ConduitResult, DrainageAreaResult, HeadLoss, NodeResult,
-    Violation, ViolationType, Severity,
+    Analysis, AnalysisMethod, ConduitResult, HeadLoss, NodeResult,
+    Violation, Severity,
 };
 use crate::conduit::{Conduit, ConduitType};
 use crate::drainage::DrainageArea;
 use crate::gutter::{UniformGutter, GUTTER_K_US, GUTTER_K_SI};
 use crate::hydraulics::{
-    EnergyLoss, FlowRegime, ManningsEquation, PipeFlowResult,
-    FhwaAccessHoleMethod, InflowPipe, BenchingType, AccessHoleResult,
+    EnergyLoss, ManningsEquation,
+    FhwaAccessHoleMethod, InflowPipe, BenchingType,
 };
 use crate::inlet::{
     BarConfiguration as InletBarConfig, CombinationInletOnGrade, CurbOpeningInletOnGrade,
     GrateInletOnGrade, InletInterceptionResult, ThroatType as InletThroatType,
 };
 use crate::network::Network;
-use crate::node::{BoundaryCondition, Node, NodeType, InletLocation};
+use crate::node::{BoundaryCondition, Node, InletLocation};
 use crate::project::UnitSystem;
 use std::collections::HashMap;
 
@@ -121,8 +121,8 @@ impl HglSolver {
         // Storage for computed values
         let mut node_hgls: HashMap<String, f64> = HashMap::new();
         let mut node_egls: HashMap<String, f64> = HashMap::new();
-        let mut node_depths: HashMap<String, f64> = HashMap::new();
-        let mut node_velocities: HashMap<String, f64> = HashMap::new();
+        let node_depths: HashMap<String, f64> = HashMap::new();
+        let node_velocities: HashMap<String, f64> = HashMap::new();
         let mut node_junction_losses: HashMap<String, f64> = HashMap::new();
 
         // Step 1: Determine tailwater at outfall(s)
@@ -280,15 +280,15 @@ impl HglSolver {
             }
 
             // Determine if this is a manhole/access hole (use FHWA method) or simple junction
-            let use_fhwa_method = upstream_conduits.len() >= 1; // Use FHWA for all junctions
+            let use_fhwa_method = !upstream_conduits.is_empty(); // Use FHWA for all junctions
 
             let junction_head_loss = if use_fhwa_method {
                 // FHWA Access Hole Method (Equations 9.11-9.31)
                 self.calculate_access_hole_loss(
                     node,
-                    &outlet_conduit,
+                    outlet_conduit,
                     &upstream_conduits,
-                    &flows,
+                    flows,
                     &conduit_velocities,
                     &conduit_areas,
                     &node_egls,
@@ -299,7 +299,7 @@ impl HglSolver {
                 self.calculate_simple_junction_loss(
                     &upstream_conduits,
                     &downstream_conduits,
-                    &flows,
+                    flows,
                     &conduit_velocities,
                     &conduit_areas,
                 )
@@ -644,7 +644,7 @@ impl HglSolver {
             .downstream_invert
             .unwrap_or(downstream_node.invert_elevation);
 
-        let upstream_invert = conduit
+        let _upstream_invert = conduit
             .upstream_invert
             .unwrap_or(downstream_invert + slope * conduit.length);
 
@@ -783,9 +783,7 @@ impl HglSolver {
         let theta = 2.0 * cos_half_theta.acos();
 
         // Area = (r² / 2) × (θ - sin(θ))
-        let area = (r * r / 2.0) * (theta - theta.sin());
-
-        area
+        (r * r / 2.0) * (theta - theta.sin())
     }
 
     /// Perform topological sort to get conduit processing order
@@ -1246,8 +1244,6 @@ fn topological_sort_upstream_to_downstream(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::conduit::{PipeMaterial, PipeProperties, PipeShape};
-    use crate::node::OutfallProperties;
 
     #[test]
     fn test_solver_config() {

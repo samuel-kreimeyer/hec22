@@ -3,7 +3,7 @@
 //! This example demonstrates inlet capacity calculations following HEC-22 Chapter 7,
 //! including on-grade and sag inlet configurations with bypass flow tracking.
 
-use hec22::gutter::{GutterFlowResult, UniformGutter, GUTTER_K_US};
+use hec22::gutter::{UniformGutter, GUTTER_K_US};
 use hec22::inlet::*;
 
 fn main() {
@@ -88,7 +88,13 @@ fn example_2_curb_opening_on_grade() {
         0.10,                 // 10% clogging
     );
 
-    let result = inlet.interception(approach_flow, &gutter_result);
+    let result = inlet.interception(
+        approach_flow,
+        &gutter_result,
+        gutter.manning_n,
+        gutter.cross_slope,
+        gutter.longitudinal_slope,
+    );
 
     println!("\nInlet performance:");
     println!("  Intercepted flow: {:.2} cfs", result.intercepted_flow);
@@ -98,7 +104,9 @@ fn example_2_curb_opening_on_grade() {
     // Calculate required length for 100% interception
     let lt = CurbOpeningInletOnGrade::length_for_total_interception(
         approach_flow,
-        gutter_result.velocity,
+        gutter.manning_n,
+        gutter.cross_slope,
+        gutter.longitudinal_slope,
     );
     println!("\nRequired length for 100% interception: {:.1} ft", lt);
     println!();
@@ -138,7 +146,13 @@ fn example_3_combination_inlet() {
 
     // Test combination
     let combo = CombinationInletOnGrade::new(grate, curb);
-    let combo_result = combo.interception(approach_flow, &gutter_result);
+    let combo_result = combo.interception(
+        approach_flow,
+        &gutter_result,
+        gutter.manning_n,
+        gutter.cross_slope,
+        gutter.longitudinal_slope,
+    );
 
     println!("\nCombination inlet:");
     println!("  Intercepted: {:.2} cfs", combo_result.intercepted_flow);

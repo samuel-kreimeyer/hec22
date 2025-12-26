@@ -21,7 +21,7 @@ use hec22::*;
 #[test]
 fn test_tributary_flow_isolation_in_parallel_branches() {
     // Create project metadata
-    let project = project::Project {
+    let _project = project::Project {
         name: "Tributary Flow Isolation Test".to_string(),
         description: Some("Verify that parallel branches maintain separate tributary flows".to_string()),
         location: None,

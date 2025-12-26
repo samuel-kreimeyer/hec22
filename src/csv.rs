@@ -20,10 +20,10 @@
 //! ## Gutter Parameters CSV
 //! Columns: `node_id`, `cross_slope`, `long_slope`, `curb_height`, `gutter_width`
 
-use crate::conduit::{Conduit, ConduitType, GutterProperties, PipeMaterial, PipeProperties, PipeShape};
+use crate::conduit::{Conduit, GutterProperties, PipeMaterial, PipeProperties, PipeShape};
 use crate::drainage::{DrainageArea, LandUse, LandUseType};
-use crate::node::{BoundaryCondition, Coordinates, InletLocation, InletProperties, InletType, JunctionProperties, Node, NodeType, OutfallProperties};
-use csv::{Reader, ReaderBuilder};
+use crate::node::{BoundaryCondition, Coordinates, InletLocation, InletProperties, InletType, JunctionProperties, Node, OutfallProperties};
+use csv::ReaderBuilder;
 use serde::Deserialize;
 use std::error::Error;
 use std::fs::File;
@@ -394,7 +394,7 @@ pub fn parse_idf_curves_csv<P: AsRef<Path>>(path: P) -> Result<Vec<IdfCurve>, Bo
 
     for record in records {
         let rp_key = record.return_period as i32;
-        curves_map.entry(rp_key).or_insert_with(Vec::new).push(IdfPoint {
+        curves_map.entry(rp_key).or_default().push(IdfPoint {
             duration: record.duration,
             intensity: record.intensity,
         });
@@ -465,6 +465,8 @@ pub fn parse_gutter_parameters_csv<P: AsRef<Path>>(path: P) -> Result<Vec<Gutter
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::conduit::ConduitType;
+    use crate::node::NodeType;
 
     #[test]
     fn test_node_csv_record_to_inlet() {

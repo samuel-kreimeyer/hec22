@@ -23,7 +23,7 @@ use hec22::*;
 #[test]
 fn test_multi_level_tributary_flow_isolation() {
     // Create project
-    let project = project::Project {
+    let _project = project::Project {
         name: "Multi-Level Tributary Flow Test".to_string(),
         description: Some("Verify tributary flow isolation in complex multi-level networks".to_string()),
         location: None,

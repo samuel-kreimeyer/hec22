@@ -6,7 +6,7 @@
 use clap::{Parser, ValueEnum};
 use hec22::*;
 use std::collections::HashMap;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::process;
 
 #[derive(Parser)]
@@ -338,7 +338,7 @@ fn format_text_report(
         }
     }
 
-    report.push_str("\n");
+    report.push('\n');
 
     // Conduit Results
     report.push_str("CONDUIT RESULTS\n");
@@ -408,7 +408,7 @@ fn format_violation(violation: &analysis::Violation) -> String {
 
 fn write_csv_output(
     analysis: &analysis::Analysis,
-    base_path: &PathBuf,
+    base_path: &Path,
 ) -> Result<(), Box<dyn std::error::Error>> {
     use std::fs::File;
     use std::io::Write;
@@ -525,7 +525,7 @@ fn export_visualizations(
 }
 
 /// Find a simple profile path from outfall upstream
-fn find_profile_path<'a>(network: &'a network::Network) -> Vec<&'a str> {
+fn find_profile_path(network: &network::Network) -> Vec<&str> {
     // Find first outfall ID
     let outfall_id = match network.outfalls().first() {
         Some(node) => &node.id,

@@ -68,6 +68,7 @@ struct ProfilePoint {
 pub struct ProfileView<'a> {
     network: &'a Network,
     config: ProfileConfig,
+    #[allow(dead_code)]
     node_path: Vec<String>,
     profile_points: Vec<ProfilePoint>,
 }
@@ -295,7 +296,7 @@ impl<'a> ProfileView<'a> {
     /// Draw axes and grid
     fn draw_axes(&self, svg: &mut SvgBuilder, min_elev: f64, max_elev: f64) {
         let plot_width = self.config.width - 2.0 * self.config.margin;
-        let plot_height = self.config.height - 2.0 * self.config.margin - 40.0;
+        let _plot_height = self.config.height - 2.0 * self.config.margin - 40.0;
 
         let x_start = self.config.margin;
         let y_start = self.config.height - self.config.margin;
@@ -366,7 +367,7 @@ impl<'a> ProfileView<'a> {
     fn draw_hgl(&self, svg: &mut SvgBuilder, min_elev: f64, max_elev: f64) {
         let mut points = Vec::new();
 
-        for (i, point) in self.profile_points.iter().enumerate() {
+        for point in self.profile_points.iter() {
             if let Some(hgl) = point.hgl {
                 let (x, y) = self.transform(point.station, hgl, min_elev, max_elev);
                 points.push((x, y));
@@ -527,7 +528,7 @@ impl<'a> ProfileView<'a> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::conduit::{Conduit, ConduitType, PipeProperties, PipeShape, PipeMaterial};
+    use crate::conduit::{Conduit, PipeProperties, PipeShape, PipeMaterial};
     use crate::node::{InletProperties, InletType, InletLocation, JunctionProperties};
 
     #[test]
