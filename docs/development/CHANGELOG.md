@@ -6,6 +6,18 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+## 2026-01-01
+
+### Documentation
+- Fixed broken documentation links in docs/README.md (theory/ paths corrected to reference/)
+- Updated main README.md project structure to reflect current directory layout
+- Clarified location of HEC-22 chapter files in documentation
+- Updated project structure diagram to accurately show docs/reference/ organization
+
+### Cleanup
+- Documentation cleanup and consolidation pass
+- Verified all documentation cross-references are accurate
+
 ## 2025-12-04
 
 ### Added
