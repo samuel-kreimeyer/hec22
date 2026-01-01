@@ -183,6 +183,87 @@ code {
   font-size: 0.85rem;
 }
 
+.csv-preview {
+  display: grid;
+  gap: 12px;
+}
+
+.csv-preview-card {
+  border: 1px solid rgba(210, 200, 187, 0.7);
+  border-radius: 14px;
+  padding: 12px;
+  background: #fffdf6;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.csv-preview-card h4 {
+  margin: 0;
+  font-size: 0.95rem;
+}
+
+.csv-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  font-size: 0.8rem;
+  color: var(--muted);
+}
+
+.csv-badge {
+  padding: 4px 8px;
+  border-radius: 999px;
+  background: rgba(15, 118, 110, 0.12);
+  color: var(--accent-deep);
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.csv-badge-warning {
+  background: rgba(176, 26, 24, 0.12);
+  color: #7a1c1b;
+}
+
+.csv-badge-ok {
+  background: rgba(15, 118, 110, 0.14);
+  color: var(--accent-deep);
+}
+
+.csv-badge-count {
+  background: rgba(15, 118, 110, 0.08);
+  color: var(--accent-deep);
+}
+
+.csv-empty {
+  margin: 0;
+  font-size: 0.8rem;
+  color: var(--muted);
+}
+
+.csv-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.75rem;
+}
+
+.csv-table th,
+.csv-table td {
+  text-align: left;
+  padding: 6px 8px;
+  border-bottom: 1px solid rgba(210, 200, 187, 0.7);
+}
+
+.csv-table th {
+  background: rgba(15, 118, 110, 0.08);
+  font-weight: 600;
+}
+
+.csv-table tr.row-error {
+  background: rgba(176, 26, 24, 0.06);
+}
+
 .actions {
   display: flex;
   gap: 12px;

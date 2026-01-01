@@ -14,6 +14,7 @@ const areasCsvInput = document.getElementById("areasCsv");
 const buildFromCsvButton = document.getElementById("buildFromCsv");
 const downloadTemplatesButton = document.getElementById("downloadTemplates");
 const csvStatus = document.getElementById("csvStatus");
+const csvPreview = document.getElementById("csvPreview");
 
 const sampleRequest = {
   network: {
@@ -165,17 +166,18 @@ function parseCsv(text) {
 
   const trimmedRows = rows.filter((items) => items.some((item) => String(item).trim() !== ""));
   if (!trimmedRows.length) {
-    return [];
+    return { headers: [], records: [] };
   }
 
   const headers = trimmedRows[0].map(normalizeHeader);
-  return trimmedRows.slice(1).map((items) => {
+  const records = trimmedRows.slice(1).map((items) => {
     const record = {};
     headers.forEach((header, index) => {
       record[header] = items[index] !== undefined ? String(items[index]).trim() : "";
     });
     return record;
   });
+  return { headers, records };
 }
 
 function getValue(record, keys) {
@@ -507,8 +509,8 @@ function buildRequestFromCsv() {
 
   const request = {
     network: {
-      nodes: parseNodesCsv(csvState.nodes),
-      conduits: parseConduitsCsv(csvState.conduits)
+      nodes: parseNodesCsv(csvState.nodes.records),
+      conduits: parseConduitsCsv(csvState.conduits.records)
     },
     intensity: Number(intensityInput.value || 0),
     unit_system: unitSelect.value,
@@ -517,7 +519,7 @@ function buildRequestFromCsv() {
   };
 
   if (csvState.areas) {
-    request.drainage_areas = parseAreasCsv(csvState.areas);
+    request.drainage_areas = parseAreasCsv(csvState.areas.records);
   }
 
   return request;
@@ -537,13 +539,13 @@ function downloadCsv(filename, content) {
 function summarizeCsvState() {
   const parts = [];
   if (csvState.nodes) {
-    parts.push(`nodes: ${csvState.nodes.length}`);
+    parts.push(`nodes: ${csvState.nodes.records.length}`);
   }
   if (csvState.conduits) {
-    parts.push(`conduits: ${csvState.conduits.length}`);
+    parts.push(`conduits: ${csvState.conduits.records.length}`);
   }
   if (csvState.areas) {
-    parts.push(`areas: ${csvState.areas.length}`);
+    parts.push(`areas: ${csvState.areas.records.length}`);
   }
   if (!parts.length) {
     return "No CSV files loaded.";
@@ -552,24 +554,257 @@ function summarizeCsvState() {
   return `Loaded ${parts.join(", ")}.${ready}`;
 }
 
+function createBadge(text, variant = "default") {
+  const badge = document.createElement("span");
+  badge.className = `csv-badge csv-badge-${variant}`;
+  badge.textContent = text;
+  return badge;
+}
+
+function findMissingRequired(headers, required) {
+  const headerSet = new Set(headers);
+  return required.filter((entry) => !entry.keys.some((key) => headerSet.has(key)));
+}
+
+function validateNodesRow(record) {
+  const missing = [];
+  if (!getString(record, ["id"])) {
+    missing.push("id");
+  }
+  if (!getString(record, ["type", "node_type"])) {
+    missing.push("type");
+  }
+  if (getNumber(record, ["invert_elev", "invert_elevation", "invert"]) === null) {
+    missing.push("invert_elev");
+  }
+  return missing;
+}
+
+function validateConduitsRow(record) {
+  const missing = [];
+  if (!getString(record, ["id"])) {
+    missing.push("id");
+  }
+  if (!getString(record, ["from_node", "fromnode"])) {
+    missing.push("from_node");
+  }
+  if (!getString(record, ["to_node", "tonode"])) {
+    missing.push("to_node");
+  }
+  if (getNumber(record, ["length"]) === null) {
+    missing.push("length");
+  }
+
+  const conduitType = (getString(record, ["type", "conduit_type"]) || "pipe").toLowerCase();
+  if (conduitType === "gutter") {
+    if (getNumber(record, ["cross_slope", "crossslope"]) === null) {
+      missing.push("cross_slope");
+    }
+    if (getNumber(record, ["long_slope", "longslope", "slope"]) === null) {
+      missing.push("long_slope");
+    }
+  } else if (getNumber(record, ["diameter"]) === null) {
+    missing.push("diameter");
+  }
+
+  return missing;
+}
+
+function validateAreasRow(record) {
+  const missing = [];
+  if (!getString(record, ["id"])) {
+    missing.push("id");
+  }
+  if (getNumber(record, ["area"]) === null) {
+    missing.push("area");
+  }
+  if (getNumber(record, ["runoff_coef", "runoff_coefficient"]) === null) {
+    missing.push("runoff_coef");
+  }
+  if (getNumber(record, ["time_of_conc", "time_of_concentration"]) === null) {
+    missing.push("time_of_conc");
+  }
+  if (!getString(record, ["outlet_node", "outlet"])) {
+    missing.push("outlet_node");
+  }
+  return missing;
+}
+
+const CSV_SCHEMAS = {
+  nodes: {
+    label: "Nodes",
+    required: [
+      { keys: ["id"], label: "id" },
+      { keys: ["type", "node_type"], label: "type" },
+      { keys: ["invert_elev", "invert_elevation", "invert"], label: "invert_elev" }
+    ],
+    validateRow: validateNodesRow
+  },
+  conduits: {
+    label: "Conduits",
+    required: [
+      { keys: ["id"], label: "id" },
+      { keys: ["from_node", "fromnode"], label: "from_node" },
+      { keys: ["to_node", "tonode"], label: "to_node" },
+      { keys: ["length"], label: "length" }
+    ],
+    validateRow: validateConduitsRow
+  },
+  areas: {
+    label: "Drainage areas",
+    required: [
+      { keys: ["id"], label: "id" },
+      { keys: ["area"], label: "area" },
+      { keys: ["runoff_coef", "runoff_coefficient"], label: "runoff_coef" },
+      { keys: ["time_of_conc", "time_of_concentration"], label: "time_of_conc" },
+      { keys: ["outlet_node", "outlet"], label: "outlet_node" }
+    ],
+    validateRow: validateAreasRow
+  }
+};
+
+function renderCsvPreviewCard(container, key, state) {
+  const schema = CSV_SCHEMAS[key];
+  const card = document.createElement("div");
+  card.className = "csv-preview-card";
+
+  const title = document.createElement("h4");
+  title.textContent = `${schema.label} CSV`;
+  card.appendChild(title);
+
+  if (!state) {
+    const empty = document.createElement("p");
+    empty.className = "csv-empty";
+    empty.textContent = "No file loaded.";
+    card.appendChild(empty);
+    container.appendChild(card);
+    return;
+  }
+
+  const { headers, records } = state;
+  const meta = document.createElement("div");
+  meta.className = "csv-meta";
+  meta.appendChild(createBadge(`${records.length} rows`, "count"));
+
+  const missingHeaders = findMissingRequired(headers, schema.required);
+  if (missingHeaders.length) {
+    meta.appendChild(
+      createBadge(
+        `Missing columns: ${missingHeaders.map((entry) => entry.label).join(", ")}`,
+        "warning"
+      )
+    );
+  } else {
+    meta.appendChild(createBadge("Required columns present", "ok"));
+  }
+
+  const headerPreview = headers.slice(0, 6).join(", ");
+  const headerSuffix = headers.length > 6 ? `, +${headers.length - 6} more` : "";
+  const headerNote = document.createElement("span");
+  headerNote.textContent = `Headers: ${headerPreview || "none"}${headerSuffix}`;
+  meta.appendChild(headerNote);
+  card.appendChild(meta);
+
+  let errorRowCount = 0;
+  records.forEach((record) => {
+    const issues = schema.validateRow(record);
+    if (issues.length) {
+      errorRowCount += 1;
+    }
+  });
+
+  const summary = document.createElement("div");
+  summary.className = "csv-meta";
+  if (errorRowCount) {
+    summary.appendChild(createBadge(`${errorRowCount} rows need fixes`, "warning"));
+  } else {
+    summary.appendChild(createBadge("All rows valid", "ok"));
+  }
+  card.appendChild(summary);
+
+  const previewLimit = 5;
+  const table = document.createElement("table");
+  table.className = "csv-table";
+  const thead = document.createElement("thead");
+  const headerRow = document.createElement("tr");
+  const previewHeaders = headers.length ? headers : ["(no headers)"];
+  previewHeaders.forEach((header) => {
+    const th = document.createElement("th");
+    th.textContent = header;
+    headerRow.appendChild(th);
+  });
+  if (errorRowCount) {
+    const th = document.createElement("th");
+    th.textContent = "issues";
+    headerRow.appendChild(th);
+  }
+  thead.appendChild(headerRow);
+  table.appendChild(thead);
+
+  const tbody = document.createElement("tbody");
+  records.slice(0, previewLimit).forEach((record, index) => {
+    const row = document.createElement("tr");
+    const rowIssues = schema.validateRow(record);
+    if (rowIssues.length) {
+      row.classList.add("row-error");
+    }
+    previewHeaders.forEach((header) => {
+      const td = document.createElement("td");
+      td.textContent = record[header] || "";
+      row.appendChild(td);
+    });
+    if (errorRowCount) {
+      const td = document.createElement("td");
+      td.textContent = rowIssues.length ? `Missing: ${rowIssues.join(", ")}` : "";
+      row.appendChild(td);
+    }
+    tbody.appendChild(row);
+  });
+
+  table.appendChild(tbody);
+  card.appendChild(table);
+
+  if (records.length > previewLimit) {
+    const note = document.createElement("p");
+    note.className = "csv-empty";
+    note.textContent = `Showing ${previewLimit} of ${records.length} rows.`;
+    card.appendChild(note);
+  }
+
+  container.appendChild(card);
+}
+
+function renderCsvPreview() {
+  if (!csvPreview) {
+    return;
+  }
+  csvPreview.innerHTML = "";
+  renderCsvPreviewCard(csvPreview, "nodes", csvState.nodes);
+  renderCsvPreviewCard(csvPreview, "conduits", csvState.conduits);
+  renderCsvPreviewCard(csvPreview, "areas", csvState.areas);
+}
+
 async function handleCsvInput(event, key, label) {
   const file = event.target.files[0];
   if (!file) {
     csvState[key] = null;
     updateCsvStatus(summarizeCsvState());
+    renderCsvPreview();
     return;
   }
   try {
     const text = await file.text();
-    const records = parseCsv(text);
+    const { headers, records } = parseCsv(text);
     if (!records.length) {
       throw new Error("No data rows found.");
     }
-    csvState[key] = records;
+    csvState[key] = { headers, records };
     updateCsvStatus(summarizeCsvState());
+    renderCsvPreview();
   } catch (error) {
     csvState[key] = null;
     updateCsvStatus(`${label} CSV error: ${String(error.message || error)}`, true);
+    renderCsvPreview();
   }
 }
 
@@ -803,3 +1038,4 @@ worker.addEventListener("error", () => {
 
 statusEl.textContent = "WASM ready";
 updateCsvStatus(summarizeCsvState());
+renderCsvPreview();
