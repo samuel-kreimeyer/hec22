@@ -39,7 +39,6 @@
 
 pub mod analysis;
 pub mod conduit;
-pub mod csv;
 pub mod drainage;
 pub mod gutter;
 pub mod hydraulics;
@@ -49,6 +48,11 @@ pub mod node;
 pub mod project;
 pub mod rainfall;
 pub mod solver;
+
+#[cfg(feature = "csv")]
+pub mod csv;
+
+#[cfg(feature = "visualization")]
 pub mod visualization;
 
 use serde::{Deserialize, Serialize};

@@ -31,6 +31,7 @@ use crate::inlet::{
 use crate::network::Network;
 use crate::node::{BoundaryCondition, Node, InletLocation};
 use crate::project::UnitSystem;
+use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
 /// HGL/EGL solver configuration
@@ -1172,7 +1173,7 @@ pub fn route_flows(
 }
 
 /// Inlet interception tracking for flow routing
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct InletInterception {
     /// Node ID (inlet)
     pub node_id: String,

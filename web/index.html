@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>HEC-22 Solver Web</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header class="site-header">
+    <div class="brand">
+      <div class="brand-mark">H22</div>
+      <div>
+        <h1>HEC-22 Solver Web</h1>
+        <p>Run HGL/EGL analysis in the browser using a WASM build.</p>
+      </div>
+    </div>
+    <div class="status" id="status">Loading WASM…</div>
+  </header>
+
+  <main class="layout">
+    <section class="panel">
+      <h2>Input</h2>
+      <div class="field-row">
+        <label class="field">
+          <span>Design intensity</span>
+          <input id="intensity" type="number" step="0.01" value="4.0">
+          <small>Used with drainage_areas if conduit_flows are not provided.</small>
+        </label>
+        <label class="field">
+          <span>Unit system</span>
+          <select id="unitSystem">
+            <option value="US" selected>US</option>
+            <option value="SI">SI</option>
+          </select>
+        </label>
+      </div>
+
+      <div class="field-row">
+        <label class="toggle">
+          <input id="useInterception" type="checkbox" checked>
+          <span>Apply inlet interception</span>
+        </label>
+      </div>
+
+      <div class="field-row">
+        <label class="file">
+          <span>Load JSON file</span>
+          <input id="fileInput" type="file" accept="application/json">
+        </label>
+        <button id="loadSample" class="ghost">Load sample</button>
+      </div>
+
+      <label class="field">
+        <span>Request JSON</span>
+        <textarea id="requestJson" spellcheck="false"></textarea>
+      </label>
+
+      <div class="actions">
+        <button id="runSolver" class="primary">Run solver</button>
+        <button id="copyResult" class="ghost">Copy result</button>
+      </div>
+    </section>
+
+    <section class="panel">
+      <h2>Output</h2>
+      <pre id="output" class="output">Waiting for input…</pre>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <p>Build the WASM module with <code>wasm-pack build wasm --target web --out-dir web/pkg</code>.</p>
+  </footer>
+
+  <script type="module" src="app.js"></script>
+</body>
+</html>

@@ -372,7 +372,7 @@ impl Analysis {
         Self {
             method: Some(method),
             design_storm_id: Some(design_storm_id),
-            timestamp: Some(chrono::Utc::now().to_rfc3339()),
+            timestamp: current_timestamp(),
             solver: None,
             node_results: Some(Vec::new()),
             conduit_results: Some(Vec::new()),
@@ -420,6 +420,18 @@ impl Analysis {
             .as_ref()
             .map(|v| v.iter().any(|viol| viol.severity == Severity::Error))
             .unwrap_or(false)
+    }
+}
+
+fn current_timestamp() -> Option<String> {
+    #[cfg(feature = "timestamps")]
+    {
+        Some(chrono::Utc::now().to_rfc3339())
+    }
+
+    #[cfg(not(feature = "timestamps"))]
+    {
+        None
     }
 }
 
