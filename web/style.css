@@ -90,6 +90,7 @@ code {
   display: flex;
   flex-direction: column;
   gap: 18px;
+  min-width: 0;
 }
 
 .panel h2 {
@@ -251,6 +252,7 @@ code {
   width: 100%;
   border-collapse: collapse;
   font-size: 0.75rem;
+  table-layout: fixed;
 }
 
 .csv-table th,
@@ -258,6 +260,7 @@ code {
   text-align: left;
   padding: 6px 8px;
   border-bottom: 1px solid rgba(210, 200, 187, 0.7);
+  word-break: break-word;
 }
 
 .csv-table th {
