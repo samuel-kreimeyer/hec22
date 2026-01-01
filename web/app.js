@@ -166,10 +166,11 @@ function parseCsv(text) {
 
   const trimmedRows = rows.filter((items) => items.some((item) => String(item).trim() !== ""));
   if (!trimmedRows.length) {
-    return { headers: [], records: [] };
+    return { headers: [], rawHeaders: [], records: [] };
   }
 
-  const headers = trimmedRows[0].map(normalizeHeader);
+  const rawHeaders = trimmedRows[0].map((value) => String(value || "").trim());
+  const headers = rawHeaders.map(normalizeHeader);
   const records = trimmedRows.slice(1).map((items) => {
     const record = {};
     headers.forEach((header, index) => {
@@ -177,10 +178,23 @@ function parseCsv(text) {
     });
     return record;
   });
-  return { headers, records };
+  return { headers, rawHeaders, records };
 }
 
-function getValue(record, keys) {
+function getValue(record, keys, mapping) {
+  if (mapping) {
+    for (const key of keys) {
+      const mappedHeader = mapping[key];
+      if (mappedHeader) {
+        const value = record[mappedHeader];
+        if (value !== undefined && value !== "") {
+          return value;
+        }
+        return null;
+      }
+    }
+  }
+
   for (const key of keys) {
     const value = record[key];
     if (value !== undefined && value !== "") {
@@ -190,8 +204,8 @@ function getValue(record, keys) {
   return null;
 }
 
-function getNumber(record, keys) {
-  const value = getValue(record, keys);
+function getNumber(record, keys, mapping) {
+  const value = getValue(record, keys, mapping);
   if (value === null) {
     return null;
   }
@@ -199,8 +213,8 @@ function getNumber(record, keys) {
   return Number.isFinite(parsed) ? parsed : null;
 }
 
-function getString(record, keys) {
-  const value = getValue(record, keys);
+function getString(record, keys, mapping) {
+  const value = getValue(record, keys, mapping);
   return value !== null ? String(value).trim() : null;
 }
 
@@ -286,11 +300,11 @@ function mapLandUse(value) {
   return mapping[normalized] || null;
 }
 
-function parseNodesCsv(records) {
+function parseNodesCsv(records, mapping) {
   return records.map((record) => {
-    const id = getString(record, ["id"]);
-    const type = getString(record, ["type", "node_type"]);
-    const invertElevation = getNumber(record, ["invert_elev", "invert_elevation", "invert"]);
+    const id = getString(record, ["id"], mapping);
+    const type = getString(record, ["type", "node_type"], mapping);
+    const invertElevation = getNumber(record, ["invert_elev", "invert_elevation", "invert"], mapping);
 
     if (!id || !type || invertElevation === null) {
       throw new Error("Nodes CSV requires id, type, invert_elev columns.");
@@ -302,13 +316,13 @@ function parseNodesCsv(records) {
       invertElevation
     };
 
-    const rimElevation = getNumber(record, ["rim_elev", "rim_elevation"]);
+    const rimElevation = getNumber(record, ["rim_elev", "rim_elevation"], mapping);
     if (rimElevation !== null) {
       node.rimElevation = rimElevation;
     }
 
-    const x = getNumber(record, ["x"]);
-    const y = getNumber(record, ["y"]);
+    const x = getNumber(record, ["x"], mapping);
+    const y = getNumber(record, ["y"], mapping);
     if (x !== null || y !== null) {
       node.coordinates = {
         x: x !== null ? x : undefined,
@@ -318,26 +332,26 @@ function parseNodesCsv(records) {
 
     if (node.type === "inlet") {
       const inlet = {
-        inletType: mapInletType(getString(record, ["inlet_type", "inlettype"])),
-        location: mapInletLocation(getString(record, ["inlet_location", "inletlocation"]))
+        inletType: mapInletType(getString(record, ["inlet_type", "inlettype"], mapping)),
+        location: mapInletLocation(getString(record, ["inlet_location", "inletlocation"], mapping))
       };
 
-      const localDepression = getNumber(record, ["local_depression"]);
+      const localDepression = getNumber(record, ["local_depression"], mapping);
       if (localDepression !== null) {
         inlet.localDepression = localDepression;
       }
-      const cloggingFactor = getNumber(record, ["clogging_factor"]);
+      const cloggingFactor = getNumber(record, ["clogging_factor"], mapping);
       if (cloggingFactor !== null) {
         inlet.cloggingFactor = cloggingFactor;
       }
-      const bypassTo = getString(record, ["bypass_to"]);
+      const bypassTo = getString(record, ["bypass_to"], mapping);
       if (bypassTo) {
         inlet.bypassTo = bypassTo;
       }
 
-      const grateLength = getNumber(record, ["grate_length"]);
-      const grateWidth = getNumber(record, ["grate_width"]);
-      const barConfiguration = mapBarConfig(getString(record, ["bar_configuration"]));
+      const grateLength = getNumber(record, ["grate_length"], mapping);
+      const grateWidth = getNumber(record, ["grate_width"], mapping);
+      const barConfiguration = mapBarConfig(getString(record, ["bar_configuration"], mapping));
       if (grateLength !== null || grateWidth !== null || barConfiguration) {
         inlet.grate = {};
         if (grateLength !== null) {
@@ -351,9 +365,9 @@ function parseNodesCsv(records) {
         }
       }
 
-      const curbLength = getNumber(record, ["curb_opening_length"]);
-      const curbHeight = getNumber(record, ["curb_opening_height"]);
-      const throatType = mapThroatType(getString(record, ["throat_type"]));
+      const curbLength = getNumber(record, ["curb_opening_length"], mapping);
+      const curbHeight = getNumber(record, ["curb_opening_height"], mapping);
+      const throatType = mapThroatType(getString(record, ["throat_type"], mapping));
       if (curbLength !== null || curbHeight !== null || throatType) {
         inlet.curbOpening = {};
         if (curbLength !== null) {
@@ -371,7 +385,7 @@ function parseNodesCsv(records) {
     }
 
     if (node.type === "junction") {
-      const diameter = getNumber(record, ["diameter"]);
+      const diameter = getNumber(record, ["diameter"], mapping);
       if (diameter !== null) {
         node.junction = { diameter };
       }
@@ -380,10 +394,10 @@ function parseNodesCsv(records) {
     if (node.type === "outfall") {
       node.outfall = {
         boundaryCondition: mapBoundaryCondition(
-          getString(record, ["boundary_condition", "boundary"])
+          getString(record, ["boundary_condition", "boundary"], mapping)
         )
       };
-      const tailwater = getNumber(record, ["tailwater_elevation", "tailwater"]);
+      const tailwater = getNumber(record, ["tailwater_elevation", "tailwater"], mapping);
       if (tailwater !== null) {
         node.outfall.tailwaterElevation = tailwater;
       }
@@ -393,13 +407,14 @@ function parseNodesCsv(records) {
   });
 }
 
-function parseConduitsCsv(records) {
+function parseConduitsCsv(records, mapping) {
   return records.map((record) => {
-    const id = getString(record, ["id"]);
-    const fromNode = getString(record, ["from_node", "fromnode"]);
-    const toNode = getString(record, ["to_node", "tonode"]);
-    const length = getNumber(record, ["length"]);
-    const conduitType = (getString(record, ["type", "conduit_type"]) || "pipe").toLowerCase();
+    const id = getString(record, ["id"], mapping);
+    const fromNode = getString(record, ["from_node", "fromnode"], mapping);
+    const toNode = getString(record, ["to_node", "tonode"], mapping);
+    const length = getNumber(record, ["length"], mapping);
+    const conduitType = (getString(record, ["type", "conduit_type"], mapping) || "pipe")
+      .toLowerCase();
 
     if (!id || !fromNode || !toNode || length === null) {
       throw new Error("Conduits CSV requires id, from_node, to_node, length columns.");
@@ -413,13 +428,13 @@ function parseConduitsCsv(records) {
       length
     };
 
-    const slope = getNumber(record, ["slope"]);
+    const slope = getNumber(record, ["slope"], mapping);
     if (slope !== null) {
       conduit.slope = slope;
     }
 
-    const upstreamInvert = getNumber(record, ["upstream_invert", "upstreaminvert"]);
-    const downstreamInvert = getNumber(record, ["downstream_invert", "downstreaminvert"]);
+    const upstreamInvert = getNumber(record, ["upstream_invert", "upstreaminvert"], mapping);
+    const downstreamInvert = getNumber(record, ["downstream_invert", "downstreaminvert"], mapping);
     if (upstreamInvert !== null) {
       conduit.upstreamInvert = upstreamInvert;
     }
@@ -428,24 +443,24 @@ function parseConduitsCsv(records) {
     }
 
     if (conduitType === "gutter") {
-      const crossSlope = getNumber(record, ["cross_slope", "crossslope"]);
-      const longSlope = getNumber(record, ["long_slope", "longslope", "slope"]);
+      const crossSlope = getNumber(record, ["cross_slope", "crossslope"], mapping);
+      const longSlope = getNumber(record, ["long_slope", "longslope", "slope"], mapping);
       if (crossSlope === null || longSlope === null) {
         throw new Error("Gutter conduits require cross_slope and long_slope (or slope).");
       }
-      const manningN = getNumber(record, ["manning_n"]) ?? 0.016;
+      const manningN = getNumber(record, ["manning_n"], mapping) ?? 0.016;
       conduit.gutter = {
         crossSlope,
         longitudinalSlope: longSlope,
         manningN
       };
     } else {
-      const diameter = getNumber(record, ["diameter"]);
+      const diameter = getNumber(record, ["diameter"], mapping);
       if (diameter === null) {
         throw new Error("Pipe conduits require diameter.");
       }
-      const manningN = getNumber(record, ["manning_n"]) ?? 0.013;
-      const material = getString(record, ["material"]);
+      const manningN = getNumber(record, ["manning_n"], mapping) ?? 0.013;
+      const material = getString(record, ["material"], mapping);
       conduit.pipe = {
         shape: "circular",
         diameter,
@@ -455,9 +470,9 @@ function parseConduitsCsv(records) {
         conduit.pipe.material = material.toUpperCase();
       }
 
-      const entranceLoss = getNumber(record, ["entrance_loss"]);
-      const exitLoss = getNumber(record, ["exit_loss"]);
-      const bendLoss = getNumber(record, ["bend_loss"]);
+      const entranceLoss = getNumber(record, ["entrance_loss"], mapping);
+      const exitLoss = getNumber(record, ["exit_loss"], mapping);
+      const bendLoss = getNumber(record, ["bend_loss"], mapping);
       if (entranceLoss !== null) {
         conduit.pipe.entranceLoss = entranceLoss;
       }
@@ -473,13 +488,13 @@ function parseConduitsCsv(records) {
   });
 }
 
-function parseAreasCsv(records) {
+function parseAreasCsv(records, mapping) {
   return records.map((record) => {
-    const id = getString(record, ["id"]);
-    const area = getNumber(record, ["area"]);
-    const runoff = getNumber(record, ["runoff_coef", "runoff_coefficient"]);
-    const tc = getNumber(record, ["time_of_conc", "time_of_concentration"]);
-    const outlet = getString(record, ["outlet_node", "outlet"]);
+    const id = getString(record, ["id"], mapping);
+    const area = getNumber(record, ["area"], mapping);
+    const runoff = getNumber(record, ["runoff_coef", "runoff_coefficient"], mapping);
+    const tc = getNumber(record, ["time_of_conc", "time_of_concentration"], mapping);
+    const outlet = getString(record, ["outlet_node", "outlet"], mapping);
 
     if (!id || area === null || runoff === null || tc === null || !outlet) {
       throw new Error("Drainage areas CSV requires id, area, runoff_coef, time_of_conc, outlet_node.");
@@ -493,7 +508,7 @@ function parseAreasCsv(records) {
       timeOfConcentration: tc
     };
 
-    const landUse = mapLandUse(getString(record, ["land_use"]));
+    const landUse = mapLandUse(getString(record, ["land_use"], mapping));
     if (landUse) {
       drainageArea.landUse = { primary: landUse };
     }
@@ -509,8 +524,8 @@ function buildRequestFromCsv() {
 
   const request = {
     network: {
-      nodes: parseNodesCsv(csvState.nodes.records),
-      conduits: parseConduitsCsv(csvState.conduits.records)
+      nodes: parseNodesCsv(csvState.nodes.records, csvState.nodes.mapping),
+      conduits: parseConduitsCsv(csvState.conduits.records, csvState.conduits.mapping)
     },
     intensity: Number(intensityInput.value || 0),
     unit_system: unitSelect.value,
@@ -519,7 +534,7 @@ function buildRequestFromCsv() {
   };
 
   if (csvState.areas) {
-    request.drainage_areas = parseAreasCsv(csvState.areas.records);
+    request.drainage_areas = parseAreasCsv(csvState.areas.records, csvState.areas.mapping);
   }
 
   return request;
@@ -561,70 +576,77 @@ function createBadge(text, variant = "default") {
   return badge;
 }
 
-function findMissingRequired(headers, required) {
+function findMissingRequired(headers, required, mapping) {
   const headerSet = new Set(headers);
-  return required.filter((entry) => !entry.keys.some((key) => headerSet.has(key)));
+  return required.filter((entry) => {
+    const mappedHeader = mapping && mapping[entry.label];
+    if (mappedHeader) {
+      return !headerSet.has(mappedHeader);
+    }
+    return !entry.keys.some((key) => headerSet.has(key));
+  });
 }
 
-function validateNodesRow(record) {
+function validateNodesRow(record, mapping) {
   const missing = [];
-  if (!getString(record, ["id"])) {
+  if (!getString(record, ["id"], mapping)) {
     missing.push("id");
   }
-  if (!getString(record, ["type", "node_type"])) {
+  if (!getString(record, ["type", "node_type"], mapping)) {
     missing.push("type");
   }
-  if (getNumber(record, ["invert_elev", "invert_elevation", "invert"]) === null) {
+  if (getNumber(record, ["invert_elev", "invert_elevation", "invert"], mapping) === null) {
     missing.push("invert_elev");
   }
   return missing;
 }
 
-function validateConduitsRow(record) {
+function validateConduitsRow(record, mapping) {
   const missing = [];
-  if (!getString(record, ["id"])) {
+  if (!getString(record, ["id"], mapping)) {
     missing.push("id");
   }
-  if (!getString(record, ["from_node", "fromnode"])) {
+  if (!getString(record, ["from_node", "fromnode"], mapping)) {
     missing.push("from_node");
   }
-  if (!getString(record, ["to_node", "tonode"])) {
+  if (!getString(record, ["to_node", "tonode"], mapping)) {
     missing.push("to_node");
   }
-  if (getNumber(record, ["length"]) === null) {
+  if (getNumber(record, ["length"], mapping) === null) {
     missing.push("length");
   }
 
-  const conduitType = (getString(record, ["type", "conduit_type"]) || "pipe").toLowerCase();
+  const conduitType = (getString(record, ["type", "conduit_type"], mapping) || "pipe")
+    .toLowerCase();
   if (conduitType === "gutter") {
-    if (getNumber(record, ["cross_slope", "crossslope"]) === null) {
+    if (getNumber(record, ["cross_slope", "crossslope"], mapping) === null) {
       missing.push("cross_slope");
     }
-    if (getNumber(record, ["long_slope", "longslope", "slope"]) === null) {
+    if (getNumber(record, ["long_slope", "longslope", "slope"], mapping) === null) {
       missing.push("long_slope");
     }
-  } else if (getNumber(record, ["diameter"]) === null) {
+  } else if (getNumber(record, ["diameter"], mapping) === null) {
     missing.push("diameter");
   }
 
   return missing;
 }
 
-function validateAreasRow(record) {
+function validateAreasRow(record, mapping) {
   const missing = [];
-  if (!getString(record, ["id"])) {
+  if (!getString(record, ["id"], mapping)) {
     missing.push("id");
   }
-  if (getNumber(record, ["area"]) === null) {
+  if (getNumber(record, ["area"], mapping) === null) {
     missing.push("area");
   }
-  if (getNumber(record, ["runoff_coef", "runoff_coefficient"]) === null) {
+  if (getNumber(record, ["runoff_coef", "runoff_coefficient"], mapping) === null) {
     missing.push("runoff_coef");
   }
-  if (getNumber(record, ["time_of_conc", "time_of_concentration"]) === null) {
+  if (getNumber(record, ["time_of_conc", "time_of_concentration"], mapping) === null) {
     missing.push("time_of_conc");
   }
-  if (!getString(record, ["outlet_node", "outlet"])) {
+  if (!getString(record, ["outlet_node", "outlet"], mapping)) {
     missing.push("outlet_node");
   }
   return missing;
@@ -681,12 +703,12 @@ function renderCsvPreviewCard(container, key, state) {
     return;
   }
 
-  const { headers, records } = state;
+  const { headers, rawHeaders, records, mapping } = state;
   const meta = document.createElement("div");
   meta.className = "csv-meta";
   meta.appendChild(createBadge(`${records.length} rows`, "count"));
 
-  const missingHeaders = findMissingRequired(headers, schema.required);
+  const missingHeaders = findMissingRequired(headers, schema.required, mapping);
   if (missingHeaders.length) {
     meta.appendChild(
       createBadge(
@@ -707,7 +729,7 @@ function renderCsvPreviewCard(container, key, state) {
 
   let errorRowCount = 0;
   records.forEach((record) => {
-    const issues = schema.validateRow(record);
+    const issues = schema.validateRow(record, mapping);
     if (issues.length) {
       errorRowCount += 1;
     }
@@ -742,9 +764,9 @@ function renderCsvPreviewCard(container, key, state) {
   table.appendChild(thead);
 
   const tbody = document.createElement("tbody");
-  records.slice(0, previewLimit).forEach((record, index) => {
+  records.slice(0, previewLimit).forEach((record) => {
     const row = document.createElement("tr");
-    const rowIssues = schema.validateRow(record);
+    const rowIssues = schema.validateRow(record, mapping);
     if (rowIssues.length) {
       row.classList.add("row-error");
     }
@@ -771,6 +793,50 @@ function renderCsvPreviewCard(container, key, state) {
     card.appendChild(note);
   }
 
+  const mappingSection = document.createElement("div");
+  mappingSection.className = "csv-mapping";
+
+  const mappingTitle = document.createElement("p");
+  mappingTitle.className = "csv-mapping-title";
+  mappingTitle.textContent = "Column mapping overrides";
+  mappingSection.appendChild(mappingTitle);
+
+  const headerOptions = headers.map((header, index) => ({
+    value: header,
+    label: rawHeaders[index] ? `${rawHeaders[index]} (${header})` : header
+  }));
+
+  schema.required.forEach((entry) => {
+    const row = document.createElement("div");
+    row.className = "csv-mapping-row";
+
+    const label = document.createElement("span");
+    label.textContent = entry.label;
+    row.appendChild(label);
+
+    const select = document.createElement("select");
+    select.dataset.csvKey = key;
+    select.dataset.field = entry.label;
+
+    const autoMatch = entry.keys.find((keyName) => headers.includes(keyName));
+    const autoOption = document.createElement("option");
+    autoOption.value = "";
+    autoOption.textContent = autoMatch ? `Auto (${autoMatch})` : "Auto";
+    select.appendChild(autoOption);
+
+    headerOptions.forEach((optionData) => {
+      const option = document.createElement("option");
+      option.value = optionData.value;
+      option.textContent = optionData.label;
+      select.appendChild(option);
+    });
+
+    select.value = mapping && mapping[entry.label] ? mapping[entry.label] : "";
+    row.appendChild(select);
+    mappingSection.appendChild(row);
+  });
+
+  card.appendChild(mappingSection);
   container.appendChild(card);
 }
 
@@ -794,11 +860,11 @@ async function handleCsvInput(event, key, label) {
   }
   try {
     const text = await file.text();
-    const { headers, records } = parseCsv(text);
+    const { headers, rawHeaders, records } = parseCsv(text);
     if (!records.length) {
       throw new Error("No data rows found.");
     }
-    csvState[key] = { headers, records };
+    csvState[key] = { headers, rawHeaders, records, mapping: {} };
     updateCsvStatus(summarizeCsvState());
     renderCsvPreview();
   } catch (error) {
@@ -832,6 +898,28 @@ conduitsCsvInput.addEventListener("change", (event) => {
 areasCsvInput.addEventListener("change", (event) => {
   handleCsvInput(event, "areas", "Drainage areas");
 });
+
+if (csvPreview) {
+  csvPreview.addEventListener("change", (event) => {
+    const target = event.target;
+    if (!(target instanceof HTMLSelectElement)) {
+      return;
+    }
+    const key = target.dataset.csvKey;
+    const field = target.dataset.field;
+    if (!key || !field || !csvState[key]) {
+      return;
+    }
+    const value = target.value;
+    if (value) {
+      csvState[key].mapping[field] = value;
+    } else {
+      delete csvState[key].mapping[field];
+    }
+    updateCsvStatus(summarizeCsvState());
+    renderCsvPreview();
+  });
+}
 
 buildFromCsvButton.addEventListener("click", () => {
   try {

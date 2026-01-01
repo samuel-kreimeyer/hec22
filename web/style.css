@@ -264,6 +264,38 @@ code {
   background: rgba(176, 26, 24, 0.06);
 }
 
+.csv-mapping {
+  border-top: 1px dashed rgba(210, 200, 187, 0.8);
+  padding-top: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.csv-mapping-title {
+  margin: 0;
+  font-size: 0.8rem;
+  color: var(--muted);
+  font-weight: 600;
+}
+
+.csv-mapping-row {
+  display: grid;
+  grid-template-columns: minmax(120px, 1fr) minmax(180px, 2fr);
+  gap: 8px;
+  align-items: center;
+  font-size: 0.8rem;
+}
+
+.csv-mapping-row select {
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 6px 10px;
+  font-family: inherit;
+  font-size: 0.8rem;
+  background: #fefaf3;
+}
+
 .actions {
   display: flex;
   gap: 12px;
@@ -320,5 +352,9 @@ button:hover {
   .status {
     width: 100%;
     text-align: center;
+  }
+
+  .csv-mapping-row {
+    grid-template-columns: 1fr;
   }
 }
