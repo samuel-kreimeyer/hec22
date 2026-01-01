@@ -19,6 +19,9 @@ const downloadResultsJsonButton = document.getElementById("downloadResultsJson")
 const downloadResultsCsvButton = document.getElementById("downloadResultsCsv");
 const openReportButton = document.getElementById("openReport");
 const exportStatus = document.getElementById("exportStatus");
+const jsonStatus = document.getElementById("jsonStatus");
+const jsonErrors = document.getElementById("jsonErrors");
+const jsonPreview = document.getElementById("jsonPreview");
 
 const sampleRequest = {
   network: {
@@ -97,6 +100,7 @@ const csvState = {
 };
 let lastResult = null;
 let lastResultRaw = "";
+let validationTimer = null;
 
 worker.onmessage = (event) => {
   const { id, ok, response, error } = event.data;
@@ -588,6 +592,317 @@ function updateExportStatus(message, isError = false) {
   exportStatus.textContent = message;
   exportStatus.style.background = isError ? "rgba(176, 26, 24, 0.12)" : "";
   exportStatus.style.color = isError ? "#7a1c1b" : "";
+}
+
+function updateJsonStatus(message, isError = false) {
+  if (!jsonStatus) {
+    return;
+  }
+  jsonStatus.textContent = message;
+  jsonStatus.style.background = isError ? "rgba(176, 26, 24, 0.12)" : "";
+  jsonStatus.style.color = isError ? "#7a1c1b" : "";
+}
+
+function isNumber(value) {
+  return typeof value === "number" && Number.isFinite(value);
+}
+
+function validateRequestObject(data) {
+  const errors = [];
+  const pushError = (path, message) => {
+    errors.push({ path, message });
+  };
+
+  if (!data || typeof data !== "object") {
+    pushError("$", "Request must be a JSON object.");
+    return errors;
+  }
+
+  if (data.unit_system !== undefined) {
+    const unit = String(data.unit_system);
+    if (unit !== "US" && unit !== "SI") {
+      pushError("unit_system", "unit_system must be \"US\" or \"SI\".");
+    }
+  }
+
+  if (data.use_inlet_interception !== undefined && typeof data.use_inlet_interception !== "boolean") {
+    pushError("use_inlet_interception", "use_inlet_interception must be true/false.");
+  }
+
+  if (data.intensity !== undefined && !isNumber(data.intensity)) {
+    pushError("intensity", "intensity must be a number.");
+  }
+
+  const network = data.network;
+  if (!network || typeof network !== "object") {
+    pushError("network", "network is required.");
+    return errors;
+  }
+
+  const nodes = network.nodes;
+  if (!Array.isArray(nodes) || nodes.length === 0) {
+    pushError("network.nodes", "network.nodes must be a non-empty array.");
+  } else {
+    const seen = new Set();
+    nodes.forEach((node, index) => {
+      const base = `network.nodes[${index}]`;
+      if (!node || typeof node !== "object") {
+        pushError(base, "node must be an object.");
+        return;
+      }
+      if (!node.id || typeof node.id !== "string") {
+        pushError(`${base}.id`, "node id is required.");
+      } else if (seen.has(node.id)) {
+        pushError(`${base}.id`, `duplicate node id "${node.id}".`);
+      } else {
+        seen.add(node.id);
+      }
+      if (!node.type || typeof node.type !== "string") {
+        pushError(`${base}.type`, "node type is required.");
+      }
+      if (!isNumber(node.invertElevation)) {
+        pushError(`${base}.invertElevation`, "invertElevation must be a number.");
+      }
+    });
+  }
+
+  const conduits = network.conduits;
+  if (!Array.isArray(conduits) || conduits.length === 0) {
+    pushError("network.conduits", "network.conduits must be a non-empty array.");
+  } else {
+    const seen = new Set();
+    conduits.forEach((conduit, index) => {
+      const base = `network.conduits[${index}]`;
+      if (!conduit || typeof conduit !== "object") {
+        pushError(base, "conduit must be an object.");
+        return;
+      }
+      if (!conduit.id || typeof conduit.id !== "string") {
+        pushError(`${base}.id`, "conduit id is required.");
+      } else if (seen.has(conduit.id)) {
+        pushError(`${base}.id`, `duplicate conduit id "${conduit.id}".`);
+      } else {
+        seen.add(conduit.id);
+      }
+      if (!conduit.fromNode || typeof conduit.fromNode !== "string") {
+        pushError(`${base}.fromNode`, "fromNode is required.");
+      }
+      if (!conduit.toNode || typeof conduit.toNode !== "string") {
+        pushError(`${base}.toNode`, "toNode is required.");
+      }
+      if (!isNumber(conduit.length)) {
+        pushError(`${base}.length`, "length must be a number.");
+      }
+      const conduitType = conduit.type || "pipe";
+      if (conduitType === "gutter") {
+        if (!conduit.gutter || typeof conduit.gutter !== "object") {
+          pushError(`${base}.gutter`, "gutter properties are required for gutter conduits.");
+        } else {
+          if (!isNumber(conduit.gutter.crossSlope)) {
+            pushError(`${base}.gutter.crossSlope`, "crossSlope must be a number.");
+          }
+          if (!isNumber(conduit.gutter.longitudinalSlope)) {
+            pushError(`${base}.gutter.longitudinalSlope`, "longitudinalSlope must be a number.");
+          }
+        }
+      } else {
+        if (!conduit.pipe || typeof conduit.pipe !== "object") {
+          pushError(`${base}.pipe`, "pipe properties are required for pipe conduits.");
+        } else if (!isNumber(conduit.pipe.diameter)) {
+          pushError(`${base}.pipe.diameter`, "diameter must be a number.");
+        }
+      }
+    });
+  }
+
+  if (Array.isArray(nodes) && Array.isArray(conduits)) {
+    const nodeIds = new Set(nodes.map((node) => node && node.id).filter(Boolean));
+    conduits.forEach((conduit, index) => {
+      if (conduit && conduit.fromNode && !nodeIds.has(conduit.fromNode)) {
+        pushError(
+          `network.conduits[${index}].fromNode`,
+          `fromNode "${conduit.fromNode}" not found in network.nodes.`
+        );
+      }
+      if (conduit && conduit.toNode && !nodeIds.has(conduit.toNode)) {
+        pushError(
+          `network.conduits[${index}].toNode`,
+          `toNode "${conduit.toNode}" not found in network.nodes.`
+        );
+      }
+    });
+  }
+
+  if (data.drainage_areas !== undefined) {
+    if (!Array.isArray(data.drainage_areas)) {
+      pushError("drainage_areas", "drainage_areas must be an array.");
+    } else {
+      data.drainage_areas.forEach((area, index) => {
+        const base = `drainage_areas[${index}]`;
+        if (!area || typeof area !== "object") {
+          pushError(base, "drainage area must be an object.");
+          return;
+        }
+        if (!area.id || typeof area.id !== "string") {
+          pushError(`${base}.id`, "id is required.");
+        }
+        if (!isNumber(area.area)) {
+          pushError(`${base}.area`, "area must be a number.");
+        }
+        if (!area.outlet || typeof area.outlet !== "string") {
+          pushError(`${base}.outlet`, "outlet is required.");
+        }
+        if (!isNumber(area.runoffCoefficient)) {
+          pushError(`${base}.runoffCoefficient`, "runoffCoefficient must be a number.");
+        }
+        if (!isNumber(area.timeOfConcentration)) {
+          pushError(`${base}.timeOfConcentration`, "timeOfConcentration must be a number.");
+        }
+      });
+    }
+  }
+
+  const hasConduitFlows = data.conduit_flows && typeof data.conduit_flows === "object";
+  const hasNodeInflows = data.node_inflows && typeof data.node_inflows === "object";
+  const hasAreas =
+    Array.isArray(data.drainage_areas) && data.drainage_areas.length > 0 && isNumber(data.intensity);
+
+  if (!hasConduitFlows && !hasNodeInflows && !hasAreas) {
+    pushError(
+      "$",
+      "Provide conduit_flows, node_inflows, or (drainage_areas + intensity) to run the solver."
+    );
+  }
+
+  return errors;
+}
+
+function getLineColumn(text, index) {
+  if (index < 0) {
+    return { line: null, column: null };
+  }
+  const slice = text.slice(0, index);
+  const lines = slice.split("\n");
+  return { line: lines.length, column: lines[lines.length - 1].length + 1 };
+}
+
+function findLineForPath(text, path) {
+  if (!path) {
+    return null;
+  }
+  const match = path.match(/([A-Za-z_][\w-]*)(?:\[\d+\])?$/);
+  if (!match) {
+    return null;
+  }
+  const key = match[1];
+  const target = `"${key}"`;
+  const index = text.indexOf(target);
+  if (index === -1) {
+    return null;
+  }
+  return getLineColumn(text, index).line;
+}
+
+function renderJsonErrors(errors) {
+  if (!jsonErrors) {
+    return;
+  }
+  jsonErrors.innerHTML = "";
+  if (!errors.length) {
+    const ok = document.createElement("div");
+    ok.className = "json-error ok";
+    ok.textContent = "No validation issues found.";
+    jsonErrors.appendChild(ok);
+    return;
+  }
+  errors.forEach((error) => {
+    const row = document.createElement("div");
+    row.className = "json-error";
+    const lineInfo = error.line ? ` (line ${error.line})` : "";
+    row.innerHTML = `<span class="json-error-path">${escapeHtml(error.path)}</span>${lineInfo}: ${escapeHtml(error.message)}`;
+    jsonErrors.appendChild(row);
+  });
+}
+
+function renderJsonPreview(text, errorLines) {
+  if (!jsonPreview) {
+    return;
+  }
+  if (!text.trim()) {
+    jsonPreview.textContent = "";
+    return;
+  }
+  const lines = text.split("\n");
+  const html = lines
+    .map((line, index) => {
+      const lineNumber = index + 1;
+      const isError = errorLines.has(lineNumber);
+      return `<div class="json-line${isError ? " error" : ""}"><span class="json-lineno">${lineNumber}</span><span>${escapeHtml(line) || " "}</span></div>`;
+    })
+    .join("");
+  jsonPreview.innerHTML = html;
+}
+
+function validateJsonInput() {
+  const text = requestEl.value || "";
+  if (!text.trim()) {
+    updateJsonStatus("No JSON provided.", false);
+    if (jsonErrors) {
+      jsonErrors.innerHTML = "";
+    }
+    renderJsonPreview("", new Set());
+    requestEl.classList.remove("field-error");
+    return;
+  }
+
+  try {
+    const parsed = JSON.parse(text);
+    const errors = validateRequestObject(parsed).map((error) => ({
+      ...error,
+      line: findLineForPath(text, error.path)
+    }));
+    const errorLines = new Set(errors.map((error) => error.line).filter(Boolean));
+    renderJsonErrors(errors);
+    renderJsonPreview(text, errorLines);
+    if (errors.length) {
+      updateJsonStatus(`${errors.length} issue(s) found.`, true);
+      requestEl.classList.add("field-error");
+    } else {
+      updateJsonStatus("JSON looks valid.", false);
+      requestEl.classList.remove("field-error");
+    }
+  } catch (error) {
+    const message = String(error.message || error);
+    let line = null;
+    let column = null;
+    const match = message.match(/position (\d+)/);
+    if (match) {
+      const pos = Number(match[1]);
+      const location = getLineColumn(text, pos);
+      line = location.line;
+      column = location.column;
+    }
+    const errorMessage = line
+      ? `Invalid JSON at line ${line}, column ${column || "?"}.`
+      : "Invalid JSON.";
+    renderJsonErrors([
+      {
+        path: "$",
+        message: errorMessage,
+        line
+      }
+    ]);
+    renderJsonPreview(text, new Set(line ? [line] : []));
+    updateJsonStatus("Invalid JSON.", true);
+    requestEl.classList.add("field-error");
+  }
+}
+
+function scheduleValidation() {
+  if (validationTimer) {
+    clearTimeout(validationTimer);
+  }
+  validationTimer = setTimeout(validateJsonInput, 250);
 }
 
 function getAnalysisData(result) {
@@ -1359,10 +1674,12 @@ fileInput.addEventListener("change", async (event) => {
   }
   const text = await file.text();
   requestEl.value = text;
+  validateJsonInput();
 });
 
 loadSampleButton.addEventListener("click", () => {
   requestEl.value = JSON.stringify(sampleRequest, null, 2);
+  validateJsonInput();
 });
 
 nodesCsvInput.addEventListener("change", (event) => {
@@ -1449,6 +1766,7 @@ buildFromCsvButton.addEventListener("click", () => {
     const request = buildRequestFromCsv();
     requestEl.value = JSON.stringify(request, null, 2);
     updateCsvStatus("Request JSON built from CSV files.");
+    validateJsonInput();
   } catch (error) {
     updateCsvStatus(`Build failed: ${String(error.message || error)}`, true);
   }
@@ -1657,3 +1975,6 @@ statusEl.textContent = "WASM ready";
 updateCsvStatus(summarizeCsvState());
 renderCsvPreview();
 updateExportStatus("No results yet.");
+validateJsonInput();
+
+requestEl.addEventListener("input", scheduleValidation);

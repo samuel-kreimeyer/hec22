@@ -158,6 +158,11 @@ code {
   line-height: 1.4;
 }
 
+.field textarea.field-error {
+  border-color: rgba(176, 26, 24, 0.55);
+  box-shadow: 0 0 0 1px rgba(176, 26, 24, 0.2);
+}
+
 .toggle {
   display: inline-flex;
   align-items: center;
@@ -273,6 +278,63 @@ code {
 .csv-export {
   font-size: 0.78rem;
   padding: 6px 12px;
+}
+
+.json-validation {
+  gap: 10px;
+}
+
+.json-errors {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.json-error {
+  padding: 8px 10px;
+  border-radius: 10px;
+  background: rgba(176, 26, 24, 0.08);
+  color: #7a1c1b;
+  font-size: 0.8rem;
+}
+
+.json-error.ok {
+  background: rgba(15, 118, 110, 0.1);
+  color: var(--accent-deep);
+}
+
+.json-error-path {
+  font-weight: 600;
+}
+
+.json-preview {
+  margin: 0;
+  padding: 12px;
+  border-radius: 12px;
+  background: #fefaf3;
+  border: 1px solid var(--border);
+  font-family: "IBM Plex Mono", "Courier New", monospace;
+  font-size: 0.78rem;
+  line-height: 1.5;
+  max-height: 280px;
+  overflow: auto;
+}
+
+.json-line {
+  display: grid;
+  grid-template-columns: 46px 1fr;
+  gap: 12px;
+  padding: 2px 0;
+}
+
+.json-line.error {
+  background: rgba(176, 26, 24, 0.08);
+}
+
+.json-lineno {
+  text-align: right;
+  color: var(--muted);
+  user-select: none;
 }
 
 .csv-mapping {

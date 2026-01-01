@@ -81,6 +81,14 @@
         <textarea id="requestJson" spellcheck="false"></textarea>
       </label>
 
+      <div class="section-block json-validation">
+        <h3>Validation</h3>
+        <p class="hint">Checks required fields, types, and basic routing inputs.</p>
+        <div class="import-status" id="jsonStatus">No validation yet.</div>
+        <div class="json-errors" id="jsonErrors"></div>
+        <pre class="json-preview" id="jsonPreview"></pre>
+      </div>
+
       <div class="actions">
         <button id="runSolver" class="primary">Run solver</button>
         <button id="copyResult" class="ghost">Copy result</button>
