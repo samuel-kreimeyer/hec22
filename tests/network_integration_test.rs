@@ -48,6 +48,7 @@ fn test_simple_linear_network() {
             }),
             local_depression: Some(2.0),
             clogging_factor: Some(0.15),
+            bypass_to: None,
         },
     );
 
@@ -70,6 +71,7 @@ fn test_simple_linear_network() {
             }),
             local_depression: Some(2.0),
             clogging_factor: Some(0.15),
+            bypass_to: None,
         },
     );
 
@@ -249,7 +251,7 @@ fn test_simple_linear_network() {
     let hgl_solver = solver::HglSolver::new(config);
 
     let analysis = hgl_solver
-        .solve(&network, &conduit_flows, "integration-test".to_string())
+        .solve(&network, &conduit_flows, &[], "integration-test".to_string())
         .expect("HGL solver should succeed");
 
     // Verify analysis results structure
@@ -488,6 +490,7 @@ fn test_branching_network() {
             curb_opening: None,
             local_depression: Some(2.0),
             clogging_factor: Some(0.10),
+            bypass_to: None,
         },
     );
 
@@ -506,6 +509,7 @@ fn test_branching_network() {
             curb_opening: None,
             local_depression: Some(2.0),
             clogging_factor: Some(0.10),
+            bypass_to: None,
         },
     );
 
@@ -525,6 +529,7 @@ fn test_branching_network() {
             }),
             local_depression: Some(0.0),
             clogging_factor: Some(0.15),
+            bypass_to: None,
         },
     );
 
@@ -543,6 +548,7 @@ fn test_branching_network() {
             }),
             local_depression: Some(0.0),
             clogging_factor: Some(0.15),
+            bypass_to: None,
         },
     );
 
@@ -848,7 +854,7 @@ fn test_branching_network() {
     let hgl_solver = solver::HglSolver::new(config);
 
     let analysis = hgl_solver
-        .solve(&network, &conduit_flows, "branching-test".to_string())
+        .solve(&network, &conduit_flows, &[], "branching-test".to_string())
         .expect("HGL solver should succeed");
 
     // Verify results structure
@@ -993,6 +999,7 @@ fn test_unbalanced_branching_network() {
             curb_opening: None,
             local_depression: Some(2.0),
             clogging_factor: Some(0.10),
+            bypass_to: None,
         },
     );
 
@@ -1012,6 +1019,7 @@ fn test_unbalanced_branching_network() {
             }),
             local_depression: Some(0.0),
             clogging_factor: Some(0.15),
+            bypass_to: None,
         },
     );
 
@@ -1030,6 +1038,7 @@ fn test_unbalanced_branching_network() {
             }),
             local_depression: Some(0.0),
             clogging_factor: Some(0.15),
+            bypass_to: None,
         },
     );
 
@@ -1048,6 +1057,7 @@ fn test_unbalanced_branching_network() {
             }),
             local_depression: Some(0.0),
             clogging_factor: Some(0.15),
+            bypass_to: None,
         },
     );
 
@@ -1362,7 +1372,7 @@ fn test_unbalanced_branching_network() {
     let hgl_solver = solver::HglSolver::new(config);
 
     let analysis = hgl_solver
-        .solve(&network, &conduit_flows, "unbalanced-test".to_string())
+        .solve(&network, &conduit_flows, &[], "unbalanced-test".to_string())
         .expect("HGL solver should succeed");
 
     // Verify results structure

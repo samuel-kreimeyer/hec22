@@ -49,6 +49,7 @@ fn test_multi_level_tributary_flow_isolation() {
             curb_opening: None,
             local_depression: Some(2.0),
             clogging_factor: Some(0.10),
+            bypass_to: None,
         },
     );
 
@@ -67,6 +68,7 @@ fn test_multi_level_tributary_flow_isolation() {
             curb_opening: None,
             local_depression: Some(2.0),
             clogging_factor: Some(0.10),
+            bypass_to: None,
         },
     );
 
@@ -99,6 +101,7 @@ fn test_multi_level_tributary_flow_isolation() {
             curb_opening: None,
             local_depression: Some(2.0),
             clogging_factor: Some(0.10),
+            bypass_to: None,
         },
     );
 
@@ -117,6 +120,7 @@ fn test_multi_level_tributary_flow_isolation() {
             curb_opening: None,
             local_depression: Some(2.0),
             clogging_factor: Some(0.10),
+            bypass_to: None,
         },
     );
 
@@ -492,7 +496,7 @@ fn test_multi_level_tributary_flow_isolation() {
     let hgl_solver = solver::HglSolver::new(config);
 
     let analysis = hgl_solver
-        .solve(&network, &conduit_flows, "multi-level-test".to_string())
+        .solve(&network, &conduit_flows, &[], "multi-level-test".to_string())
         .expect("HGL solver should succeed");
 
     assert!(analysis.node_results.is_some(), "Should have node results");

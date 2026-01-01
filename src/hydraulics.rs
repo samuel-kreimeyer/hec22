@@ -1352,12 +1352,14 @@ impl FhwaAccessHoleMethod {
         inflow_pipes: &[InflowPipe],
         benching: BenchingType,
         access_hole_invert: f64,
+        outlet_control_override: Option<f64>,
     ) -> AccessHoleResult {
         // Equation 9.12: Outflow energy head
         let outflow_energy = self.energy_head_from_egl(outflow_egl, outflow_invert);
 
         // Equation 9.14-9.15: Outlet control
-        let outlet_control = self.outlet_control_energy(outflow_energy, outflow_velocity);
+        let outlet_control = outlet_control_override
+            .unwrap_or_else(|| self.outlet_control_energy(outflow_energy, outflow_velocity));
 
         // Equation 9.16: Discharge intensity
         let di = self.discharge_intensity(outflow_flow, outflow_area, outflow_diameter);
@@ -1911,6 +1913,7 @@ mod tests {
             &[inflow],
             BenchingType::Improved,
             outflow_invert,
+            None,
         );
 
         // Verify all results are reasonable

@@ -547,6 +547,7 @@ mod tests {
                 curb_opening: None,
                 local_depression: None,
                 clogging_factor: None,
+                bypass_to: None,
             },
         );
 

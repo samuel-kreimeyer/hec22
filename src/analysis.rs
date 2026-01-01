@@ -201,6 +201,11 @@ pub struct NodeResult {
     #[serde(skip_serializing_if = "Option::is_none")]
     #[serde(rename = "junctionLoss")]
     pub junction_loss: Option<f64>,
+
+    /// Gutter spread at inlet (ft or m) - only for inlets
+    #[serde(skip_serializing_if = "Option::is_none")]
+    #[serde(rename = "gutterSpread")]
+    pub gutter_spread: Option<f64>,
 }
 
 /// Computed results for a conduit

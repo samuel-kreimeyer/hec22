@@ -1,0 +1,426 @@
+Loading network data...
+  Loaded 63 nodes
+  Loaded 60 conduits
+  Loaded 63 drainage areas
+
+Building network...
+  63 nodes, 60 conduits
+  59 inlets, 1 junctions, 3 outfalls
+
+Loading IDF curves...
+  Using 10-year IDF curve with 19 duration points
+
+Computing rational method flows...
+  Area DA_111+64 LT: Tc=5.0 min, i=7.57 in/hr (from IDF curve)
+  Node 111+64 LT: Q = 0.80 × 7.57 × 0.05 = 0.30 cfs
+  Area DA_112+35 LT: Tc=5.0 min, i=7.57 in/hr (from IDF curve)
+  Node 112+35 LT: Q = 0.80 × 7.57 × 0.05 = 0.30 cfs
+  Area DA_112+35 RT: Tc=5.0 min, i=7.57 in/hr (from IDF curve)
+  Node 112+35 RT: Q = 0.80 × 7.57 × 0.12 = 0.73 cfs
+  Area DA_113+00 RT: Tc=5.0 min, i=7.57 in/hr (from IDF curve)
+  Node 113+00 RT: Q = 0.80 × 7.57 × 0.11 = 0.68 cfs
+  Area DA_113+78 LT: Tc=5.0 min, i=7.57 in/hr (from IDF curve)
+  Node 113+78 LT: Q = 0.80 × 7.57 × 0.10 = 0.61 cfs
+  Area DA_115+24 LT: Tc=5.0 min, i=7.57 in/hr (from IDF curve)
+  Node 115+24 LT: Q = 0.80 × 7.57 × 0.10 = 0.61 cfs
+  Area DA_115+42 LT: Tc=5.0 min, i=7.57 in/hr (from IDF curve)
+  Node 115+42 LT: Q = 0.80 × 7.57 × 0.05 = 0.30 cfs
+  Area DA_115+66 LT: Tc=5.0 min, i=7.57 in/hr (from IDF curve)
+  Node 115+66 LT: Q = 0.80 × 7.57 × 0.07 = 0.44 cfs
+  Area DA_115+90 RT: Tc=5.0 min, i=7.57 in/hr (from IDF curve)
+  Node 115+90 RT: Q = 0.80 × 7.57 × 0.10 = 0.61 cfs
+  Area DA_116+00 RT: Tc=5.0 min, i=7.57 in/hr (from IDF curve)
+  Node 116+00 RT: Q = 0.80 × 7.57 × 0.05 = 0.30 cfs
+  Area DA_116+25 LT: Tc=5.0 min, i=7.57 in/hr (from IDF curve)
+  Node 116+25 LT: Q = 0.80 × 7.57 × 0.10 = 0.62 cfs
+  Area DA_117+85 RT: Tc=7.9 min, i=6.41 in/hr (from IDF curve)
+  Node 117+85 RT: Q = 0.80 × 6.41 × 0.32 = 1.63 cfs
+  Area DA_118+25 LT: Tc=8.2 min, i=6.29 in/hr (from IDF curve)
+  Node 118+25 LT: Q = 0.80 × 6.29 × 0.34 = 1.73 cfs
+  Area DA_120+50 LT: Tc=8.7 min, i=6.08 in/hr (from IDF curve)
+  Node 120+50 LT: Q = 0.80 × 6.08 × 0.39 = 1.89 cfs
+  Area DA_120+50 RT: Tc=9.4 min, i=5.78 in/hr (from IDF curve)
+  Node 120+50 RT: Q = 0.80 × 5.78 × 0.46 = 2.11 cfs
+  Area DA_122+11 RT: Tc=7.3 min, i=6.63 in/hr (from IDF curve)
+  Node 122+11 RT: Q = 0.80 × 6.63 × 0.28 = 1.47 cfs
+  Area DA_124+50 LT: Tc=11.5 min, i=5.22 in/hr (from IDF curve)
+  Node 124+50 LT: Q = 0.80 × 5.22 × 0.69 = 2.88 cfs
+  Area DA_200+19 LT: Tc=5.0 min, i=7.57 in/hr (from IDF curve)
+  Node 200+19 LT: Q = 0.80 × 7.57 × 0.05 = 0.30 cfs
+  Area DA_200+19 RT: Tc=5.0 min, i=7.57 in/hr (from IDF curve)
+  Node 200+19 RT: Q = 0.80 × 7.57 × 0.05 = 0.30 cfs
+  Area DA_203+48 LT: Tc=5.0 min, i=7.57 in/hr (from IDF curve)
+  Node 203+48 LT: Q = 0.80 × 7.57 × 0.05 = 0.30 cfs
+  Area DA_203+48 RT: Tc=5.0 min, i=7.57 in/hr (from IDF curve)
+  Node 203+48 RT: Q = 0.80 × 7.57 × 0.05 = 0.30 cfs
+  Area DA_204+09 RT: Tc=5.0 min, i=7.57 in/hr (from IDF curve)
+  Node 204+09 RT: Q = 0.80 × 7.57 × 0.11 = 0.64 cfs
+  Area DA_204+20 LT: Tc=5.0 min, i=7.57 in/hr (from IDF curve)
+  Node 204+20 LT: Q = 0.80 × 7.57 × 0.12 = 0.75 cfs
+  Area DA_204+30 LT: Tc=5.0 min, i=7.57 in/hr (from IDF curve)
+  Node 204+30 LT: Q = 0.80 × 7.57 × 0.05 = 0.30 cfs
+  Area DA_204+62 LT: Tc=5.0 min, i=7.57 in/hr (from IDF curve)
+  Node 204+62 LT: Q = 0.80 × 7.57 × 0.06 = 0.33 cfs
+  Area DA_204+67 RT: Tc=5.0 min, i=7.57 in/hr (from IDF curve)
+  Node 204+67 RT: Q = 0.80 × 7.57 × 0.10 = 0.60 cfs
+  Area DA_206+53 RT: Tc=7.9 min, i=6.40 in/hr (from IDF curve)
+  Node 206+53 RT: Q = 0.80 × 6.40 × 0.32 = 1.64 cfs
+  Area DA_206+55 LT: Tc=8.0 min, i=6.34 in/hr (from IDF curve)
+  Node 206+55 LT: Q = 0.80 × 6.34 × 0.33 = 1.69 cfs
+  Area DA_207+99 LT: Tc=6.9 min, i=6.79 in/hr (from IDF curve)
+  Node 207+99 LT: Q = 0.80 × 6.79 × 0.25 = 1.35 cfs
+  Area DA_208+17 RT: Tc=7.4 min, i=6.60 in/hr (from IDF curve)
+  Node 208+17 RT: Q = 0.80 × 6.60 × 0.28 = 1.49 cfs
+  Area DA_208+17 RT: Tc=7.5 min, i=6.55 in/hr (from IDF curve)
+  Node 208+17 RT: Q = 0.80 × 6.55 × 0.29 = 1.53 cfs
+  Area DA_208+65 RT: Tc=5.0 min, i=7.57 in/hr (from IDF curve)
+  Node 208+65 RT: Q = 0.80 × 7.57 × 0.08 = 0.50 cfs
+  Area DA_208+98 LT: Tc=5.7 min, i=7.27 in/hr (from IDF curve)
+  Node 208+98 LT: Q = 0.80 × 7.27 × 0.17 = 0.99 cfs
+  Area DA_209+02 LT: Tc=5.0 min, i=7.57 in/hr (from IDF curve)
+  Node 209+02 LT: Q = 0.80 × 7.57 × 0.05 = 0.30 cfs
+  Area DA_209+81 LT: Tc=5.1 min, i=7.52 in/hr (from IDF curve)
+  Node 209+81 LT: Q = 0.80 × 7.52 × 0.14 = 0.82 cfs
+  Area DA_210+00 LT: Tc=5.8 min, i=7.23 in/hr (from IDF curve)
+  Node 210+00 LT: Q = 0.80 × 7.23 × 0.18 = 1.02 cfs
+  Area DA_210+51 LT: Tc=5.0 min, i=7.57 in/hr (from IDF curve)
+  Node 210+51 LT: Q = 0.80 × 7.57 × 0.09 = 0.53 cfs
+  Area DA_210+60 RT: Tc=8.1 min, i=6.33 in/hr (from IDF curve)
+  Node 210+60 RT: Q = 0.80 × 6.33 × 0.34 = 1.70 cfs
+  Area DA_211+00 LT: Tc=5.0 min, i=7.57 in/hr (from IDF curve)
+  Node 211+00 LT: Q = 0.80 × 7.57 × 0.08 = 0.51 cfs
+  Area DA_212+60 RT: Tc=8.2 min, i=6.29 in/hr (from IDF curve)
+  Node 212+60 RT: Q = 0.80 × 6.29 × 0.34 = 1.73 cfs
+  Area DA_213+00 LT: Tc=8.2 min, i=6.29 in/hr (from IDF curve)
+  Node 213+00 LT: Q = 0.80 × 6.29 × 0.34 = 1.73 cfs
+  Area DA_214+50 LT: Tc=5.0 min, i=7.57 in/hr (from IDF curve)
+  Node 214+50 LT: Q = 0.80 × 7.57 × 0.10 = 0.61 cfs
+  Area DA_214+60 RT: Tc=8.2 min, i=6.29 in/hr (from IDF curve)
+  Node 214+60 RT: Q = 0.80 × 6.29 × 0.34 = 1.73 cfs
+  Area DA_215+00 LT: Tc=5.0 min, i=7.57 in/hr (from IDF curve)
+  Node 215+00 LT: Q = 0.80 × 7.57 × 0.09 = 0.52 cfs
+  Area DA_216+90 RT: Tc=5.0 min, i=7.57 in/hr (from IDF curve)
+  Node 216+90 RT: Q = 0.80 × 7.57 × 0.05 = 0.30 cfs
+  Area DA_218+00 LT: Tc=5.0 min, i=7.57 in/hr (from IDF curve)
+  Node 218+00 LT: Q = 0.80 × 7.57 × 0.05 = 0.30 cfs
+  Area DA_218+03 LT: Tc=5.0 min, i=7.57 in/hr (from IDF curve)
+  Node 218+03 LT: Q = 0.80 × 7.57 × 0.05 = 0.30 cfs
+  Area DA_218+06 LT: Tc=5.0 min, i=7.57 in/hr (from IDF curve)
+  Node 218+06 LT: Q = 0.80 × 7.57 × 0.05 = 0.30 cfs
+  Area DA_218+06 RT: Tc=6.2 min, i=7.08 in/hr (from IDF curve)
+  Node 218+06 RT: Q = 0.80 × 7.08 × 0.20 = 1.13 cfs
+  Area DA_219+10 LT: Tc=5.9 min, i=7.21 in/hr (from IDF curve)
+  Node 219+10 LT: Q = 0.80 × 7.21 × 0.18 = 1.03 cfs
+  Area DA_219+10 RT: Tc=5.9 min, i=7.21 in/hr (from IDF curve)
+  Node 219+10 RT: Q = 0.80 × 7.21 × 0.18 = 1.03 cfs
+  Area DA_219+20 LT: Tc=5.0 min, i=7.57 in/hr (from IDF curve)
+  Node 219+20 LT: Q = 0.80 × 7.57 × 0.05 = 0.30 cfs
+  Area DA_219+20 RT: Tc=5.0 min, i=7.57 in/hr (from IDF curve)
+  Node 219+20 RT: Q = 0.80 × 7.57 × 0.05 = 0.30 cfs
+  Area DA_219+30 LT: Tc=5.0 min, i=7.57 in/hr (from IDF curve)
+  Node 219+30 LT: Q = 0.80 × 7.57 × 0.05 = 0.30 cfs
+  Area DA_219+30 RT: Tc=5.0 min, i=7.57 in/hr (from IDF curve)
+  Node 219+30 RT: Q = 0.80 × 7.57 × 0.05 = 0.30 cfs
+  Area DA_220+06 RT: Tc=5.0 min, i=7.57 in/hr (from IDF curve)
+  Node 220+06 RT: Q = 0.80 × 7.57 × 0.05 = 0.30 cfs
+  Area DA_220+08 LT: Tc=5.1 min, i=7.53 in/hr (from IDF curve)
+  Node 220+08 LT: Q = 0.80 × 7.53 × 0.13 = 0.81 cfs
+  Area DA_220+81 LT: Tc=5.0 min, i=7.57 in/hr (from IDF curve)
+  Node 220+81 LT: Q = 0.80 × 7.57 × 0.13 = 0.76 cfs
+  Area DA_413+00 LT: Tc=5.0 min, i=7.57 in/hr (from IDF curve)
+  Node 413+00 LT: Q = 0.80 × 7.57 × 0.05 = 0.30 cfs
+  Area DA_413+25 LT: Tc=5.0 min, i=7.57 in/hr (from IDF curve)
+  Node 413+25 LT: Q = 0.80 × 7.57 × 0.05 = 0.30 cfs
+  Area DA_413+36 @ 11' LT: Tc=5.0 min, i=7.57 in/hr (from IDF curve)
+  Node 413+36 @ 11' LT: Q = 0.80 × 7.57 × 0.05 = 0.30 cfs
+  Area DA_413+36 @ 23' LT: Tc=5.0 min, i=7.57 in/hr (from IDF curve)
+  Node 413+36 @ 23' LT: Q = 0.80 × 7.57 × 0.05 = 0.30 cfs
+  Area DA_413+36 RT: Tc=5.0 min, i=7.57 in/hr (from IDF curve)
+  Node 413+36 RT: Q = 0.80 × 7.57 × 0.10 = 0.61 cfs
+
+Routing flows through network...
+  Conduit 206+53 RT_to_204+67 RT: 5.42 cfs
+  Conduit 219+20 RT_to_219+10 RT: 0.61 cfs
+  Conduit 218+00 LT_to_218+03 LT: 0.30 cfs
+  Conduit 204+09 RT_to_203+48 RT: 18.07 cfs
+  Conduit 118+25 LT_to_116+25 LT: 2.86 cfs
+  Conduit 124+50 LT_to_120+50 LT: 1.87 cfs
+  Conduit 116+00 RT_to_115+90 RT: 3.14 cfs
+  Conduit 112+35 LT_to_112+35 RT: 0.26 cfs
+  Conduit 210+51 LT_to_210+00 LT: 5.72 cfs
+  Conduit 200+19 LT_to_200+19 RT: 0.26 cfs
+  Conduit 115+66 LT_to_115+24 LT: 3.07 cfs
+  Conduit 211+00 LT_to_210+51 LT: 2.56 cfs
+  Conduit 122+11 RT_to_120+50 RT: 1.25 cfs
+  Conduit 117+85 RT_to_116+00 RT: 3.05 cfs
+  Conduit 218+03 LT_to_218+06 LT: 0.61 cfs
+  Conduit 219+30 LT_to_219+20 LT: 1.77 cfs
+  Conduit 210+60 RT_to_208+65 RT: 2.55 cfs
+  Conduit 120+50 LT_to_118+25 LT: 2.45 cfs
+  Conduit 220+81 LT_to_220+08 LT: 0.65 cfs
+  Conduit 220+06 RT_to_220+08 LT: 0.26 cfs
+  Conduit 120+50 RT_to_117+85 RT: 2.11 cfs
+  Conduit 115+90 RT_to_210+00 LT: 3.32 cfs
+  Conduit 219+10 LT_to_218+06 LT: 2.43 cfs
+  Conduit 219+10 RT_to_218+06 RT: 1.30 cfs
+  Conduit 218+06 LT_to_218+06 RT: 3.42 cfs
+  Conduit 212+60 RT_to_210+60 RT: 2.07 cfs
+  Conduit 116+25 LT_to_115+66 LT: 2.98 cfs
+  Conduit 111+64 LT_to_111+65 RT: 0.26 cfs
+  Conduit 203+48 LT_to_203+48 RT: 9.28 cfs
+  Conduit 208+17 RT_to_206+53 RT: 1.69 cfs
+  Conduit 204+67 RT_to_204+09 RT: 5.51 cfs
+  Conduit 413+36 @ 23' LT_to_413+36 @ 11' LT: 1.43 cfs
+  Conduit 214+50 LT_to_413+36 @ 23' LT: 1.13 cfs
+  Conduit 204+62 LT_to_204+30 LT: 7.90 cfs
+  Conduit 204+20 LT_to_203+48 LT: 27.84 cfs
+  Conduit 214+60 RT_to_212+60 RT: 1.36 cfs
+  Conduit 209+81 LT_to_209+02 LT: 0.70 cfs
+  Conduit 413+36 RT_to_213+00 LT: 2.94 cfs
+  Conduit 219+30 RT_to_219+20 RT: 0.26 cfs
+  Conduit 213+00 LT_to_211+00 LT: 2.43 cfs
+  Conduit 220+08 LT_to_219+30 LT: 1.57 cfs
+  Conduit 112+35 RT_to_111+65 RT: 1.35 cfs
+  Conduit 218+06 RT_to_216+90 RT: 4.64 cfs
+  Conduit 413+36 @ 11' LT_to_413+36 RT: 1.65 cfs
+  Conduit 210+00 LT_to_208+98 LT: 6.35 cfs
+  Conduit 115+24 LT_to_207+99 LT: 6.95 cfs
+  Conduit 219+20 LT_to_219+10 LT: 2.48 cfs
+  Conduit 209+02 LT_to_208+98 LT: 0.62 cfs
+  Conduit 115+42 LT_to_115+24 LT: 0.30 cfs
+  Conduit 207+99 LT_to_206+55 LT: 12.79 cfs
+  Conduit 204+30 LT_to_204+20 LT: 7.94 cfs
+  Conduit 113+00 RT_to_112+35 RT: 0.58 cfs
+  Conduit 208+98 LT_to_207+99 LT: 6.86 cfs
+  Conduit 208+65 RT_to_208+17 RT: 2.07 cfs
+  Conduit 413+25 LT_to_413+36 @ 11' LT: 0.61 cfs
+  Conduit 206+55 LT_to_204+62 LT: 7.86 cfs
+  Conduit 113+78 LT_to_208+65 RT: 0.38 cfs
+  Conduit 215+00 LT_to_214+50 LT: 0.44 cfs
+  Conduit 413+00 LT_to_413+25 LT: 0.26 cfs
+
+Solving for hydraulic grade line...
+
+================================================================================
+HYDRAULIC ANALYSIS RESULTS
+================================================================================
+
+NODE RESULTS
+----------------------------------------------------------------------------------------------------
+Node ID          HGL (ft)   EGL (ft)   Depth (ft) Velocity   Spread (ft)  Flooding  
+----------------------------------------------------------------------------------------------------
+113+78 LT           1289.82    1289.92      13.82          -         6.00        YES
+115+24 LT           1277.42    1278.45       3.32          -        16.13         No
+115+42 LT           1280.98    1281.52       5.16          -         0.00        YES
+115+66 LT           1280.50    1281.18       5.37          -        15.46        YES
+115+90 RT           1278.38    1279.48       2.76          -        14.29         No
+116+00 RT           1280.16    1280.56       4.47          -        13.74         No
+116+25 LT           1283.39    1284.08       7.08          -        15.11        YES
+117+85 RT           1283.55    1283.98       5.51          -        13.46         No
+118+25 LT           1289.04    1289.70       8.76          -        14.61        YES
+120+50 LT           1298.38    1299.25      10.71          -        13.01        YES
+120+50 RT           1295.52    1296.41       7.26          -        11.69        YES
+122+11 RT           1298.50    1298.73       8.50          -         8.37        YES
+124+50 LT           1302.71    1302.97      11.97          -        10.77        YES
+200+19 LT           1278.05    1278.44       0.96          -         4.63         No
+200+19 RT           1273.51    1273.90       0.84          -            -         No
+203+48 LT           1272.53    1272.92       0.98          -        25.32         No
+203+48 RT           1273.33    1273.72       2.13          -            -         No
+204+09 RT           1279.21    1281.68       6.22          -         0.00        YES
+204+20 LT           1274.43    1275.17       2.55          -         0.00         No
+204+30 LT           1272.80    1273.16       0.90          -        24.96         No
+204+62 LT           1272.93    1273.28       0.90          -        24.86         No
+204+67 RT           1282.58    1282.96       9.26          -        21.16        YES
+206+53 RT           1284.47    1284.82      10.16          -        20.88        YES
+206+55 LT           1273.73    1274.07       0.84          -        24.74         No
+207+99 LT           1274.91    1275.42       1.27          -        24.14         No
+208+17 RT           1287.46    1288.47      12.02          -        16.71        YES
+208+65 RT           1289.17    1289.43      13.42          -        14.42        YES
+208+98 LT           1275.02    1275.39       0.91          -        19.98         No
+209+02 LT           1278.29    1279.09       1.99          -         7.56         No
+209+81 LT           1280.66    1280.90       3.16          -         6.72         No
+210+00 LT           1275.48    1275.82       0.84          -        18.87         No
+210+51 LT           1281.05    1282.77       4.31          -         0.00         No
+210+60 RT           1293.96    1294.55      14.56          -        13.40        YES
+211+00 LT           1286.17    1287.10       7.43          -        13.43        YES
+212+60 RT           1303.38    1304.24      16.45          -        11.54        YES
+213+00 LT           1293.75    1294.51       9.50          -        12.92        YES
+214+50 LT           1300.97    1301.21      14.20          -         0.00        YES
+214+60 RT           1306.59    1306.85      17.71          -         8.90        YES
+215+00 LT           1303.15    1303.42      14.86          -         5.67        YES
+216+90 RT           1287.79    1288.14       2.79          -            -         No
+218+00 LT           1287.27    1287.38       0.27          -         0.00         No
+218+03 LT           1286.74    1286.85       0.27          -            -         No
+218+06 LT           1287.00    1287.26       0.67          -        12.65         No
+218+06 RT           1286.78    1287.13       0.88          -        15.18         No
+219+10 LT           1287.55    1287.78       0.58          -        11.60         No
+219+10 RT           1288.89    1289.30       1.03          -         8.72         No
+219+20 LT           1287.55    1287.77       0.55          -         0.00         No
+219+20 RT           1289.30    1289.76       1.17          -         0.00         No
+219+30 LT           1287.59    1287.81       0.55          -         9.70         No
+219+30 RT           1290.45    1290.73       2.05          -         4.63         No
+220+06 RT           1288.98    1289.12       0.37          -         4.63         No
+220+08 LT           1287.92    1288.09       0.43          -         9.17         No
+220+81 LT           1288.28    1288.39       0.28          -         6.54         No
+413+00 LT           1303.10    1303.16      16.13          -         4.63        YES
+413+25 LT           1301.72    1302.91      14.85          -         0.00        YES
+413+36 @ 11' LT     1298.57    1298.91      12.73          -         9.96        YES
+413+36 @ 23' LT     1299.48    1299.79      13.53          -         0.00        YES
+413+36 RT           1296.85    1297.63      11.44          -         0.00        YES
+
+INLET ANALYSIS
+--------------------------------------------------------------------------------------------------------------------------------------------
+Inlet ID         Area (ac)  Inlet Dimensions     Approach (cfs) Captured (cfs) Efficiency Bypass (cfs) Spread (ft)      Bypass To       
+--------------------------------------------------------------------------------------------------------------------------------------------
+413+00 LT              0.30 Curb 4'                      0.30         0.26      85.0%         0.05             4.63 413+25 LT       
+413+25 LT              0.30 Curb 4'                      0.61         0.61     100.0%         0.00             0.00 -               
+220+81 LT              0.76 -                            0.76         0.65      85.0%         0.11             6.54 220+08 LT       
+220+06 RT              0.30 -                            0.30         0.26      85.0%         0.05             4.63 219+30 RT       
+220+08 LT              0.81 Curb 5'                      1.87         1.57      83.7%         0.31             9.17 219+30 LT       
+219+30 LT              0.30 Curb 5'                      2.18         1.77      81.2%         0.41             9.70 219+20 LT       
+219+20 LT              0.30 Curb 5'                      2.48         2.48     100.0%         0.00             0.00 -               
+219+10 LT              1.03 Curb 5'                      3.51         2.43      69.3%         1.08            11.60 219+20 LT       
+219+30 RT              0.30 Curb 4'                      0.30         0.26      85.0%         0.05             4.63 219+20 RT       
+219+20 RT              0.30 Curb 4'                      0.61         0.61     100.0%         0.00             0.00 -               
+219+10 RT              1.03 Curb 4'                      1.64         1.30      79.6%         0.33             8.72 219+20 RT       
+218+00 LT              0.30 -                            0.30         0.30     100.0%         0.00             0.00 -               
+218+06 LT              0.30 Curb 7'                      4.42         3.42      77.4%         1.00            12.65 219+10 LT       
+218+06 RT              1.13 Curb 7'                      7.19         4.64      64.6%         2.54            15.18 219+10 RT       
+215+00 LT              0.52 Curb 4'                      0.52         0.44      85.0%         0.08             5.67 213+00 LT       
+214+50 LT              0.61 Grate 3×2', Curb 4'          1.13         1.13     100.0%         0.00             0.00 -               
+413+36 @ 23' LT        0.30 Grate 3×2', Curb 4'          1.43         1.43     100.0%         0.00             0.00 -               
+413+36 @ 11' LT        0.30 Curb 4'                      2.34         1.65      70.7%         0.69             9.96 413+25 LT       
+413+36 RT              0.61 Grate 3×2', Curb 4'          2.94         2.94     100.0%         0.00             0.00 -               
+213+00 LT              1.73 Curb 4'                      4.68         2.43      51.9%         2.25            12.92 211+00 LT       
+211+00 LT              0.51 Curb 4'                      5.19         2.56      49.3%         2.63            13.43 210+00 LT       
+210+51 LT              0.53 Grate 3×2', Curb 4'          5.72         5.72     100.0%         0.00             0.00 -               
+214+60 RT              1.73 Curb 4'                      1.73         1.36      78.4%         0.37             8.90 212+60 RT       
+212+60 RT              1.73 Curb 4'                      3.46         2.07      59.8%         1.39            11.54 210+60 RT       
+210+60 RT              1.70 Curb 4'                      5.16         2.55      49.4%         2.61            13.40 113+00 RT       
+209+81 LT              0.82 Curb 4'                      0.82         0.70      85.0%         0.12             6.72 209+02 LT       
+209+02 LT              0.30 Grate 3×2', Curb 3'          1.12         0.62      55.2%         0.50             7.56 207+99 LT       
+200+19 LT              0.30 Curb 4'                      0.30         0.26      85.0%         0.05             4.63 203+48 LT       
+124+50 LT              2.88 Curb 4'                      2.88         1.87      64.9%         1.01            10.77 120+50 LT       
+120+50 LT              1.89 Curb 4'                      4.76         2.45      51.4%         2.31            13.01 118+25 LT       
+118+25 LT              1.73 Curb 4'                      6.49         2.86      44.0%         3.64            14.61 117+85 LT       
+116+25 LT              0.62 Curb 4'                      7.11         2.98      42.0%         4.12            15.11 115+66 LT       
+115+66 LT              0.44 Curb 4'                      7.55         3.07      40.7%         4.48            15.46 115+24 LT       
+122+11 RT              1.47 -                            1.47         1.25      85.0%         0.22             8.37 120+50 RT       
+120+50 RT              2.11 Curb 4'                      3.58         2.11      58.9%         1.47            11.69 117+85 RT       
+117+85 RT              1.63 Curb 5'                      5.21         3.05      58.5%         2.16            13.46 116+00 RT       
+116+00 RT              0.30 Curb 5'                      5.52         3.14      57.0%         2.37            13.74 115+90 RT       
+115+90 RT              0.61 Curb 5'                      6.12         3.32      54.3%         2.80            14.29 115+66 RT       
+210+00 LT              1.02 Curb 7'                     12.86         6.35      49.4%         6.50            18.87 208+98 LT       
+208+98 LT              0.99 Curb 7'                     14.97         6.86      45.8%         8.11            19.98 207+99 LT       
+115+42 LT              0.30 Grate 3×2', Curb 4'          0.30         0.30     100.0%         0.00             0.00 -               
+115+24 LT              0.61 Curb 12'                     8.46         6.95      82.2%         1.51            16.13 207+99 LT       
+207+99 LT              1.35 Curb 11'                    24.77        12.79      51.6%        11.98            24.14 206+55 LT       
+206+55 LT              1.69 Curb 6'                     26.46         7.86      29.7%        18.60            24.74 204+30 LT       
+204+62 LT              0.33 Curb 6'                     26.79         7.90      29.5%        18.89            24.86 204+30 LT       
+204+30 LT              0.30 Curb 6'                     27.09         7.94      29.3%        19.15            24.96 204+20 LT       
+204+20 LT              0.75 Curb 6'                     27.84        27.84     100.0%         0.00             0.00 -               
+203+48 LT              0.30 Curb 7'                     28.15         9.28      33.0%        18.86            25.32 204+20 LT       
+113+78 LT              0.61 Grate 3×2', Curb 4'          0.61         0.38      63.4%         0.22             6.00 112+35 LT       
+208+65 RT              0.50 Grate 3×2', Curb 4'          6.27         2.07      33.0%         4.20            14.42 208+17 RT       
+208+17 RT              3.02 Curb 4'                      9.28         3.38      36.4%         5.90            16.71 206+53 RT       
+206+53 RT              1.64 -                           16.83         5.42      32.2%        11.40            20.88 204+67 RT       
+204+67 RT              0.60 -                           17.43         5.51      31.6%        11.92            21.16 204+09 RT       
+204+09 RT              0.64 -                           18.07        18.07     100.0%         0.00             0.00 -               
+113+00 RT              0.68 Curb 4'                      0.68         0.58      85.0%         0.10             6.26 112+35 RT       
+112+35 LT              0.30 -                            0.30         0.26      85.0%         0.05             4.63 111+64 LT       
+112+35 RT              0.73 Curb 4'                      1.71         1.35      78.7%         0.37             8.86 111+65 RT       
+111+64 LT              0.30 -                            0.30         0.26      85.0%         0.05             4.63 -               
+111+65 RT              0.00 -                            2.01         1.66      82.6%         0.35             9.42 -               
+
+CONDUIT RESULTS
+----------------------------------------------------------------------------------------------------
+Conduit ID   Flow (cfs) Velocity   Depth (ft) Capacity %   Froude #   Regime    
+----------------------------------------------------------------------------------------------------
+218+06 RT_to_216+90 RT       4.64       4.75       0.49         2.0%       1.46 Supercritical
+219+10 RT_to_218+06 RT       1.30       5.16       0.30         8.8%       1.98 Supercritical
+219+20 RT_to_219+10 RT       0.61       5.48       0.17         2.7%       2.83 Supercritical
+219+30 RT_to_219+20 RT       0.26       4.23       0.11         1.2%       2.69 Supercritical
+218+06 LT_to_218+06 RT       3.42       4.14       0.48         3.5%       1.27 Supercritical
+219+10 LT_to_218+06 LT       2.43       3.86       0.43         4.5%       1.24 Supercritical
+219+20 LT_to_219+10 LT       2.48       3.76       0.45         4.8%       1.19 Supercritical
+219+30 LT_to_219+20 LT       1.77       3.76       0.35         3.0%       1.35 Supercritical
+220+08 LT_to_219+30 LT       1.57       3.31       0.36         3.0%       1.18 Supercritical
+220+81 LT_to_220+08 LT       0.65       2.69       0.22         1.1%       1.21 Supercritical
+220+06 RT_to_220+08 LT       0.26       3.08       0.14         1.8%       1.75 Supercritical
+218+03 LT_to_218+06 LT       0.61       2.64       0.20         0.5%       1.28 Supercritical
+218+00 LT_to_218+03 LT       0.30       2.65       0.16         1.2%       1.44 Supercritical
+204+09 RT_to_203+48 RT      18.07      12.59       0.93        44.3%       2.62 Supercritical
+204+67 RT_to_204+09 RT       5.51       4.94       0.77        31.4%       1.15 Supercritical
+206+53 RT_to_204+67 RT       5.42       4.74       0.78        32.5%       1.09 Supercritical
+208+17 RT_to_206+53 RT       1.69       8.06       0.26         6.8%       3.32 Supercritical
+208+17 RT_to_206+53 RT       1.69       8.06       0.26         6.8%       3.32 Supercritical
+208+65 RT_to_208+17 RT       2.07       4.07       0.49        23.5%       1.20 Supercritical
+210+60 RT_to_208+65 RT       2.55       6.15       0.43        17.7%       1.96 Supercritical
+212+60 RT_to_210+60 RT       2.07       7.46       0.32        10.1%       2.77 Supercritical
+214+60 RT_to_212+60 RT       1.36       4.09       0.36        12.9%       1.42 Supercritical
+113+78 LT_to_208+65 RT       0.38       2.51       0.21         4.3%       1.16 Supercritical
+203+48 LT_to_203+48 RT       9.28       5.01       0.88        15.4%       1.11 Supercritical
+204+20 LT_to_203+48 LT      27.84       6.93       1.43        27.2%       1.19 Supercritical
+204+30 LT_to_204+20 LT       7.94       4.81       0.76         7.8%       1.17 Supercritical
+204+62 LT_to_204+30 LT       7.90       4.80       0.75         7.8%       1.17 Supercritical
+206+55 LT_to_204+62 LT       7.86       4.65       0.77         8.1%       1.12 Supercritical
+207+99 LT_to_206+55 LT      12.79       5.72       0.94        12.0%       1.24 Supercritical
+208+98 LT_to_207+99 LT       6.86       4.85       0.76        14.1%       1.16 Supercritical
+210+00 LT_to_208+98 LT       6.35       4.65       0.74        13.5%       1.13 Supercritical
+210+51 LT_to_210+00 LT       5.72      10.53       0.52        25.8%       3.01 Supercritical
+211+00 LT_to_210+51 LT       2.56       7.73       0.36        12.9%       2.69 Supercritical
+213+00 LT_to_211+00 LT       2.43       7.00       0.38        13.8%       2.39 Supercritical
+413+36 RT_to_213+00 LT       2.94       7.11       0.43        17.6%       2.27 Supercritical
+413+36 @ 11' LT_to_413+36 RT       1.65       4.66       0.38        14.2%       1.58 Supercritical
+413+36 @ 23' LT_to_413+36 @ 11' LT       1.43       4.46       0.36        12.3%       1.57 Supercritical
+214+50 LT_to_413+36 @ 23' LT       1.13       3.93       0.33        10.5%       1.44 Supercritical
+215+00 LT_to_214+50 LT       0.44       4.20       0.16         2.5%       2.21 Supercritical
+413+25 LT_to_413+36 @ 11' LT       0.61       8.74       0.12         1.4%       5.32 Supercritical
+413+00 LT_to_413+25 LT       0.26       2.00       0.19         3.4%       0.98 Subcritical
+115+90 RT_to_210+00 LT       3.32       8.43       0.31         2.3%       3.21 Supercritical
+116+00 RT_to_115+90 RT       3.14       5.10       0.43         4.4%       1.66 Supercritical
+117+85 RT_to_116+00 RT       3.05       5.25       0.41         4.0%       1.74 Supercritical
+120+50 RT_to_117+85 RT       2.11       7.56       0.32        10.2%       2.80 Supercritical
+122+11 RT_to_120+50 RT       1.25       3.87       0.36        12.5%       1.36 Supercritical
+209+02 LT_to_208+98 LT       0.62       7.16       0.14         1.9%       4.04 Supercritical
+209+81 LT_to_209+02 LT       0.70       3.97       0.23         5.2%       1.74 Supercritical
+115+24 LT_to_207+99 LT       6.95       8.14       0.73        47.8%       1.90 Supercritical
+115+66 LT_to_115+24 LT       3.07       6.60       0.46        20.8%       2.01 Supercritical
+116+25 LT_to_115+66 LT       2.98       6.65       0.45        19.7%       2.06 Supercritical
+118+25 LT_to_116+25 LT       2.86       6.52       0.44        19.1%       2.03 Supercritical
+120+50 LT_to_118+25 LT       2.45       7.46       0.36        12.8%       2.60 Supercritical
+124+50 LT_to_120+50 LT       1.87       4.10       0.46        20.2%       1.26 Supercritical
+115+42 LT_to_115+24 LT       0.30       5.89       0.10         0.9%       3.97 Supercritical
+200+19 LT_to_200+19 RT       0.26       4.99       0.10         0.9%       3.36 Supercritical
+
+
+================================================================================
+DESIGN VIOLATIONS
+================================================================================
+
+[ERROR] HGL violation at 113+78 LT: HGL at 1289.82 ft is 9.43 ft above rim elevation of 1280.39 ft
+[ERROR] HGL violation at 115+42 LT: HGL at 1280.98 ft is 1.58 ft above rim elevation of 1279.40 ft
+[ERROR] HGL violation at 115+66 LT: HGL at 1280.50 ft is 0.26 ft above rim elevation of 1280.24 ft
+[ERROR] HGL violation at 116+25 LT: HGL at 1283.39 ft is 2.17 ft above rim elevation of 1281.22 ft
+[ERROR] HGL violation at 118+25 LT: HGL at 1289.04 ft is 4.59 ft above rim elevation of 1284.45 ft
+[ERROR] HGL violation at 120+50 LT: HGL at 1298.38 ft is 6.79 ft above rim elevation of 1291.59 ft
+[ERROR] HGL violation at 120+50 RT: HGL at 1295.52 ft is 3.58 ft above rim elevation of 1291.94 ft
+[ERROR] HGL violation at 122+11 RT: HGL at 1298.50 ft is 3.50 ft above rim elevation of 1295.00 ft
+[ERROR] HGL violation at 124+50 LT: HGL at 1302.71 ft is 8.36 ft above rim elevation of 1294.35 ft
+[ERROR] HGL violation at 204+09 RT: HGL at 1279.21 ft is 0.68 ft above rim elevation of 1278.53 ft
+[ERROR] HGL violation at 204+67 RT: HGL at 1282.58 ft is 4.03 ft above rim elevation of 1278.55 ft
+[ERROR] HGL violation at 206+53 RT: HGL at 1284.47 ft is 4.96 ft above rim elevation of 1279.51 ft
+[ERROR] HGL violation at 208+17 RT: HGL at 1287.46 ft is 6.98 ft above rim elevation of 1280.48 ft
+[ERROR] HGL violation at 208+65 RT: HGL at 1289.17 ft is 9.15 ft above rim elevation of 1280.02 ft
+[ERROR] HGL violation at 210+60 RT: HGL at 1293.96 ft is 9.14 ft above rim elevation of 1284.82 ft
+[ERROR] HGL violation at 211+00 LT: HGL at 1286.17 ft is 0.71 ft above rim elevation of 1285.46 ft
+[ERROR] HGL violation at 212+60 RT: HGL at 1303.38 ft is 12.25 ft above rim elevation of 1291.13 ft
+[ERROR] HGL violation at 213+00 LT: HGL at 1293.75 ft is 2.70 ft above rim elevation of 1291.05 ft
+[ERROR] HGL violation at 214+50 LT: HGL at 1300.97 ft is 11.17 ft above rim elevation of 1289.80 ft
+[ERROR] HGL violation at 214+60 RT: HGL at 1306.59 ft is 14.02 ft above rim elevation of 1292.57 ft
+[ERROR] HGL violation at 215+00 LT: HGL at 1303.15 ft is 11.18 ft above rim elevation of 1291.97 ft
+[ERROR] HGL violation at 413+00 LT: HGL at 1303.10 ft is 12.57 ft above rim elevation of 1290.53 ft
+[ERROR] HGL violation at 413+25 LT: HGL at 1301.72 ft is 11.34 ft above rim elevation of 1290.38 ft
+[ERROR] HGL violation at 413+36 @ 11' LT: HGL at 1298.57 ft is 8.18 ft above rim elevation of 1290.39 ft
+[ERROR] HGL violation at 413+36 @ 23' LT: HGL at 1299.48 ft is 9.98 ft above rim elevation of 1289.50 ft
+[ERROR] HGL violation at 413+36 RT: HGL at 1296.85 ft is 7.85 ft above rim elevation of 1289.00 ft

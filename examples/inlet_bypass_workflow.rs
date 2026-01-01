@@ -42,6 +42,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             curb_opening: None,
             local_depression: Some(2.0),
             clogging_factor: Some(0.15),
+            bypass_to: None,
         },
     );
 
@@ -64,6 +65,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             }),
             local_depression: Some(2.0),
             clogging_factor: Some(0.15),
+            bypass_to: None,
         },
     );
 
@@ -82,6 +84,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             curb_opening: None,
             local_depression: None,
             clogging_factor: Some(0.50),
+            bypass_to: None,
         },
     );
 
@@ -324,6 +327,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let analysis = hgl_solver.solve(
         &network,
         &conduit_flows,
+        &[],
         "10-year-storm".to_string(),
     )?;
 

@@ -41,6 +41,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             }),
             local_depression: Some(2.0),
             clogging_factor: Some(0.15),
+            bypass_to: None,
         },
     );
 

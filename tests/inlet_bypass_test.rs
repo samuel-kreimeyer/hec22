@@ -53,6 +53,7 @@ fn test_inlet_bypass_in_series() {
         }),
         local_depression: Some(2.0/12.0), // 2 inches = 0.167 ft
         clogging_factor: Some(0.0), // No clogging for clear test results
+        bypass_to: None,
     };
 
     // ========== INLET 1: On-grade upstream ==========

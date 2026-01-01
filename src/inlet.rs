@@ -129,57 +129,77 @@ impl GrateInletOnGrade {
         }
     }
 
-    /// Calculate frontal flow interception efficiency
+    /// Calculate frontal flow capture efficiency (Rf)
     ///
-    /// E_f = R_f for V < V_0
-    /// E_f = 1 - (1 - R_f)(V/V_0 - 1) for V >= V_0
+    /// HEC-22 Equation 7.5: Rf = 1 - Ku·(V - Vo)
     ///
-    /// where V_0 = 1.79 ft/s for perpendicular bars
-    ///       V_0 = 0.49 ft/s for parallel bars (splash-over threshold)
-    fn frontal_efficiency(&self, velocity: f64, ratio_frontal: f64) -> f64 {
-        let v0 = match self.bar_configuration {
-            BarConfiguration::Perpendicular => 1.79,
-            BarConfiguration::Parallel => 0.49,
-        };
+    /// Where:
+    ///   Vo = Ku_vo · √(g·L)  (splash-over velocity)
+    ///   Ku = 0.09 (US customary)
+    ///   Ku_vo = 0.09 (US customary) for typical grates
+    ///   g = 32.2 ft/s² (US customary)
+    ///
+    /// If Rf > 1.0, use Rf = 1.0 (velocity below splash-over threshold)
+    fn frontal_capture_efficiency(&self, velocity: f64) -> f64 {
+        // Constants for US customary units
+        const KU_RF: f64 = 0.09;  // Eq. 7.5 constant
+        const KU_VO: f64 = 0.09;  // Splash-over velocity constant
+        const G: f64 = 32.2;      // Gravitational acceleration, ft/s²
 
-        if velocity < v0 {
-            ratio_frontal
-        } else {
-            let splash_over = (1.0 - ratio_frontal) * (velocity / v0 - 1.0);
-            1.0 - splash_over
-        }
+        // Calculate splash-over velocity: Vo = Ku·√(g·L)
+        let vo = KU_VO * (G * self.length).sqrt();
+
+        // Calculate frontal capture efficiency: Rf = 1 - Ku·(V - Vo)
+        let rf = 1.0 - KU_RF * (velocity - vo);
+
+        // Cap at 1.0 (100% efficiency when V ≤ Vo)
+        rf.min(1.0).max(0.0)
     }
 
-    /// Calculate side flow interception efficiency
+    /// Calculate side flow capture efficiency (Rs)
     ///
-    /// E_s = K_x × (L/T)^1.8
+    /// HEC-22 Equation 7.6: Rs = 1 / [1 + (Ku·V^1.8) / (Sx·L^2.3)]
     ///
-    /// where K_x = 0.15 for perpendicular bars
-    ///       K_x = 0.09 for parallel bars
-    fn side_efficiency(&self, spread: f64) -> f64 {
-        let kx = match self.bar_configuration {
-            BarConfiguration::Perpendicular => 0.15,
-            BarConfiguration::Parallel => 0.09,
-        };
+    /// Where:
+    ///   Ku = 0.15 (US customary units)
+    ///   V = Velocity of flow in gutter, ft/s
+    ///   Sx = Cross slope, ft/ft
+    ///   L = Length of grate, ft
+    fn side_capture_efficiency(&self, velocity: f64, cross_slope: f64) -> f64 {
+        // Constant for US customary units
+        const KU_RS: f64 = 0.15;  // Eq. 7.6 constant
 
-        let ratio = (self.length / spread).min(1.0);
-        kx * ratio.powf(1.8)
+        // HEC-22 Equation 7.6: Rs = 1 / [1 + (Ku·V^1.8) / (Sx·L^2.3)]
+        let numerator = KU_RS * velocity.powf(1.8);
+        let denominator = cross_slope * self.length.powf(2.3);
+
+        if denominator > 0.0 {
+            1.0 / (1.0 + numerator / denominator)
+        } else {
+            0.0
+        }
     }
 
     /// Calculate interception capacity
     ///
-    /// Uses composite gutter approach with frontal and side flow
+    /// HEC-22 Equation 7.3: E = Rf·Eo + Rs·(1 - Eo)
+    ///
+    /// Where:
+    ///   Rf = Frontal flow capture efficiency (Eq. 7.5)
+    ///   Rs = Side flow capture efficiency (Eq. 7.6)
+    ///   Eo = Frontal flow ratio
     pub fn interception(
         &self,
         approach_flow: f64,
         gutter_result: &GutterFlowResult,
+        cross_slope: f64,
     ) -> InletInterceptionResult {
         let spread = gutter_result.spread;
         let velocity = gutter_result.velocity;
 
-        // Calculate frontal flow ratio based on gutter type
+        // Calculate frontal flow ratio (Eo) based on gutter type
         // Composite gutters provide frontal_flow, uniform gutters do not
-        let ratio_frontal = if let Some(frontal) = gutter_result.frontal_flow {
+        let eo = if let Some(frontal) = gutter_result.frontal_flow {
             // Composite gutter - use the calculated frontal flow ratio
             // This accounts for depression and different slopes
             if gutter_result.flow > 0.0 {
@@ -194,14 +214,14 @@ impl GrateInletOnGrade {
             1.0 - (1.0 - w_over_t).powf(8.0 / 3.0)
         };
 
-        // Frontal flow efficiency
-        let ef = self.frontal_efficiency(velocity, ratio_frontal);
+        // Calculate frontal flow capture efficiency (Rf) - HEC-22 Eq. 7.5
+        let rf = self.frontal_capture_efficiency(velocity);
 
-        // Side flow efficiency
-        let es = self.side_efficiency(spread);
+        // Calculate side flow capture efficiency (Rs) - HEC-22 Eq. 7.6
+        let rs = self.side_capture_efficiency(velocity, cross_slope);
 
-        // Total efficiency (conservative approach)
-        let efficiency_gross = ef + es - ef * es;
+        // Total efficiency - HEC-22 Eq. 7.3: E = Rf·Eo + Rs·(1 - Eo)
+        let efficiency_gross = rf * eo + rs * (1.0 - eo);
 
         // Apply clogging factor
         let efficiency = efficiency_gross * (1.0 - self.clogging_factor);
@@ -221,9 +241,8 @@ impl GrateInletOnGrade {
 
     /// Calculate required length for 100% interception
     ///
-    /// L_T = 0.6 × Q^0.42 × S_L^0.3 / (n × S_x^0.6)
-    ///
-    /// HEC-22 Equation 7-11
+    /// HEC-22 Equation 7-11: L_T = 0.6 × Q^0.42 × S_L^0.3 × [1/(n×S_x)]^0.6
+    /// The 0.6 exponent applies to BOTH n and S_x
     pub fn length_for_total_interception(
         flow: f64,
         manning_n: f64,
@@ -231,7 +250,7 @@ impl GrateInletOnGrade {
         longitudinal_slope: f64,
     ) -> f64 {
         0.6 * flow.powf(0.42) * longitudinal_slope.powf(0.3)
-            / (manning_n * cross_slope.powf(0.6))
+            / (manning_n.powf(0.6) * cross_slope.powf(0.6))
     }
 }
 
@@ -440,8 +459,10 @@ impl CurbOpeningInletOnGrade {
         longitudinal_slope: f64,
     ) -> f64 {
         let ku = 0.6; // US customary units
+        // HEC-22 Equation 7.10: LT = Ku * Q^0.42 * SL^0.3 * [1/(n*Sx)]^0.6
+        // The 0.6 exponent applies to BOTH n and Sx
         ku * flow.powf(0.42) * longitudinal_slope.powf(0.3)
-            / (manning_n * cross_slope.powf(0.6))
+            / (manning_n.powf(0.6) * cross_slope.powf(0.6))
     }
 }
 
@@ -481,7 +502,7 @@ impl CombinationInletOnGrade {
         longitudinal_slope: f64,
     ) -> InletInterceptionResult {
         // Grate intercepts first
-        let grate_result = self.grate.interception(approach_flow, gutter_result);
+        let grate_result = self.grate.interception(approach_flow, gutter_result, cross_slope);
 
         // Curb opening intercepts from grate bypass
         if grate_result.bypass_flow > 0.0 {
@@ -788,6 +809,8 @@ impl CurbOpeningInletSag {
     /// Calculate capacity
     ///
     /// Uses weir and orifice equations similar to grate
+    ///
+    /// HEC-22: Orifice head measured to opening centroid (d - h/2)
     pub fn capacity(&self, ponding_depth: f64) -> f64 {
         let net_length = self.length * (1.0 - self.clogging_factor);
 
@@ -796,10 +819,12 @@ impl CurbOpeningInletSag {
         let q_weir = cw * net_length * ponding_depth.powf(1.5);
 
         // Orifice flow
+        // HEC-22: Head to centroid = ponding_depth - height/2
+        let head_to_centroid = (ponding_depth - self.height / 2.0).max(0.0);
         let area = net_length * self.height;
         let co = 0.67;
         let g = 32.17;
-        let q_orifice = co * area * (2.0 * g * ponding_depth).sqrt();
+        let q_orifice = co * area * (2.0 * g * head_to_centroid).sqrt();
 
         q_weir.min(q_orifice)
     }
@@ -821,10 +846,11 @@ mod tests {
         );
 
         // Create gutter result
-        let gutter = UniformGutter::new(0.016, 0.02, 0.01, None);
+        let cross_slope = 0.02;
+        let gutter = UniformGutter::new(0.016, cross_slope, 0.01, None);
         let gutter_result = gutter.result_for_flow(4.0, GUTTER_K_US);
 
-        let result = inlet.interception(4.0, &gutter_result);
+        let result = inlet.interception(4.0, &gutter_result, cross_slope);
 
         // Should intercept some flow
         assert!(result.intercepted_flow > 0.0);
@@ -948,7 +974,8 @@ mod tests {
         assert!(gutter_result.frontal_flow.is_some());
         assert!(gutter_result.side_flow.is_some());
 
-        let result = inlet.interception(4.0, &gutter_result);
+        let cross_slope = 0.02;  // Roadway cross slope
+        let result = inlet.interception(4.0, &gutter_result, cross_slope);
 
         // Should intercept some flow
         assert!(result.intercepted_flow > 0.0);

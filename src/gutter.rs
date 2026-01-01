@@ -13,7 +13,7 @@
 //! ## Key Equations
 //!
 //! ### Equation 5.2: Gutter Flow (Izzard's Modified Manning's Equation)
-//! ```
+//! ```text
 //! Q = (Ku/n) × Sx^1.67 × SL^0.5 × T^2.67
 //! ```
 //!
@@ -26,7 +26,7 @@
 //! - T = spread (width of flow) (ft or m)
 //!
 //! ### Equation 5.4: Spread for Given Flow
-//! ```
+//! ```text
 //! T = [(Qn)/(Ku × Sx^1.67 × SL^0.5)]^0.375
 //! ```
 
@@ -93,7 +93,7 @@ impl UniformGutter {
     /// Calculate flow capacity for a given spread
     ///
     /// **HEC-22 Equation 5.2:**
-    /// ```
+    /// ```text
     /// Q = (Ku/n) × Sx^1.67 × SL^0.5 × T^2.67
     /// ```
     ///
@@ -113,7 +113,7 @@ impl UniformGutter {
     /// Calculate spread for a given flow rate
     ///
     /// **HEC-22 Equation 5.4:**
-    /// ```
+    /// ```text
     /// T = [(Qn)/(Ku × Sx^1.67 × SL^0.5)]^0.375
     /// ```
     ///
@@ -212,7 +212,7 @@ impl CompositeGutter {
     /// Calculate cross slope in depressed section
     ///
     /// **HEC-22 Equation 5.8:**
-    /// ```
+    /// ```text
     /// Sw = Sg + a/W
     /// ```
     /// Where Sg is the gutter section base cross slope (before depression is added)
@@ -232,7 +232,7 @@ impl CompositeGutter {
     /// Calculate ratio of flow in depressed section to total flow
     ///
     /// **HEC-22 Equation 5.7:**
-    /// ```
+    /// ```text
     /// Eo = 1 / [1 + (Sw/Sx) / [(1 + (Sw/Sx)/(T/W-1))^2.67 - 1]]
     /// ```
     ///
@@ -275,7 +275,7 @@ impl CompositeGutter {
     /// Calculate frontal flow Q_w (flow in depressed gutter section)
     ///
     /// **HEC-22 Equation 5.5:**
-    /// ```
+    /// ```text
     /// Qw = Q × Eo
     /// ```
     ///
@@ -291,7 +291,7 @@ impl CompositeGutter {
     /// Calculate side flow Q_s (flow on roadway beyond gutter)
     ///
     /// **HEC-22 Equation 5.6:**
-    /// ```
+    /// ```text
     /// Qs = Q × (1 - Eo)
     /// ```
     ///

@@ -53,8 +53,30 @@ pub struct NodeCsvRecord {
     pub diameter: Option<f64>,
     /// Inlet type - optional, for inlets: "grate", "curb", "combination", "slotted"
     pub inlet_type: Option<String>,
+    /// Inlet location - optional, for inlets: "sag" or "on_grade"
+    pub inlet_location: Option<String>,
+    /// Grate length (ft) - optional, for grate inlets
+    pub grate_length: Option<f64>,
+    /// Grate width (ft) - optional, for grate inlets
+    pub grate_width: Option<f64>,
+    /// Bar configuration - optional, for grate inlets: "parallel" or "perpendicular"
+    pub bar_configuration: Option<String>,
+    /// Grate count - optional, number of grates
+    pub grate_count: Option<u32>,
+    /// Curb opening length (ft) - optional, for curb inlets
+    pub curb_opening_length: Option<f64>,
+    /// Curb opening height (ft) - optional, for curb inlets
+    pub curb_opening_height: Option<f64>,
+    /// Throat type - optional, for curb inlets: "horizontal", "inclined", or "vertical"
+    pub throat_type: Option<String>,
+    /// Local depression depth (ft) - optional, for inlets
+    pub local_depression: Option<f64>,
+    /// Clogging factor - optional, for inlets (0.0-1.0)
+    pub clogging_factor: Option<f64>,
     /// Boundary condition - optional, for outfalls: "free", "normal", "fixed"
     pub boundary_condition: Option<String>,
+    /// Bypass to node - optional, for inlets: node ID where bypass flow goes
+    pub bypass_to: Option<String>,
 }
 
 impl NodeCsvRecord {
@@ -85,17 +107,60 @@ impl NodeCsvRecord {
                     Some(t) => return Err(format!("Unknown inlet type: {}", t).into()),
                 };
 
+                // Parse inlet location
+                let location = match self.inlet_location.as_deref() {
+                    Some("sag") => InletLocation::Sag,
+                    Some("on_grade") => InletLocation::OnGrade,
+                    _ => InletLocation::OnGrade, // default
+                };
+
+                // Parse grate properties if grate dimensions are provided
+                let grate = if self.grate_length.is_some() || self.grate_width.is_some() {
+                    let bar_config = match self.bar_configuration.as_deref() {
+                        Some("parallel") => Some(crate::node::BarConfiguration::Parallel),
+                        Some("perpendicular") => Some(crate::node::BarConfiguration::Perpendicular),
+                        _ => None,
+                    };
+
+                    Some(crate::node::GrateProperties {
+                        length: self.grate_length,
+                        width: self.grate_width,
+                        bar_configuration: bar_config,
+                    })
+                } else {
+                    None
+                };
+
+                // Parse curb opening properties if curb dimensions are provided
+                let curb_opening = if self.curb_opening_length.is_some() || self.curb_opening_height.is_some() {
+                    let throat = match self.throat_type.as_deref() {
+                        Some("horizontal") => Some(crate::node::ThroatType::Horizontal),
+                        Some("inclined") => Some(crate::node::ThroatType::Inclined),
+                        Some("vertical") => Some(crate::node::ThroatType::Vertical),
+                        _ => None,
+                    };
+
+                    Some(crate::node::CurbOpeningProperties {
+                        length: self.curb_opening_length,
+                        height: self.curb_opening_height,
+                        throat_type: throat,
+                    })
+                } else {
+                    None
+                };
+
                 let mut node = Node::new_inlet(
                     self.id.clone(),
                     self.invert_elev,
                     rim_elev,
                     InletProperties {
                         inlet_type,
-                        location: InletLocation::OnGrade, // default
-                        grate: None,
-                        curb_opening: None,
-                        local_depression: None,
-                        clogging_factor: None,
+                        location,
+                        grate,
+                        curb_opening,
+                        local_depression: self.local_depression,
+                        clogging_factor: self.clogging_factor,
+                        bypass_to: self.bypass_to.clone(),
                     },
                 );
                 node.coordinates = coordinates;
@@ -479,7 +544,18 @@ mod tests {
             y: Some(0.0),
             diameter: None,
             inlet_type: Some("grate".to_string()),
+            inlet_location: None,
+            grate_length: None,
+            grate_width: None,
+            bar_configuration: None,
+            grate_count: None,
+            curb_opening_length: None,
+            curb_opening_height: None,
+            throat_type: None,
+            local_depression: None,
+            clogging_factor: None,
             boundary_condition: None,
+            bypass_to: None,
         };
 
         let node = record.to_node().unwrap();
@@ -498,7 +574,18 @@ mod tests {
             y: Some(50.0),
             diameter: Some(4.0),
             inlet_type: None,
+            inlet_location: None,
+            grate_length: None,
+            grate_width: None,
+            bar_configuration: None,
+            grate_count: None,
+            curb_opening_length: None,
+            curb_opening_height: None,
+            throat_type: None,
+            local_depression: None,
+            clogging_factor: None,
             boundary_condition: None,
+            bypass_to: None,
         };
 
         let node = record.to_node().unwrap();

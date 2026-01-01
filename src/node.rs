@@ -142,6 +142,11 @@ pub struct InletProperties {
     #[serde(skip_serializing_if = "Option::is_none")]
     #[serde(rename = "cloggingFactor")]
     pub clogging_factor: Option<f64>,
+
+    /// Node ID where bypass flow is routed (for on-grade inlets)
+    #[serde(skip_serializing_if = "Option::is_none")]
+    #[serde(rename = "bypassTo")]
+    pub bypass_to: Option<String>,
 }
 
 /// Inlet type classification
@@ -379,6 +384,7 @@ mod tests {
             curb_opening: None,
             local_depression: Some(2.0),
             clogging_factor: Some(0.15),
+            bypass_to: None,
         };
 
         let node = Node::new_inlet("IN-001".to_string(), 124.5, 128.0, props);

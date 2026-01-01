@@ -47,6 +47,7 @@ fn test_tributary_flow_isolation_in_parallel_branches() {
             curb_opening: None,
             local_depression: Some(2.0),
             clogging_factor: Some(0.10),
+            bypass_to: None,
         },
     );
 
@@ -66,6 +67,7 @@ fn test_tributary_flow_isolation_in_parallel_branches() {
             curb_opening: None,
             local_depression: Some(2.0),
             clogging_factor: Some(0.10),
+            bypass_to: None,
         },
     );
 
@@ -316,7 +318,7 @@ fn test_tributary_flow_isolation_in_parallel_branches() {
     let hgl_solver = solver::HglSolver::new(config);
 
     let analysis = hgl_solver
-        .solve(&network, &conduit_flows, "tributary-flow-test".to_string())
+        .solve(&network, &conduit_flows, &[], "tributary-flow-test".to_string())
         .expect("HGL solver should succeed");
 
     // Verify analysis results

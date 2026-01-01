@@ -1,26 +1,25 @@
 //! Test for outfall EGL calculation
 //!
-//! This test verifies that the Energy Grade Line (EGL) at the outfall is correctly
-//! calculated as EGL = HGL + velocity_head, where velocity_head = V²/(2g) and V is
-//! the velocity in the discharge conduit.
+//! This test verifies that the Energy Grade Line (EGL) at the outfall matches the
+//! receiving water surface elevation (no velocity head in the pool). Table 9.6
+//! then uses EGLa to compute the EGL just inside the pipe.
 
 use hec22::*;
 
-/// Test that outfall EGL includes velocity head from discharge conduit
+/// Test that outfall EGL matches tailwater elevation (pool condition)
 ///
 /// Network topology:
 ///   Inlet → Conduit → Outfall
 ///
 /// Expected behavior:
 /// - HGL at outfall = tailwater elevation
-/// - EGL at outfall = HGL + V²/(2g)
-/// - V = velocity in discharge conduit
+/// - EGL at outfall = HGL (no velocity head in the pool)
 #[test]
-fn test_outfall_egl_includes_velocity_head() {
+fn test_outfall_egl_matches_tailwater() {
     // Create a simple network: Inlet → Pipe → Outfall
     let _project = project::Project {
         name: "Outfall EGL Test".to_string(),
-        description: Some("Verify outfall EGL = HGL + velocity_head".to_string()),
+        description: Some("Verify outfall EGL = HGL (pool)".to_string()),
         location: None,
         units: project::Units::us_customary(),
         author: Some("Test Suite".to_string()),
@@ -44,6 +43,7 @@ fn test_outfall_egl_includes_velocity_head() {
             curb_opening: None,
             local_depression: Some(2.0),
             clogging_factor: Some(0.10),
+            bypass_to: None,
         },
     );
 
@@ -123,7 +123,7 @@ fn test_outfall_egl_includes_velocity_head() {
     let hgl_solver = solver::HglSolver::new(config);
 
     let analysis = hgl_solver
-        .solve(&network, &conduit_flows, "outfall-egl-test".to_string())
+        .solve(&network, &conduit_flows, &[], "outfall-egl-test".to_string())
         .expect("HGL solver should succeed");
 
     // Get results
@@ -154,7 +154,6 @@ fn test_outfall_egl_includes_velocity_head() {
     // Calculate expected values
     let hgl_outfall = outfall_result.hgl.unwrap();
     let egl_outfall = outfall_result.egl.unwrap();
-    let velocity = pipe_result.velocity.unwrap();
 
     // Verify HGL matches tailwater
     assert!(
@@ -163,51 +162,38 @@ fn test_outfall_egl_includes_velocity_head() {
         hgl_outfall
     );
 
-    // Calculate velocity head: V²/(2g)
-    let gravity = 32.2; // ft/s²
-    let velocity_head = (velocity * velocity) / (2.0 * gravity);
-
-    println!("\n=== Velocity Head Calculation ===");
-    println!("  Velocity: {:.4} ft/s", velocity);
-    println!("  Velocity² / (2g): {:.4} ft", velocity_head);
-    println!("  Expected EGL: HGL + V²/(2g) = {:.4} + {:.4} = {:.4} ft",
-             hgl_outfall, velocity_head, hgl_outfall + velocity_head);
+    println!("\n=== EGL Calculation ===");
+    println!("  Expected EGL: HGL = {:.4} ft", hgl_outfall);
     println!("  Actual EGL: {:.4} ft", egl_outfall);
-    println!("  Difference: {:.4} ft", (egl_outfall - (hgl_outfall + velocity_head)).abs());
+    println!("  Difference: {:.4} ft", (egl_outfall - hgl_outfall).abs());
 
     // *** CRITICAL ASSERTION ***
-    // EGL at outfall should equal HGL + velocity_head
-    let expected_egl = hgl_outfall + velocity_head;
+    // EGL at outfall should equal HGL (receiving pool, no velocity head)
+    let expected_egl = hgl_outfall;
 
     assert!(
         (egl_outfall - expected_egl).abs() < 0.01,
-        "FAILED: Outfall EGL should be HGL + V²/(2g)\n\
-         Expected: {:.4} ft (HGL {:.4} + velocity head {:.4})\n\
+        "FAILED: Outfall EGL should equal HGL\n\
+         Expected: {:.4} ft (HGL {:.4})\n\
          Got: {:.4} ft\n\
          Difference: {:.4} ft\n\
          \n\
-         The EGL at the outfall must include the velocity head from the discharge conduit.\n\
-         Velocity in discharge pipe: {:.2} ft/s\n\
-         Velocity head (V²/2g): {:.4} ft",
+         The EGL at the outfall must match the receiving water surface elevation.",
         expected_egl,
         hgl_outfall,
-        velocity_head,
         egl_outfall,
-        (egl_outfall - expected_egl).abs(),
-        velocity,
-        velocity_head
+        (egl_outfall - expected_egl).abs()
     );
 
-    println!("\n✓ TEST PASSED: Outfall EGL = HGL + V²/(2g)");
-    println!("  EGL correctly includes velocity head from discharge conduit");
+    println!("\n✓ TEST PASSED: Outfall EGL = HGL (pool condition)");
 }
 
 /// Test outfall EGL with different flow rates
 ///
-/// This test verifies that the velocity head changes appropriately with flow rate
+/// This test verifies that EGL stays tied to the tailwater elevation
 #[test]
 fn test_outfall_egl_with_varying_flows() {
-    // Test with multiple flow rates to verify velocity head calculation
+    // Test with multiple flow rates to verify EGL remains at tailwater
     let test_flows = vec![
         (2.0, "Low flow"),
         (5.0, "Medium flow"),
@@ -233,6 +219,7 @@ fn test_outfall_egl_with_varying_flows() {
                 curb_opening: None,
                 local_depression: Some(2.0),
                 clogging_factor: Some(0.10),
+            bypass_to: None,
             },
         );
 
@@ -279,37 +266,30 @@ fn test_outfall_egl_with_varying_flows() {
         let config = solver::SolverConfig::us_customary();
         let hgl_solver = solver::HglSolver::new(config);
         let analysis = hgl_solver
-            .solve(&network, &flows, format!("flow-test-{}", target_flow))
+            .solve(&network, &flows, &[], format!("flow-test-{}", target_flow))
             .expect("Solver should succeed");
 
         // Get results
         let node_results = analysis.node_results.as_ref().unwrap();
-        let conduit_results = analysis.conduit_results.as_ref().unwrap();
-
         let outfall_result = node_results.iter().find(|r| r.node_id == "Outfall").unwrap();
-        let pipe_result = conduit_results.iter().find(|r| r.conduit_id == "Pipe").unwrap();
 
         let hgl = outfall_result.hgl.unwrap();
         let egl = outfall_result.egl.unwrap();
-        let velocity = pipe_result.velocity.unwrap();
-        let velocity_head = (velocity * velocity) / (2.0 * 32.2);
-        let expected_egl = hgl + velocity_head;
+        let expected_egl = hgl;
 
         println!("  Flow: {:.2} cfs", target_flow);
-        println!("  Velocity: {:.2} ft/s", velocity);
-        println!("  Velocity head: {:.4} ft", velocity_head);
         println!("  HGL: {:.2} ft", hgl);
         println!("  Expected EGL: {:.4} ft", expected_egl);
         println!("  Actual EGL: {:.4} ft", egl);
 
         assert!(
             (egl - expected_egl).abs() < 0.01,
-            "{}: EGL should be HGL + V²/(2g). Expected {:.4}, got {:.4}",
+            "{}: EGL should match HGL (tailwater). Expected {:.4}, got {:.4}",
             description,
             expected_egl,
             egl
         );
     }
 
-    println!("\n✓ All flow rates verified: EGL = HGL + V²/(2g)");
+    println!("\n✓ All flow rates verified: EGL = HGL (tailwater)");
 }

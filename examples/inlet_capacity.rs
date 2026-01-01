@@ -59,7 +59,7 @@ fn example_1_grate_on_grade() {
         2.0,                             // 2 inch local depression
     );
 
-    let result = inlet.interception(approach_flow, &gutter_result);
+    let result = inlet.interception(approach_flow, &gutter_result, 0.02);
 
     println!("\nInlet performance:");
     println!("  Intercepted flow: {:.2} cfs", result.intercepted_flow);
@@ -138,7 +138,7 @@ fn example_3_combination_inlet() {
     let curb = CurbOpeningInletOnGrade::new(5.0, 0.5, ThroatType::Horizontal, 0.10);
 
     // Test grate alone
-    let grate_only = grate.interception(approach_flow, &gutter_result);
+    let grate_only = grate.interception(approach_flow, &gutter_result, 0.02);
     println!("\nGrate alone:");
     println!("  Intercepted: {:.2} cfs", grate_only.intercepted_flow);
     println!("  Bypass: {:.2} cfs", grate_only.bypass_flow);
@@ -190,7 +190,7 @@ fn example_4_series_with_bypass() {
         2.0,
     );
     let gutter1 = gutter.result_for_flow(initial_flow, GUTTER_K_US);
-    let result1 = inlet1.interception(initial_flow, &gutter1);
+    let result1 = inlet1.interception(initial_flow, &gutter1, 0.02);
 
     println!("  Approach flow: {:.2} cfs", result1.approach_flow);
     println!("  Spread: {:.2} ft", result1.spread);
@@ -209,7 +209,7 @@ fn example_4_series_with_bypass() {
 
     let inlet2 = GrateInletOnGrade::new(3.0, 2.0, BarConfiguration::Perpendicular, 0.15, 2.0);
     let gutter2 = gutter.result_for_flow(approach_flow_2, GUTTER_K_US);
-    let result2 = inlet2.interception(approach_flow_2, &gutter2);
+    let result2 = inlet2.interception(approach_flow_2, &gutter2, 0.02);
 
     println!("  Total approach flow: {:.2} cfs", result2.approach_flow);
     println!("  Spread: {:.2} ft", result2.spread);

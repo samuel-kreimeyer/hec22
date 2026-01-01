@@ -230,7 +230,11 @@ fn run_analysis(cli: Cli) -> Result<(), Box<dyn std::error::Error>> {
 
     // Route flows through network
     println!("\nRouting flows through network...");
-    let conduit_flows = solver::route_flows(&network, &node_inflows)
+    let unit_system = match cli.units {
+        UnitSystemArg::Us => project::UnitSystem::US,
+        UnitSystemArg::Si => project::UnitSystem::SI,
+    };
+    let (conduit_flows, inlet_results) = solver::route_flows_with_inlets(&network, &node_inflows, unit_system)
         .map_err(|e| format!("Flow routing failed: {}", e))?;
 
     for (conduit_id, flow) in &conduit_flows {
@@ -245,7 +249,7 @@ fn run_analysis(cli: Cli) -> Result<(), Box<dyn std::error::Error>> {
     };
 
     let hgl_solver = solver::HglSolver::new(config);
-    let analysis = hgl_solver.solve(&network, &conduit_flows, "Design Storm".to_string())
+    let analysis = hgl_solver.solve(&network, &conduit_flows, &inlet_results, "Design Storm".to_string())
         .map_err(|e| format!("HGL solver failed: {}", e))?;
 
     // Generate output
@@ -255,7 +259,7 @@ fn run_analysis(cli: Cli) -> Result<(), Box<dyn std::error::Error>> {
 
     match cli.format {
         OutputFormat::Text => {
-            let report = format_text_report(&network, &analysis, &cli.units);
+            let report = format_text_report(&network, &analysis, &cli.units, &inlet_results);
             if let Some(ref output_path) = cli.output {
                 std::fs::write(output_path, &report)?;
                 println!("Results written to file");
@@ -303,42 +307,120 @@ fn run_analysis(cli: Cli) -> Result<(), Box<dyn std::error::Error>> {
 }
 
 fn format_text_report(
-    _network: &network::Network,
+    network: &network::Network,
     analysis: &analysis::Analysis,
     units: &UnitSystemArg,
+    inlet_results: &[solver::InletInterception],
 ) -> String {
     let mut report = String::new();
     let unit_suffix = if matches!(units, UnitSystemArg::Us) { "ft" } else { "m" };
 
     // Node Results
     report.push_str("NODE RESULTS\n");
-    report.push_str(&format!("{:-<80}\n", ""));
+    report.push_str(&format!("{:-<100}\n", ""));
     report.push_str(&format!(
-        "{:<12} {:<10} {:<10} {:<10} {:<10} {:<10}\n",
+        "{:<16} {:<10} {:<10} {:<10} {:<10} {:<12} {:<10}\n",
         "Node ID",
         format!("HGL ({})", unit_suffix),
         format!("EGL ({})", unit_suffix),
         format!("Depth ({})", unit_suffix),
         "Velocity",
+        format!("Spread ({})", unit_suffix),
         "Flooding"
     ));
-    report.push_str(&format!("{:-<80}\n", ""));
+    report.push_str(&format!("{:-<100}\n", ""));
 
     if let Some(ref node_results) = analysis.node_results {
         for result in node_results {
+            let spread_str = if let Some(spread) = result.gutter_spread {
+                format!("{:>10.2}", spread)
+            } else {
+                format!("{:>10}", "-")
+            };
+
             report.push_str(&format!(
-                "{:<12} {:>10.2} {:>10.2} {:>10.2} {:>10.2} {:>10}\n",
+                "{:<16} {:>10.2} {:>10.2} {:>10.2} {:>10} {:>12} {:>10}\n",
                 result.node_id,
                 result.hgl.unwrap_or(0.0),
                 result.egl.unwrap_or(0.0),
                 result.depth.unwrap_or(0.0),
-                result.velocity.unwrap_or(0.0),
+                if let Some(v) = result.velocity { format!("{:.2}", v) } else { "-".to_string() },
+                spread_str,
                 if result.flooding.unwrap_or(false) { "YES" } else { "No" }
             ));
         }
     }
 
     report.push('\n');
+
+    // Inlet Analysis
+    if !inlet_results.is_empty() {
+        report.push_str("INLET ANALYSIS\n");
+        report.push_str(&format!("{:-<140}\n", ""));
+        report.push_str(&format!(
+            "{:<16} {:<10} {:<20} {:<12} {:<12} {:<10} {:<12} {:<16} {:<16}\n",
+            "Inlet ID",
+            format!("Area (ac)"),
+            "Inlet Dimensions",
+            "Approach (cfs)",
+            "Captured (cfs)",
+            "Efficiency",
+            "Bypass (cfs)",
+            "Spread (ft)",
+            "Bypass To"
+        ));
+        report.push_str(&format!("{:-<140}\n", ""));
+
+        for inlet in inlet_results {
+            // Get the node to extract inlet dimensions
+            let node = network.nodes.iter().find(|n| n.id == inlet.node_id);
+
+            // Format inlet dimensions
+            let dimensions = if let Some(n) = node {
+                if let Some(ref inlet_props) = n.inlet {
+                    let mut dim_parts = Vec::new();
+
+                    // Check for grate
+                    if let Some(ref grate) = inlet_props.grate {
+                        if let (Some(l), Some(w)) = (grate.length, grate.width) {
+                            dim_parts.push(format!("Grate {}×{}'", l, w));
+                        }
+                    }
+
+                    // Check for curb opening
+                    if let Some(ref curb) = inlet_props.curb_opening {
+                        if let Some(l) = curb.length {
+                            dim_parts.push(format!("Curb {}'", l));
+                        }
+                    }
+
+                    if dim_parts.is_empty() {
+                        "-".to_string()
+                    } else {
+                        dim_parts.join(", ")
+                    }
+                } else {
+                    "-".to_string()
+                }
+            } else {
+                "-".to_string()
+            };
+
+            report.push_str(&format!(
+                "{:<16} {:>10.2} {:<20} {:>12.2} {:>12.2} {:>9.1}% {:>12.2} {:>16.2} {:<16}\n",
+                inlet.node_id,
+                inlet.drainage_area.unwrap_or(0.0),
+                dimensions,
+                inlet.approach_flow,
+                inlet.intercepted_flow,
+                inlet.efficiency * 100.0,
+                inlet.bypass_flow,
+                inlet.spread,
+                inlet.bypass_to_node.as_deref().unwrap_or("-")
+            ));
+        }
+        report.push('\n');
+    }
 
     // Conduit Results
     report.push_str("CONDUIT RESULTS\n");
