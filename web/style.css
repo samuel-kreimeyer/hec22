@@ -97,6 +97,27 @@ code {
   font-size: 1.2rem;
 }
 
+.section-block {
+  border: 1px dashed rgba(15, 118, 110, 0.35);
+  border-radius: 16px;
+  padding: 16px;
+  background: rgba(255, 255, 255, 0.5);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.section-block h3 {
+  margin: 0;
+  font-size: 1rem;
+}
+
+.hint {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
 .field-row {
   display: flex;
   flex-wrap: wrap;
@@ -152,6 +173,14 @@ code {
 
 .file input {
   padding: 8px 0;
+}
+
+.import-status {
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: rgba(15, 118, 110, 0.1);
+  color: var(--accent-deep);
+  font-size: 0.85rem;
 }
 
 .actions {

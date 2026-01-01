@@ -1,5 +1,6 @@
 # Rust
 /target/
+**/target/
 Cargo.lock
 
 # IDE
@@ -12,3 +13,8 @@ Cargo.lock
 # OS
 .DS_Store
 Thumbs.db
+
+# WASM build outputs
+/wasm/web/pkg/
+/wasm/web/pkg~/
+/web/pkg/

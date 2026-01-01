@@ -21,6 +21,30 @@
   <main class="layout">
     <section class="panel">
       <h2>Input</h2>
+      <div class="section-block">
+        <h3>CSV import</h3>
+        <p class="hint">Upload separate CSV files for nodes, conduits, and drainage areas. The importer maps columns used by the CLI CSV format.</p>
+        <div class="field-row">
+          <label class="file">
+            <span>Nodes CSV</span>
+            <input id="nodesCsv" type="file" accept=".csv,text/csv">
+          </label>
+          <label class="file">
+            <span>Conduits CSV</span>
+            <input id="conduitsCsv" type="file" accept=".csv,text/csv">
+          </label>
+          <label class="file">
+            <span>Drainage areas CSV</span>
+            <input id="areasCsv" type="file" accept=".csv,text/csv">
+          </label>
+        </div>
+        <div class="actions">
+          <button id="buildFromCsv" class="primary">Build request from CSV</button>
+          <button id="downloadTemplates" class="ghost">Download CSV templates</button>
+        </div>
+        <div class="import-status" id="csvStatus">No CSV files loaded.</div>
+      </div>
+
       <div class="field-row">
         <label class="field">
           <span>Design intensity</span>
