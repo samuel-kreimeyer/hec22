@@ -1776,7 +1776,10 @@ function renderCsvPreviewCard(container, key, state) {
   });
 
   table.appendChild(tbody);
-  card.appendChild(table);
+  const tableWrap = document.createElement("div");
+  tableWrap.className = "csv-table-wrap";
+  tableWrap.appendChild(table);
+  card.appendChild(tableWrap);
 
   if (records.length > previewLimit) {
     const note = document.createElement("p");
