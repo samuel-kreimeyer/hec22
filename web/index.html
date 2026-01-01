@@ -89,6 +89,16 @@
 
     <section class="panel">
       <h2>Output</h2>
+      <div class="section-block">
+        <h3>Exports</h3>
+        <p class="hint">Download solver outputs or open a printable report view.</p>
+        <div class="actions">
+          <button id="downloadResultsJson" class="ghost">Download results JSON</button>
+          <button id="downloadResultsCsv" class="ghost">Download results CSVs</button>
+          <button id="openReport" class="primary">Open report view</button>
+        </div>
+        <div class="import-status" id="exportStatus">No results yet.</div>
+      </div>
       <pre id="output" class="output">Waiting for input…</pre>
     </section>
   </main>

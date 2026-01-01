@@ -15,6 +15,10 @@ const buildFromCsvButton = document.getElementById("buildFromCsv");
 const downloadTemplatesButton = document.getElementById("downloadTemplates");
 const csvStatus = document.getElementById("csvStatus");
 const csvPreview = document.getElementById("csvPreview");
+const downloadResultsJsonButton = document.getElementById("downloadResultsJson");
+const downloadResultsCsvButton = document.getElementById("downloadResultsCsv");
+const openReportButton = document.getElementById("openReport");
+const exportStatus = document.getElementById("exportStatus");
 
 const sampleRequest = {
   network: {
@@ -91,6 +95,8 @@ const csvState = {
   conduits: null,
   areas: null
 };
+let lastResult = null;
+let lastResultRaw = "";
 
 worker.onmessage = (event) => {
   const { id, ok, response, error } = event.data;
@@ -540,8 +546,8 @@ function buildRequestFromCsv() {
   return request;
 }
 
-function downloadCsv(filename, content) {
-  const blob = new Blob([content], { type: "text/csv" });
+function downloadFile(filename, content, type) {
+  const blob = new Blob([content], { type });
   const link = document.createElement("a");
   link.href = URL.createObjectURL(blob);
   link.download = filename;
@@ -549,6 +555,10 @@ function downloadCsv(filename, content) {
   link.click();
   document.body.removeChild(link);
   URL.revokeObjectURL(link.href);
+}
+
+function downloadCsv(filename, content) {
+  downloadFile(filename, content, "text/csv");
 }
 
 function csvEscape(value) {
@@ -569,6 +579,434 @@ function buildIssuesCsv(state, issuesList) {
     return values.map(csvEscape).join(",");
   });
   return [outputHeaders.map(csvEscape).join(","), ...rows].join("\n");
+}
+
+function updateExportStatus(message, isError = false) {
+  if (!exportStatus) {
+    return;
+  }
+  exportStatus.textContent = message;
+  exportStatus.style.background = isError ? "rgba(176, 26, 24, 0.12)" : "";
+  exportStatus.style.color = isError ? "#7a1c1b" : "";
+}
+
+function getAnalysisData(result) {
+  const analysis = result && result.analysis ? result.analysis : null;
+  if (!analysis) {
+    return {
+      analysis: null,
+      nodeResults: [],
+      conduitResults: [],
+      drainageAreaResults: [],
+      violations: []
+    };
+  }
+  return {
+    analysis,
+    nodeResults: analysis.nodeResults || analysis.node_results || [],
+    conduitResults: analysis.conduitResults || analysis.conduit_results || [],
+    drainageAreaResults: analysis.drainageAreaResults || analysis.drainage_area_results || [],
+    violations: analysis.violations || []
+  };
+}
+
+function getValueByPath(obj, path) {
+  if (!obj) {
+    return "";
+  }
+  const parts = path.split(".");
+  let current = obj;
+  for (const part of parts) {
+    if (current && Object.prototype.hasOwnProperty.call(current, part)) {
+      current = current[part];
+    } else {
+      return "";
+    }
+  }
+  return current === null || current === undefined ? "" : current;
+}
+
+function buildCsvFromRows(rows, fields) {
+  const header = fields.map((field) => field.label);
+  const lines = rows.map((row) => {
+    const values = fields.map((field) => csvEscape(getValueByPath(row, field.key)));
+    return values.join(",");
+  });
+  return [header.join(","), ...lines].join("\n");
+}
+
+function buildMapCsv(mapObj, idLabel, valueLabel) {
+  const rows = Object.entries(mapObj || {}).map(([key, value]) => ({
+    id: key,
+    value
+  }));
+  return buildCsvFromRows(rows, [
+    { key: "id", label: idLabel },
+    { key: "value", label: valueLabel }
+  ]);
+}
+
+function downloadResultsCsvs(result) {
+  const { nodeResults, conduitResults, drainageAreaResults, violations } = getAnalysisData(result);
+
+  if (nodeResults.length) {
+    const csv = buildCsvFromRows(nodeResults, [
+      { key: "nodeId", label: "node_id" },
+      { key: "hgl", label: "hgl" },
+      { key: "egl", label: "egl" },
+      { key: "depth", label: "depth" },
+      { key: "velocity", label: "velocity" },
+      { key: "flooding", label: "flooding" },
+      { key: "pressureHead", label: "pressure_head" },
+      { key: "junctionLoss", label: "junction_loss" },
+      { key: "gutterSpread", label: "gutter_spread" }
+    ]);
+    downloadCsv("node_results.csv", csv);
+  }
+
+  if (conduitResults.length) {
+    const csv = buildCsvFromRows(conduitResults, [
+      { key: "conduitId", label: "conduit_id" },
+      { key: "flow", label: "flow" },
+      { key: "velocity", label: "velocity" },
+      { key: "depth", label: "depth" },
+      { key: "capacityUsed", label: "capacity_used" },
+      { key: "froudeNumber", label: "froude_number" },
+      { key: "flowRegime", label: "flow_regime" },
+      { key: "headloss.friction", label: "headloss_friction" },
+      { key: "headloss.entrance", label: "headloss_entrance" },
+      { key: "headloss.exit", label: "headloss_exit" },
+      { key: "headloss.bend", label: "headloss_bend" },
+      { key: "headloss.total", label: "headloss_total" }
+    ]);
+    downloadCsv("conduit_results.csv", csv);
+  }
+
+  if (drainageAreaResults.length) {
+    const csv = buildCsvFromRows(drainageAreaResults, [
+      { key: "drainageAreaId", label: "drainage_area_id" },
+      { key: "peakFlow", label: "peak_flow" },
+      { key: "timeOfPeak", label: "time_of_peak" },
+      { key: "totalVolume", label: "total_volume" },
+      { key: "intensity", label: "intensity" }
+    ]);
+    downloadCsv("drainage_area_results.csv", csv);
+  }
+
+  if (violations.length) {
+    const csv = buildCsvFromRows(violations, [
+      { key: "type", label: "type" },
+      { key: "severity", label: "severity" },
+      { key: "elementId", label: "element_id" },
+      { key: "message", label: "message" },
+      { key: "value", label: "value" },
+      { key: "limit", label: "limit" }
+    ]);
+    downloadCsv("violations.csv", csv);
+  }
+
+  if (result && result.conduit_flows && Object.keys(result.conduit_flows).length) {
+    const csv = buildMapCsv(result.conduit_flows, "conduit_id", "flow");
+    downloadCsv("conduit_flows.csv", csv);
+  }
+
+  if (result && result.node_inflows && Object.keys(result.node_inflows).length) {
+    const csv = buildMapCsv(result.node_inflows, "node_id", "flow");
+    downloadCsv("node_inflows.csv", csv);
+  }
+
+  if (result && result.inlet_results && result.inlet_results.length) {
+    const csv = buildCsvFromRows(result.inlet_results, [
+      { key: "node_id", label: "node_id" },
+      { key: "approach_flow", label: "approach_flow" },
+      { key: "intercepted_flow", label: "intercepted_flow" },
+      { key: "bypass_flow", label: "bypass_flow" },
+      { key: "efficiency", label: "efficiency" },
+      { key: "spread", label: "spread" },
+      { key: "bypass_to_node", label: "bypass_to_node" },
+      { key: "drainage_area", label: "drainage_area" }
+    ]);
+    downloadCsv("inlet_results.csv", csv);
+  }
+}
+
+function escapeHtml(value) {
+  return String(value)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
+function formatNumber(value) {
+  if (value === null || value === undefined || Number.isNaN(value)) {
+    return "—";
+  }
+  const number = Number(value);
+  if (!Number.isFinite(number)) {
+    return "—";
+  }
+  return number.toFixed(3).replace(/\.?0+$/, "");
+}
+
+function buildReportTable(headers, rows) {
+  const headCells = headers.map((label) => `<th>${escapeHtml(label)}</th>`).join("");
+  const bodyRows = rows
+    .map(
+      (row) =>
+        `<tr>${row.map((cell) => `<td>${escapeHtml(cell)}</td>`).join("")}</tr>`
+    )
+    .join("");
+  return `<table><thead><tr>${headCells}</tr></thead><tbody>${bodyRows}</tbody></table>`;
+}
+
+function buildReportHtml(result) {
+  const { analysis, nodeResults, conduitResults, drainageAreaResults, violations } =
+    getAnalysisData(result);
+
+  const nodeCount = nodeResults.length;
+  const conduitCount = conduitResults.length;
+  const drainageCount = drainageAreaResults.length;
+  const floodedCount = nodeResults.filter((node) => node.flooding).length;
+  const maxHgl = Math.max(
+    ...nodeResults.map((node) => (node.hgl !== null && node.hgl !== undefined ? node.hgl : -Infinity)),
+    -Infinity
+  );
+  const maxEgl = Math.max(
+    ...nodeResults.map((node) => (node.egl !== null && node.egl !== undefined ? node.egl : -Infinity)),
+    -Infinity
+  );
+  const supercriticalCount = conduitResults.filter(
+    (conduit) => conduit.flowRegime === "supercritical"
+  ).length;
+  const maxConduitFlow = Math.max(
+    ...conduitResults.map((conduit) =>
+      conduit.flow !== null && conduit.flow !== undefined ? conduit.flow : -Infinity
+    ),
+    -Infinity
+  );
+
+  const summaryRows = [
+    ["Design storm", analysis && analysis.designStormId ? analysis.designStormId : "—"],
+    ["Analysis method", analysis && analysis.method ? analysis.method : "—"],
+    ["Timestamp", analysis && analysis.timestamp ? analysis.timestamp : "—"],
+    ["Nodes", String(nodeCount)],
+    ["Conduits", String(conduitCount)],
+    ["Drainage areas", String(drainageCount)],
+    ["Max HGL", maxHgl === -Infinity ? "—" : formatNumber(maxHgl)],
+    ["Max EGL", maxEgl === -Infinity ? "—" : formatNumber(maxEgl)],
+    ["Flooded nodes", String(floodedCount)],
+    ["Supercritical conduits", String(supercriticalCount)],
+    ["Max conduit flow", maxConduitFlow === -Infinity ? "—" : formatNumber(maxConduitFlow)]
+  ];
+
+  const nodeTable = nodeResults.length
+    ? buildReportTable(
+        ["Node", "HGL", "EGL", "Depth", "Velocity", "Flooding", "Junction loss", "Gutter spread"],
+        nodeResults.map((node) => [
+          node.nodeId || "—",
+          formatNumber(node.hgl),
+          formatNumber(node.egl),
+          formatNumber(node.depth),
+          formatNumber(node.velocity),
+          node.flooding === true ? "Yes" : node.flooding === false ? "No" : "—",
+          formatNumber(node.junctionLoss),
+          formatNumber(node.gutterSpread)
+        ])
+      )
+    : "<p>No node results.</p>";
+
+  const conduitTable = conduitResults.length
+    ? buildReportTable(
+        [
+          "Conduit",
+          "Flow",
+          "Velocity",
+          "Depth",
+          "Capacity used",
+          "Froude",
+          "Regime",
+          "Headloss total"
+        ],
+        conduitResults.map((conduit) => [
+          conduit.conduitId || "—",
+          formatNumber(conduit.flow),
+          formatNumber(conduit.velocity),
+          formatNumber(conduit.depth),
+          formatNumber(conduit.capacityUsed),
+          formatNumber(conduit.froudeNumber),
+          conduit.flowRegime || "—",
+          formatNumber(conduit.headloss && conduit.headloss.total)
+        ])
+      )
+    : "<p>No conduit results.</p>";
+
+  const drainageTable = drainageAreaResults.length
+    ? buildReportTable(
+        ["Drainage area", "Peak flow", "Time of peak", "Total volume", "Intensity"],
+        drainageAreaResults.map((area) => [
+          area.drainageAreaId || "—",
+          formatNumber(area.peakFlow),
+          formatNumber(area.timeOfPeak),
+          formatNumber(area.totalVolume),
+          formatNumber(area.intensity)
+        ])
+      )
+    : "<p>No drainage area results.</p>";
+
+  const violationTable = violations.length
+    ? buildReportTable(
+        ["Type", "Severity", "Element", "Message", "Value", "Limit"],
+        violations.map((viol) => [
+          viol.type || "—",
+          viol.severity || "—",
+          viol.elementId || "—",
+          viol.message || "—",
+          formatNumber(viol.value),
+          formatNumber(viol.limit)
+        ])
+      )
+    : "<p>No violations reported.</p>";
+
+  const summaryTable = buildReportTable(["Metric", "Value"], summaryRows);
+
+  return `<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>HEC-22 Report</title>
+  <style>
+    :root {
+      --ink: #1f2428;
+      --muted: #5b5f63;
+      --accent: #0f766e;
+      --panel: #f7f3ea;
+      --border: #d2c8bb;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      padding: 32px 40px;
+      font-family: "Space Grotesk", "Trebuchet MS", sans-serif;
+      color: var(--ink);
+      background: #fdfbf6;
+    }
+    header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      margin-bottom: 24px;
+    }
+    h1 {
+      margin: 0;
+      font-size: 1.8rem;
+    }
+    .meta {
+      color: var(--muted);
+      font-size: 0.9rem;
+    }
+    .button-row {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+    button {
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      padding: 8px 14px;
+      background: #fff;
+      cursor: pointer;
+      font-family: inherit;
+      font-weight: 600;
+    }
+    section {
+      margin-bottom: 28px;
+      padding: 16px;
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      background: var(--panel);
+    }
+    h2 {
+      margin: 0 0 12px;
+      font-size: 1.1rem;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.85rem;
+    }
+    th, td {
+      text-align: left;
+      padding: 8px;
+      border-bottom: 1px solid var(--border);
+    }
+    th {
+      background: rgba(15, 118, 110, 0.08);
+    }
+    p {
+      margin: 0;
+      color: var(--muted);
+    }
+    @media print {
+      body { padding: 0; }
+      .button-row { display: none; }
+      section { break-inside: avoid; }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div>
+      <h1>HEC-22 Solver Report</h1>
+      <div class="meta">Generated ${escapeHtml(new Date().toLocaleString())}</div>
+    </div>
+    <div class="button-row">
+      <button onclick="window.print()">Print report</button>
+    </div>
+  </header>
+  <section>
+    <h2>Summary</h2>
+    ${summaryTable}
+  </section>
+  <section>
+    <h2>Node Results</h2>
+    ${nodeTable}
+  </section>
+  <section>
+    <h2>Conduit Results</h2>
+    ${conduitTable}
+  </section>
+  <section>
+    <h2>Drainage Area Results</h2>
+    ${drainageTable}
+  </section>
+  <section>
+    <h2>Violations</h2>
+    ${violationTable}
+  </section>
+</body>
+</html>`;
+}
+
+function ensureResult() {
+  if (lastResult) {
+    return { ok: true, result: lastResult };
+  }
+  const text = outputEl.textContent || "";
+  if (!text.trim() || text.startsWith("Error")) {
+    return { ok: false, error: "Run the solver to generate results." };
+  }
+  try {
+    const parsed = JSON.parse(text);
+    lastResult = parsed;
+    lastResultRaw = JSON.stringify(parsed, null, 2);
+    return { ok: true, result: parsed };
+  } catch (error) {
+    return { ok: false, error: "Output is not valid JSON." };
+  }
 }
 
 function summarizeCsvState() {
@@ -961,6 +1399,51 @@ if (csvPreview) {
   });
 }
 
+if (downloadResultsJsonButton) {
+  downloadResultsJsonButton.addEventListener("click", () => {
+    const resultState = ensureResult();
+    if (!resultState.ok) {
+      updateExportStatus(resultState.error, true);
+      return;
+    }
+    const json = lastResultRaw || JSON.stringify(resultState.result, null, 2);
+    downloadFile("results.json", json, "application/json");
+    updateExportStatus("Downloaded results JSON.");
+  });
+}
+
+if (downloadResultsCsvButton) {
+  downloadResultsCsvButton.addEventListener("click", () => {
+    const resultState = ensureResult();
+    if (!resultState.ok) {
+      updateExportStatus(resultState.error, true);
+      return;
+    }
+    downloadResultsCsvs(resultState.result);
+    updateExportStatus("Downloaded results CSV files.");
+  });
+}
+
+if (openReportButton) {
+  openReportButton.addEventListener("click", () => {
+    const resultState = ensureResult();
+    if (!resultState.ok) {
+      updateExportStatus(resultState.error, true);
+      return;
+    }
+    const reportHtml = buildReportHtml(resultState.result);
+    const reportWindow = window.open("", "hec22-report");
+    if (!reportWindow) {
+      updateExportStatus("Unable to open report window (popup blocked).", true);
+      return;
+    }
+    reportWindow.document.open();
+    reportWindow.document.write(reportHtml);
+    reportWindow.document.close();
+    updateExportStatus("Report view opened.");
+  });
+}
+
 buildFromCsvButton.addEventListener("click", () => {
   try {
     const request = buildRequestFromCsv();
@@ -1143,11 +1626,17 @@ runButton.addEventListener("click", async () => {
     parsed.unit_system = unitSelect.value || parsed.unit_system;
     parsed.use_inlet_interception = interceptionToggle.checked;
     const response = await callSolver(JSON.stringify(parsed));
-    outputEl.textContent = JSON.stringify(JSON.parse(response), null, 2);
+    lastResult = JSON.parse(response);
+    lastResultRaw = JSON.stringify(lastResult, null, 2);
+    outputEl.textContent = lastResultRaw;
     statusEl.textContent = "Done";
+    updateExportStatus("Results ready for export.");
   } catch (error) {
     statusEl.textContent = "Error";
     outputEl.textContent = String(error);
+    lastResult = null;
+    lastResultRaw = "";
+    updateExportStatus("No results yet.", false);
   }
 });
 
@@ -1167,3 +1656,4 @@ worker.addEventListener("error", () => {
 statusEl.textContent = "WASM ready";
 updateCsvStatus(summarizeCsvState());
 renderCsvPreview();
+updateExportStatus("No results yet.");
