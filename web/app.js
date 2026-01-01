@@ -22,6 +22,12 @@ const exportStatus = document.getElementById("exportStatus");
 const jsonStatus = document.getElementById("jsonStatus");
 const jsonErrors = document.getElementById("jsonErrors");
 const jsonPreview = document.getElementById("jsonPreview");
+const nodeTableEl = document.getElementById("nodeTable");
+const conduitTableEl = document.getElementById("conduitTable");
+const nodeFilterInput = document.getElementById("nodeFilter");
+const conduitFilterInput = document.getElementById("conduitFilter");
+const nodeTableMeta = document.getElementById("nodeTableMeta");
+const conduitTableMeta = document.getElementById("conduitTableMeta");
 
 const sampleRequest = {
   network: {
@@ -101,6 +107,18 @@ const csvState = {
 let lastResult = null;
 let lastResultRaw = "";
 let validationTimer = null;
+const tableState = {
+  nodes: {
+    sortKey: "nodeId",
+    sortDir: "asc",
+    filter: ""
+  },
+  conduits: {
+    sortKey: "conduitId",
+    sortDir: "asc",
+    filter: ""
+  }
+};
 
 worker.onmessage = (event) => {
   const { id, ok, response, error } = event.data;
@@ -1065,6 +1083,16 @@ function formatNumber(value) {
   return number.toFixed(3).replace(/\.?0+$/, "");
 }
 
+function formatBool(value) {
+  if (value === true) {
+    return "Yes";
+  }
+  if (value === false) {
+    return "No";
+  }
+  return "—";
+}
+
 function buildReportTable(headers, rows) {
   const headCells = headers.map((label) => `<th>${escapeHtml(label)}</th>`).join("");
   const bodyRows = rows
@@ -1322,6 +1350,194 @@ function ensureResult() {
   } catch (error) {
     return { ok: false, error: "Output is not valid JSON." };
   }
+}
+
+function normalizeSortValue(value) {
+  if (value === null || value === undefined) {
+    return null;
+  }
+  if (typeof value === "number") {
+    return value;
+  }
+  if (typeof value === "boolean") {
+    return value ? 1 : 0;
+  }
+  const text = String(value).trim();
+  if (text === "") {
+    return null;
+  }
+  const numeric = Number(text);
+  if (Number.isFinite(numeric)) {
+    return numeric;
+  }
+  return text.toLowerCase();
+}
+
+function sortRows(rows, sortKey, sortDir) {
+  const direction = sortDir === "desc" ? -1 : 1;
+  const sorted = [...rows];
+  sorted.sort((a, b) => {
+    const left = normalizeSortValue(getValueByPath(a, sortKey));
+    const right = normalizeSortValue(getValueByPath(b, sortKey));
+    if (left === null && right === null) {
+      return 0;
+    }
+    if (left === null) {
+      return 1;
+    }
+    if (right === null) {
+      return -1;
+    }
+    if (left < right) {
+      return -1 * direction;
+    }
+    if (left > right) {
+      return 1 * direction;
+    }
+    return 0;
+  });
+  return sorted;
+}
+
+function rowMatchesFilter(row, columns, filterText) {
+  if (!filterText) {
+    return true;
+  }
+  const text = filterText.toLowerCase();
+  return columns.some((column) => {
+    const value = getValueByPath(row, column.key);
+    if (value === null || value === undefined) {
+      return false;
+    }
+    return String(value).toLowerCase().includes(text);
+  });
+}
+
+function buildDataTable(container, metaEl, rows, columns, stateKey) {
+  if (!container) {
+    return;
+  }
+  const state = tableState[stateKey];
+  const filtered = rows.filter((row) => rowMatchesFilter(row, columns, state.filter));
+  const sorted = sortRows(filtered, state.sortKey, state.sortDir);
+
+  if (metaEl) {
+    const total = rows.length;
+    const shown = sorted.length;
+    metaEl.textContent = total ? `Showing ${shown} of ${total} rows.` : "No rows available.";
+  }
+
+  if (!rows.length) {
+    container.innerHTML = `<div class="table-empty">No results available.</div>`;
+    return;
+  }
+
+  if (!sorted.length) {
+    container.innerHTML = `<div class="table-empty">No rows match this filter.</div>`;
+    return;
+  }
+
+  const table = document.createElement("table");
+  table.className = "data-table";
+  const thead = document.createElement("thead");
+  const headerRow = document.createElement("tr");
+
+  columns.forEach((column) => {
+    const th = document.createElement("th");
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = "sort-button";
+    button.textContent = column.label;
+    if (state.sortKey === column.key) {
+      const indicator = document.createElement("span");
+      indicator.className = "sort-indicator";
+      indicator.textContent = state.sortDir === "asc" ? "↑" : "↓";
+      button.appendChild(indicator);
+    }
+    button.addEventListener("click", () => {
+      if (state.sortKey === column.key) {
+        state.sortDir = state.sortDir === "asc" ? "desc" : "asc";
+      } else {
+        state.sortKey = column.key;
+        state.sortDir = "asc";
+      }
+      buildDataTable(container, metaEl, rows, columns, stateKey);
+    });
+    th.appendChild(button);
+    headerRow.appendChild(th);
+  });
+
+  thead.appendChild(headerRow);
+  table.appendChild(thead);
+
+  const tbody = document.createElement("tbody");
+  sorted.forEach((row) => {
+    const tr = document.createElement("tr");
+    columns.forEach((column) => {
+      const td = document.createElement("td");
+      const raw = getValueByPath(row, column.key);
+      const display = column.format ? column.format(raw, row) : raw;
+      td.textContent = display === null || display === undefined || display === "" ? "—" : display;
+      tr.appendChild(td);
+    });
+    tbody.appendChild(tr);
+  });
+
+  table.appendChild(tbody);
+  container.innerHTML = "";
+  container.appendChild(table);
+}
+
+function renderResultsTables() {
+  const resultState = ensureResult();
+  if (!resultState.ok) {
+    if (nodeTableEl) {
+      nodeTableEl.innerHTML = `<div class="table-empty">Run the solver to see results.</div>`;
+    }
+    if (conduitTableEl) {
+      conduitTableEl.innerHTML = `<div class="table-empty">Run the solver to see results.</div>`;
+    }
+    if (nodeTableMeta) {
+      nodeTableMeta.textContent = "";
+    }
+    if (conduitTableMeta) {
+      conduitTableMeta.textContent = "";
+    }
+    return;
+  }
+
+  const { nodeResults, conduitResults } = getAnalysisData(resultState.result);
+
+  const nodeColumns = [
+    { key: "nodeId", label: "Node" },
+    { key: "hgl", label: "HGL", format: formatNumber },
+    { key: "egl", label: "EGL", format: formatNumber },
+    { key: "depth", label: "Depth", format: formatNumber },
+    { key: "velocity", label: "Velocity", format: formatNumber },
+    { key: "flooding", label: "Flooding", format: formatBool },
+    { key: "junctionLoss", label: "Junction loss", format: formatNumber },
+    { key: "gutterSpread", label: "Gutter spread", format: formatNumber }
+  ];
+
+  const conduitColumns = [
+    { key: "conduitId", label: "Conduit" },
+    { key: "flow", label: "Flow", format: formatNumber },
+    { key: "velocity", label: "Velocity", format: formatNumber },
+    { key: "depth", label: "Depth", format: formatNumber },
+    { key: "capacityUsed", label: "Capacity used", format: formatNumber },
+    { key: "froudeNumber", label: "Froude", format: formatNumber },
+    { key: "flowRegime", label: "Regime" },
+    { key: "headloss.total", label: "Headloss", format: formatNumber }
+  ];
+
+  buildDataTable(nodeTableEl, nodeTableMeta, nodeResults, nodeColumns, "nodes");
+  buildDataTable(
+    conduitTableEl,
+    conduitTableMeta,
+    conduitResults,
+    conduitColumns,
+    "conduits"
+  );
 }
 
 function summarizeCsvState() {
@@ -1949,12 +2165,14 @@ runButton.addEventListener("click", async () => {
     outputEl.textContent = lastResultRaw;
     statusEl.textContent = "Done";
     updateExportStatus("Results ready for export.");
+    renderResultsTables();
   } catch (error) {
     statusEl.textContent = "Error";
     outputEl.textContent = String(error);
     lastResult = null;
     lastResultRaw = "";
     updateExportStatus("No results yet.", false);
+    renderResultsTables();
   }
 });
 
@@ -1978,3 +2196,18 @@ updateExportStatus("No results yet.");
 validateJsonInput();
 
 requestEl.addEventListener("input", scheduleValidation);
+renderResultsTables();
+
+if (nodeFilterInput) {
+  nodeFilterInput.addEventListener("input", () => {
+    tableState.nodes.filter = nodeFilterInput.value || "";
+    renderResultsTables();
+  });
+}
+
+if (conduitFilterInput) {
+  conduitFilterInput.addEventListener("input", () => {
+    tableState.conduits.filter = conduitFilterInput.value || "";
+    renderResultsTables();
+  });
+}

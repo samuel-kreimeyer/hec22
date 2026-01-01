@@ -107,6 +107,26 @@
         </div>
         <div class="import-status" id="exportStatus">No results yet.</div>
       </div>
+      <div class="section-block">
+        <h3>Results tables</h3>
+        <p class="hint">Filter and sort node and conduit results.</p>
+        <div class="table-panel">
+          <div class="table-header">
+            <h4>Nodes</h4>
+            <input id="nodeFilter" type="search" placeholder="Filter nodes">
+          </div>
+          <div class="table-meta" id="nodeTableMeta"></div>
+          <div class="table-wrap" id="nodeTable"></div>
+        </div>
+        <div class="table-panel">
+          <div class="table-header">
+            <h4>Conduits</h4>
+            <input id="conduitFilter" type="search" placeholder="Filter conduits">
+          </div>
+          <div class="table-meta" id="conduitTableMeta"></div>
+          <div class="table-wrap" id="conduitTable"></div>
+        </div>
+      </div>
       <pre id="output" class="output">Waiting for input…</pre>
     </section>
   </main>
