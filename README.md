@@ -21,9 +21,9 @@ Data can be input in tabular form (spreadsheets, CSV files, or databases) for ef
 
 The `reference/` directory contains comprehensive technical documentation based on HEC-22:
 
-### Chapters (`reference/chapters/`)
+### Chapters
 
-Individual HEC-22 chapters extracted for easy reference:
+Individual HEC-22 chapters extracted for easy reference (see `docs/reference/FHWA HEC22/` for markdown files and `docs/reference/FHWA HEC22 pdfs/` for PDFs):
 
 - **HEC22 Chapter 2.pdf** - Hydrologic Analysis
 - **HEC22 Chapter 3.pdf** - Roadside and Median Channels
@@ -428,9 +428,16 @@ hec22/
 │   │   ├── CLI_USAGE.md               # CLI tool usage guide
 │   │   ├── ATLAS14_UTILITY.md         # ATLAS14 utility documentation
 │   │   └── COMPLETE_NETWORK_EXAMPLE.md # Complete network example
-│   ├── theory/                        # Theory and engineering notes
+│   ├── reference/                     # Theory, engineering notes, and reference materials
 │   │   ├── CHAPTER_5_EQUATIONS.md     # HEC-22 Chapter 5 equations
-│   │   └── flow_routing.md            # Flow routing methodology
+│   │   ├── chapter_9_equations.md     # HEC-22 Chapter 9 equations
+│   │   ├── flow_routing.md            # Flow routing methodology
+│   │   ├── TEST_CASE_REFERENCE.md     # Comprehensive test cases
+│   │   ├── FHWA HEC22/                # Full HEC-22 chapter markdown files
+│   │   ├── FHWA HEC22 pdfs/           # HEC-22 chapter PDFs
+│   │   ├── equations/                 # Hydraulic equations
+│   │   ├── constants/                 # Design constants
+│   │   └── guidance/                  # Design procedures and guides
 │   └── development/                   # Software development notes
 │       ├── CHANGELOG.md               # Project changelog
 │       ├── RUST_TYPES.md              # Rust type system documentation
@@ -438,30 +445,16 @@ hec22/
 │       ├── INLET_HYDRAULICS_REVIEW.md # Inlet implementation review
 │       ├── GUTTER_FIX_SUMMARY.md      # Gutter flow fixes summary
 │       ├── GUTTER_IMPLEMENTATION_ERRORS.md # Gutter implementation errors
+│       ├── HGL_HEC22_ALIGNMENT.md     # HGL/EGL conformance plan
 │       └── issues.md                  # Development issues and notes
 │
 ├── tests/                             # Integration and verification tests
 │   ├── README.md                      # Test documentation
 │   ├── chapter5_verification.rs       # HEC-22 Chapter 5 verification
 │   ├── json_schema_tests.rs           # JSON schema validation
-│   └── network_integration_test.rs    # Full network integration tests
-│
-├── reference/                         # Reference materials
-│   ├── chapters/                      # Individual HEC-22 chapters (PDFs)
-│   ├── equations/                     # Hydraulic equations (markdown)
-│   │   ├── manning_equation.md
-│   │   ├── gutter_flow.md
-│   │   ├── inlet_design.md
-│   │   ├── rational_method.md
-│   │   └── open_channel_flow.md
-│   ├── constants/                     # Design constants
-│   │   └── manning_n_values.md
-│   ├── guidance/                      # Design procedures
-│   │   ├── component_definitions.md
-│   │   ├── design_workflow.md
-│   │   ├── IMPLEMENTATION_GUIDE.md    # Advanced implementation guidance
-│   │   └── hif24006.pdf               # Complete HEC-22 manual
-│   └── TEST_CASE_REFERENCE.md         # Comprehensive test cases and examples
+│   ├── network_integration_test.rs    # Full network integration tests
+│   ├── tributary_flow_test.rs         # Tributary flow tests
+│   └── hec22_example_7_2_test.rs      # HEC-22 Example 7.2 test
 │
 ├── schema/                            # JSON schema definitions
 │   └── examples/                      # Schema example files

@@ -25,16 +25,16 @@ Documentation for users of the HEC-22 CLI tool and CSV templates:
   - Peak flow calculations
   - CLI usage examples
 
-### 🔬 Theory and Engineering (`theory/`)
+### 🔬 Theory and Engineering (`reference/`)
 
 Engineering theory, equations, and hydraulic design notes:
 
-- **[CHAPTER_5_EQUATIONS.md](theory/CHAPTER_5_EQUATIONS.md)** - HEC-22 Chapter 5 equations
+- **[CHAPTER_5_EQUATIONS.md](reference/CHAPTER_5_EQUATIONS.md)** - HEC-22 Chapter 5 equations
   - Gutter flow calculations
   - Uniform and composite gutters
   - Flow ratios and spread calculations
 
-- **[flow_routing.md](theory/flow_routing.md)** - Flow routing methodology
+- **[flow_routing.md](reference/flow_routing.md)** - Flow routing methodology
   - Network flow routing algorithms
   - Topological sorting
   - Energy balance concepts
@@ -83,9 +83,10 @@ Technical documentation for contributors and library developers:
 
 ## Reference Materials
 
-Additional technical references are available in the `reference/` directory (project root):
+Additional technical references are available in the `reference/` directory:
 
-- **HEC-22 Chapters** (`../reference/chapters/`) - Individual PDF chapters
+- **HEC-22 Chapters** (`reference/FHWA HEC22/`) - Individual chapter markdown files extracted from PDF
+- **HEC-22 PDFs** (`reference/FHWA HEC22 pdfs/`) - Individual PDF chapters
 - **Equations** (`../reference/equations/`) - Hydraulic and hydrologic equations
   - `manning_equation.md` - Pipe flow capacity
   - `gutter_flow.md` - Surface drainage and gutter flow
@@ -125,9 +126,9 @@ CSV templates and example files:
 - [ATLAS14 Utility](user/ATLAS14_UTILITY.md) - Rainfall data utility
 
 **For Engineers:**
-- [Chapter 5 Equations](theory/CHAPTER_5_EQUATIONS.md) - Gutter flow equations
-- [Flow Routing](theory/flow_routing.md) - Network routing methodology
-- [Reference Equations](../reference/equations/) - All hydraulic equations
+- [Chapter 5 Equations](reference/CHAPTER_5_EQUATIONS.md) - Gutter flow equations
+- [Flow Routing](reference/flow_routing.md) - Network routing methodology
+- [Reference Equations](reference/equations/) - All hydraulic equations
 
 **For Developers:**
 - [Changelog](development/CHANGELOG.md) - Version history and changes
