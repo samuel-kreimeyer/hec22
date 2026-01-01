@@ -264,6 +264,17 @@ code {
   background: rgba(176, 26, 24, 0.06);
 }
 
+.csv-card-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.csv-export {
+  font-size: 0.78rem;
+  padding: 6px 12px;
+}
+
 .csv-mapping {
   border-top: 1px dashed rgba(210, 200, 187, 0.8);
   padding-top: 10px;

@@ -551,6 +551,26 @@ function downloadCsv(filename, content) {
   URL.revokeObjectURL(link.href);
 }
 
+function csvEscape(value) {
+  const text = value === null || value === undefined ? "" : String(value);
+  if (/[",\n\r]/.test(text)) {
+    return `"${text.replace(/"/g, "\"\"")}"`;
+  }
+  return text;
+}
+
+function buildIssuesCsv(state, issuesList) {
+  const headerKeys = state.headers.length ? state.headers : state.rawHeaders.map(normalizeHeader);
+  const displayHeaders = state.rawHeaders.length ? state.rawHeaders : state.headers;
+  const outputHeaders = [...displayHeaders, "issues"];
+  const rows = issuesList.map(({ record, issues }) => {
+    const values = headerKeys.map((key) => (record[key] !== undefined ? record[key] : ""));
+    values.push(issues.join("; "));
+    return values.map(csvEscape).join(",");
+  });
+  return [outputHeaders.map(csvEscape).join(","), ...rows].join("\n");
+}
+
 function summarizeCsvState() {
   const parts = [];
   if (csvState.nodes) {
@@ -727,13 +747,16 @@ function renderCsvPreviewCard(container, key, state) {
   meta.appendChild(headerNote);
   card.appendChild(meta);
 
-  let errorRowCount = 0;
-  records.forEach((record) => {
+  const issuesByIndex = new Map();
+  const issuesList = [];
+  records.forEach((record, index) => {
     const issues = schema.validateRow(record, mapping);
     if (issues.length) {
-      errorRowCount += 1;
+      issuesByIndex.set(index, issues);
+      issuesList.push({ record, issues });
     }
   });
+  const errorRowCount = issuesList.length;
 
   const summary = document.createElement("div");
   summary.className = "csv-meta";
@@ -764,9 +787,9 @@ function renderCsvPreviewCard(container, key, state) {
   table.appendChild(thead);
 
   const tbody = document.createElement("tbody");
-  records.slice(0, previewLimit).forEach((record) => {
+  records.slice(0, previewLimit).forEach((record, index) => {
     const row = document.createElement("tr");
-    const rowIssues = schema.validateRow(record, mapping);
+    const rowIssues = issuesByIndex.get(index) || [];
     if (rowIssues.length) {
       row.classList.add("row-error");
     }
@@ -791,6 +814,23 @@ function renderCsvPreviewCard(container, key, state) {
     note.className = "csv-empty";
     note.textContent = `Showing ${previewLimit} of ${records.length} rows.`;
     card.appendChild(note);
+  }
+
+  if (errorRowCount) {
+    const actions = document.createElement("div");
+    actions.className = "csv-card-actions";
+
+    const exportButton = document.createElement("button");
+    exportButton.type = "button";
+    exportButton.className = "ghost csv-export";
+    exportButton.textContent = "Download rows with issues";
+    exportButton.addEventListener("click", () => {
+      const content = buildIssuesCsv(state, issuesList);
+      downloadCsv(`${key}_rows_with_issues.csv`, content);
+    });
+
+    actions.appendChild(exportButton);
+    card.appendChild(actions);
   }
 
   const mappingSection = document.createElement("div");
