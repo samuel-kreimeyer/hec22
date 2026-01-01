@@ -268,6 +268,7 @@ fn test_simple_linear_network() {
     let node_results = analysis.node_results.clone().unwrap();
     let conduit_results = analysis.conduit_results.clone().unwrap();
 
+
     assert_eq!(
         node_results.len(),
         3,

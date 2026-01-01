@@ -899,19 +899,34 @@ impl HglSolver {
         let provisional_upstream_egl = downstream_egl_inside + total_loss_normal;
         let provisional_upstream_hgl = provisional_upstream_egl - flow_result_normal.velocity_head;
 
+        let full_upstream_egl = downstream_egl_inside + total_loss_full;
+        let full_upstream_hgl = full_upstream_egl - flow_result_full.velocity_head;
+
         let (upstream_hgl, upstream_egl, flow_result_used, friction_loss, entrance_loss, bend_loss, total_loss) = if provisional_upstream_hgl >= toc_i {
             // Condition A: surcharge/full
-            let upstream_egl = downstream_egl_inside + total_loss_full;
-            let upstream_hgl = upstream_egl - flow_result_full.velocity_head;
-            (
-                upstream_hgl,
-                upstream_egl,
-                flow_result_full,
-                friction_loss_full,
-                entrance_loss_full,
-                bend_loss_full,
-                total_loss_full,
-            )
+            if full_upstream_hgl < toc_i && froude > 1.0 {
+                let hgl = boc_i + yn;
+                let egl = hgl + flow_result_normal.velocity_head;
+                (
+                    hgl,
+                    egl,
+                    flow_result_normal,
+                    friction_loss_normal,
+                    entrance_loss_normal,
+                    bend_loss_normal,
+                    total_loss_normal,
+                )
+            } else {
+                (
+                    full_upstream_hgl,
+                    full_upstream_egl,
+                    flow_result_full,
+                    friction_loss_full,
+                    entrance_loss_full,
+                    bend_loss_full,
+                    total_loss_full,
+                )
+            }
         } else if provisional_upstream_hgl > boc_i + yn && provisional_upstream_hgl > boc_i + yc {
             // Condition B: downstream-controlled partial
             (
@@ -1198,7 +1213,6 @@ pub fn route_flows_with_inlets(
     unit_system: UnitSystem,
 ) -> Result<(HashMap<String, f64>, Vec<InletInterception>), String> {
     let mut conduit_flows = HashMap::new();
-    let mut node_total_flows: HashMap<String, f64> = HashMap::new();
     let mut bypass_flows: HashMap<String, f64> = HashMap::new();
     let mut inlet_results = Vec::new();
 
@@ -1206,11 +1220,6 @@ pub fn route_flows_with_inlets(
         UnitSystem::US => GUTTER_K_US,
         UnitSystem::SI => GUTTER_K_SI,
     };
-
-    // Initialize with direct inflows
-    for (node_id, &flow) in node_inflows {
-        node_total_flows.insert(node_id.clone(), flow);
-    }
 
     // Get traversal order
     let sorted_nodes = topological_sort_upstream_to_downstream(network)?;
@@ -1225,27 +1234,32 @@ pub fn route_flows_with_inlets(
             .find(|n| n.id == node_id)
             .ok_or_else(|| format!("Node {} not found", node_id))?;
 
-        // Get total flow approaching this node
-        let direct_inflow = node_total_flows.get(&node_id).cloned().unwrap_or(0.0);
+        let pipe_inflow: f64 = network
+            .upstream_conduits(&node_id)
+            .iter()
+            .map(|conduit| conduit_flows.get(&conduit.id).cloned().unwrap_or(0.0))
+            .sum();
+        let direct_inflow = node_inflows.get(&node_id).cloned().unwrap_or(0.0);
         let bypass_inflow = bypass_flows.get(&node_id).cloned().unwrap_or(0.0);
-        let approach_flow = direct_inflow + bypass_inflow;
+        let surface_inflow = direct_inflow + bypass_inflow;
 
-        // Determine intercepted vs bypass flow
-        let (intercepted_flow, bypass_flow, interception_result) =
+        let (surface_captured, surface_bypass, interception_result) =
             if let Some(ref inlet_props) = node.inlet {
-                // This is an inlet - calculate interception
+                // This is an inlet - calculate interception for surface flow only.
                 // Get drainage area for this node (if it exists)
                 let drainage_area = node_inflows.get(&node_id).copied();
-                calculate_inlet_interception(node, inlet_props, approach_flow, k, drainage_area)?
+                calculate_inlet_interception(node, inlet_props, surface_inflow, k, drainage_area)?
             } else {
-                // Not an inlet - all flow enters system
-                (approach_flow, 0.0, None)
+                // Not an inlet - all surface flow enters system
+                (surface_inflow, 0.0, None)
             };
 
         // Store inlet interception result
         if let Some(result) = interception_result {
             inlet_results.push(result);
         }
+
+        let intercepted_flow = pipe_inflow + surface_captured;
 
         // Route intercepted flow to downstream conduits
         let downstream_conduits = network.downstream_conduits(&node_id);
@@ -1255,17 +1269,13 @@ pub fn route_flows_with_inlets(
             for conduit in downstream_conduits {
                 // Add intercepted flow to the underground system
                 conduit_flows.insert(conduit.id.clone(), flow_per_conduit);
-                let downstream_total = node_total_flows
-                    .entry(conduit.to_node.clone())
-                    .or_insert(0.0);
-                *downstream_total += flow_per_conduit;
 
                 // Add bypass flow to the downstream gutter
-                if bypass_flow > 0.0 {
+                if surface_bypass > 0.0 {
                     let downstream_bypass = bypass_flows
                         .entry(conduit.to_node.clone())
                         .or_insert(0.0);
-                    *downstream_bypass += bypass_flow;
+                    *downstream_bypass += surface_bypass;
                 }
             }
         }

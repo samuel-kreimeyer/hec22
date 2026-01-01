@@ -17,6 +17,7 @@ Purpose: Document the solver changes needed to match FHWA HEC-22 (4th ed., 2024)
 - **Plunging inflow offset:** Access hole plunge height uses the upstream node invert rather than the inflow pipe invert at the junction, overstating `z_k` and plunging losses (Example 9.2 node 41; `src/solver.rs:520-548`).
 - **Angled inflow loss:** Access hole angles are hard-coded to 180° for the first inflow and 90° for others, ignoring actual geometry (Example 9.2 structure 42 needs a 90° bend; `src/solver.rs:520-540`).
 - **Discharge intensity area:** Access hole discharge intensity uses the flowing area from the HGL solution instead of full outflow pipe area, inflating `DI` and `E_ai` in supercritical partial flow (Example 9.2 structure 41; `src/solver.rs:502-514`).
+- **Supercritical fallback:** When provisional HGL suggests surcharge, full-flow losses can yield an upstream HGL below the pipe invert (negative pressure) for supercritical segments, violating the HEC‑22 guidance to stop carrying losses in supercritical flow (`src/solver.rs:880-910`).
 
 ## Proposed changes
 1) **Implement Table 9.6 downstream cases in `solve_pipe`:**
@@ -49,7 +50,10 @@ Purpose: Document the solver changes needed to match FHWA HEC-22 (4th ed., 2024)
 9) **Access hole discharge intensity:**
    - Use the full outflow pipe area when computing `DI` for Equations 9.16–9.18.
 
-10) **Tests and validation:**
+10) **Supercritical override:**
+   - If full-flow HGL falls below the crown in a supercritical segment, treat as Condition D and do not carry losses upstream.
+
+11) **Tests and validation:**
    - Add regression for HEC-22 Example 9.2 including Pipe 41–42 (Condition D, losses not carried upstream).
    - Add a plunging outlet case (Table 9.6 Case E) to verify downstream EGL seeding and exit loss placement.
 

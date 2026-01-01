@@ -386,3 +386,135 @@ fn test_tributary_flow_isolation_in_parallel_branches() {
     println!("  - All conduits have reasonable velocities");
     println!("\n✓ TEST PASSED: Conduits only carry flows from their upstream branches");
 }
+
+#[test]
+fn test_inlet_routing_preserves_upstream_pipe_flow() {
+    let inlet_a = node::Node::new_inlet(
+        "IN-A".to_string(),
+        130.0,
+        134.0,
+        node::InletProperties {
+            inlet_type: node::InletType::Grate,
+            location: node::InletLocation::Sag,
+            grate: Some(node::GrateProperties {
+                length: Some(2.0),
+                width: Some(1.5),
+                bar_configuration: Some(node::BarConfiguration::Perpendicular),
+            }),
+            curb_opening: None,
+            local_depression: Some(2.0),
+            clogging_factor: Some(0.10),
+            bypass_to: None,
+        },
+    );
+
+    let inlet_b = node::Node::new_inlet(
+        "IN-B".to_string(),
+        125.0,
+        129.0,
+        node::InletProperties {
+            inlet_type: node::InletType::Grate,
+            location: node::InletLocation::OnGrade,
+            grate: Some(node::GrateProperties {
+                length: Some(2.0),
+                width: Some(1.5),
+                bar_configuration: Some(node::BarConfiguration::Perpendicular),
+            }),
+            curb_opening: None,
+            local_depression: Some(2.0),
+            clogging_factor: Some(0.10),
+            bypass_to: None,
+        },
+    );
+
+    let outfall = node::Node::new_outfall(
+        "OUT".to_string(),
+        120.0,
+        node::OutfallProperties {
+            boundary_condition: node::BoundaryCondition::NormalDepth,
+            tailwater_elevation: Some(121.0),
+            tidal_curve: None,
+        },
+    );
+
+    let mut pipe_1 = conduit::Conduit::new_pipe(
+        "P-1".to_string(),
+        "IN-A".to_string(),
+        "IN-B".to_string(),
+        200.0,
+        conduit::PipeProperties {
+            shape: conduit::PipeShape::Circular,
+            diameter: Some(18.0),
+            width: None,
+            height: None,
+            material: Some(conduit::PipeMaterial::RCP),
+            manning_n: 0.013,
+            entrance_loss: Some(0.5),
+            exit_loss: Some(1.0),
+            bend_loss: Some(0.0),
+        },
+    );
+    pipe_1.upstream_invert = Some(130.0);
+    pipe_1.downstream_invert = Some(125.1);
+
+    let mut pipe_2 = conduit::Conduit::new_pipe(
+        "P-2".to_string(),
+        "IN-B".to_string(),
+        "OUT".to_string(),
+        240.0,
+        conduit::PipeProperties {
+            shape: conduit::PipeShape::Circular,
+            diameter: Some(24.0),
+            width: None,
+            height: None,
+            material: Some(conduit::PipeMaterial::RCP),
+            manning_n: 0.013,
+            entrance_loss: Some(0.5),
+            exit_loss: Some(1.0),
+            bend_loss: Some(0.0),
+        },
+    );
+    pipe_2.upstream_invert = Some(125.0);
+    pipe_2.downstream_invert = Some(120.2);
+
+    let mut network = network::Network::new();
+    network.add_node(inlet_a);
+    network.add_node(inlet_b);
+    network.add_node(outfall);
+    network.add_conduit(pipe_1);
+    network.add_conduit(pipe_2);
+    network.validate_connectivity().expect("Network should be valid");
+
+    let drainage_area = drainage::DrainageArea {
+        id: "DA-A".to_string(),
+        name: None,
+        area: 1.0,
+        outlet: "IN-A".to_string(),
+        land_use: None,
+        runoff_coefficient: Some(1.0),
+        time_of_concentration: Some(10.0),
+        tc_calculation: None,
+        curve_number: None,
+        geometry: None,
+    };
+
+    let node_inflows = solver::compute_rational_flows(&[drainage_area], 1.0);
+    let (conduit_flows, _inlet_results) =
+        solver::route_flows_with_inlets(&network, &node_inflows, project::UnitSystem::US)
+            .expect("Flow routing should succeed");
+
+    let flow_p1 = conduit_flows.get("P-1").cloned().unwrap_or(0.0);
+    let flow_p2 = conduit_flows.get("P-2").cloned().unwrap_or(0.0);
+
+    assert!(
+        (flow_p1 - 1.0).abs() < 0.001,
+        "P-1 should carry the inlet A flow, expected 1.0 cfs, got {:.3}",
+        flow_p1
+    );
+    assert!(
+        (flow_p2 - flow_p1).abs() < 0.001,
+        "Downstream inlet should not reduce upstream pipe flow, expected {:.3} cfs, got {:.3}",
+        flow_p1,
+        flow_p2
+    );
+}
