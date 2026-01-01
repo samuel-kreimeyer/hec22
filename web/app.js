@@ -28,6 +28,11 @@ const nodeFilterInput = document.getElementById("nodeFilter");
 const conduitFilterInput = document.getElementById("conduitFilter");
 const nodeTableMeta = document.getElementById("nodeTableMeta");
 const conduitTableMeta = document.getElementById("conduitTableMeta");
+const planMetricSelect = document.getElementById("planMetric");
+const networkPlan = document.getElementById("networkPlan");
+const planLegend = document.getElementById("planLegend");
+const planStatus = document.getElementById("planStatus");
+const planWrap = networkPlan ? networkPlan.parentElement : null;
 
 const sampleRequest = {
   network: {
@@ -107,6 +112,7 @@ const csvState = {
 let lastResult = null;
 let lastResultRaw = "";
 let validationTimer = null;
+let lastRequest = null;
 const tableState = {
   nodes: {
     sortKey: "nodeId",
@@ -612,6 +618,15 @@ function updateExportStatus(message, isError = false) {
   exportStatus.style.color = isError ? "#7a1c1b" : "";
 }
 
+function updatePlanStatus(message, isError = false) {
+  if (!planStatus) {
+    return;
+  }
+  planStatus.textContent = message;
+  planStatus.style.background = isError ? "rgba(176, 26, 24, 0.12)" : "";
+  planStatus.style.color = isError ? "#7a1c1b" : "";
+}
+
 function updateJsonStatus(message, isError = false) {
   if (!jsonStatus) {
     return;
@@ -921,6 +936,23 @@ function scheduleValidation() {
     clearTimeout(validationTimer);
   }
   validationTimer = setTimeout(validateJsonInput, 250);
+}
+
+function ensureRequest() {
+  if (lastRequest) {
+    return { ok: true, request: lastRequest };
+  }
+  const text = requestEl.value || "";
+  if (!text.trim()) {
+    return { ok: false, error: "Provide request JSON to render the network." };
+  }
+  try {
+    const parsed = JSON.parse(text);
+    lastRequest = parsed;
+    return { ok: true, request: parsed };
+  } catch (error) {
+    return { ok: false, error: "Request JSON is invalid." };
+  }
 }
 
 function getAnalysisData(result) {
@@ -1540,6 +1572,311 @@ function renderResultsTables() {
   );
 }
 
+function computeAutoLayout(nodes, conduits) {
+  const adjacency = new Map();
+  const indegree = new Map();
+  nodes.forEach((node) => {
+    adjacency.set(node.id, []);
+    indegree.set(node.id, 0);
+  });
+  conduits.forEach((conduit) => {
+    if (!adjacency.has(conduit.fromNode) || !adjacency.has(conduit.toNode)) {
+      return;
+    }
+    adjacency.get(conduit.fromNode).push(conduit.toNode);
+    indegree.set(conduit.toNode, (indegree.get(conduit.toNode) || 0) + 1);
+  });
+
+  const queue = [];
+  indegree.forEach((count, nodeId) => {
+    if (count === 0) {
+      queue.push(nodeId);
+    }
+  });
+
+  const level = new Map();
+  queue.forEach((nodeId) => level.set(nodeId, 0));
+  const order = [];
+  while (queue.length) {
+    const nodeId = queue.shift();
+    order.push(nodeId);
+    const next = adjacency.get(nodeId) || [];
+    next.forEach((downstream) => {
+      const nextLevel = Math.max(level.get(downstream) || 0, (level.get(nodeId) || 0) + 1);
+      level.set(downstream, nextLevel);
+      indegree.set(downstream, (indegree.get(downstream) || 0) - 1);
+      if (indegree.get(downstream) === 0) {
+        queue.push(downstream);
+      }
+    });
+  }
+
+  const levelGroups = new Map();
+  nodes.forEach((node) => {
+    const nodeLevel = level.get(node.id) || 0;
+    if (!levelGroups.has(nodeLevel)) {
+      levelGroups.set(nodeLevel, []);
+    }
+    levelGroups.get(nodeLevel).push(node.id);
+  });
+
+  const positions = new Map();
+  const levels = Array.from(levelGroups.keys()).sort((a, b) => a - b);
+  levels.forEach((lvl, index) => {
+    const ids = levelGroups.get(lvl) || [];
+    ids.forEach((id, rowIndex) => {
+      positions.set(id, {
+        x: index,
+        y: rowIndex
+      });
+    });
+  });
+
+  return positions;
+}
+
+function buildCoordinateMap(nodes, conduits) {
+  const coordsAvailable = nodes.every(
+    (node) =>
+      node.coordinates &&
+      typeof node.coordinates.x === "number" &&
+      typeof node.coordinates.y === "number"
+  );
+
+  if (coordsAvailable) {
+    const positions = new Map();
+    nodes.forEach((node) => {
+      positions.set(node.id, { x: node.coordinates.x, y: node.coordinates.y });
+    });
+    return { positions, usedAutoLayout: false };
+  }
+
+  const autoPositions = computeAutoLayout(nodes, conduits);
+  return { positions: autoPositions, usedAutoLayout: true };
+}
+
+function colorScale(value, min, max) {
+  if (value === null || value === undefined || !Number.isFinite(value)) {
+    return "#94a3b8";
+  }
+  if (min === max) {
+    return "#22c55e";
+  }
+  const ratio = Math.min(Math.max((value - min) / (max - min), 0), 1);
+  const hue = 210 - ratio * 120;
+  return `hsl(${hue}, 70%, 50%)`;
+}
+
+function buildPlanLegend(metricLabel, minValue, maxValue) {
+  if (!planLegend) {
+    return;
+  }
+  const minLabel = Number.isFinite(minValue) ? formatNumber(minValue) : "—";
+  const maxLabel = Number.isFinite(maxValue) ? formatNumber(maxValue) : "—";
+  planLegend.innerHTML = `
+    <div class="legend-title">${escapeHtml(metricLabel)} scale</div>
+    <div class="legend-scale"></div>
+    <div class="legend-row"><span>${minLabel}</span><span>${maxLabel}</span></div>
+    <div class="legend-title">Flow regime</div>
+    <div class="legend-row">
+      <span class="legend-chip"><span class="legend-dot" style="background:#2563eb"></span>Subcritical</span>
+      <span class="legend-chip"><span class="legend-dot" style="background:#f59e0b"></span>Critical</span>
+    </div>
+    <div class="legend-row">
+      <span class="legend-chip"><span class="legend-dot" style="background:#dc2626"></span>Supercritical</span>
+      <span class="legend-chip"><span class="legend-dot" style="background:#94a3b8"></span>Unknown</span>
+    </div>
+  `;
+}
+
+function ensurePlanTooltip() {
+  if (!planWrap) {
+    return null;
+  }
+  let tooltip = planWrap.querySelector(".plan-tooltip");
+  if (!tooltip) {
+    tooltip = document.createElement("div");
+    tooltip.className = "plan-tooltip";
+    planWrap.appendChild(tooltip);
+  }
+  return tooltip;
+}
+
+function showPlanTooltip(text, event) {
+  const tooltip = ensurePlanTooltip();
+  if (!tooltip || !planWrap) {
+    return;
+  }
+  tooltip.textContent = text;
+  const bounds = planWrap.getBoundingClientRect();
+  const x = event.clientX - bounds.left + 12;
+  const y = event.clientY - bounds.top + 12;
+  tooltip.style.left = `${x}px`;
+  tooltip.style.top = `${y}px`;
+  tooltip.classList.add("visible");
+}
+
+function hidePlanTooltip() {
+  const tooltip = ensurePlanTooltip();
+  if (!tooltip) {
+    return;
+  }
+  tooltip.classList.remove("visible");
+}
+
+function renderPlanView() {
+  if (!networkPlan) {
+    return;
+  }
+  const requestState = ensureRequest();
+  if (!requestState.ok) {
+    networkPlan.innerHTML = "";
+    buildPlanLegend("HGL", NaN, NaN);
+    updatePlanStatus(requestState.error, true);
+    return;
+  }
+  const resultState = ensureResult();
+  if (!resultState.ok) {
+    networkPlan.innerHTML = "";
+    buildPlanLegend("HGL", NaN, NaN);
+    updatePlanStatus("Run the solver to render the plan view.", false);
+    return;
+  }
+
+  const network = requestState.request.network;
+  if (!network || !Array.isArray(network.nodes) || !Array.isArray(network.conduits)) {
+    networkPlan.innerHTML = "";
+    buildPlanLegend("HGL", NaN, NaN);
+    updatePlanStatus("Network data missing in request JSON.", true);
+    return;
+  }
+
+  const nodes = network.nodes;
+  const conduits = network.conduits;
+
+  const { positions, usedAutoLayout } = buildCoordinateMap(nodes, conduits);
+  updatePlanStatus(
+    usedAutoLayout ? "No coordinates found. Using auto layout." : "Plan view ready.",
+    false
+  );
+
+  const { nodeResults, conduitResults } = getAnalysisData(resultState.result);
+  const metricKey = planMetricSelect ? planMetricSelect.value : "hgl";
+  const metricLabel = metricKey.toUpperCase();
+  const nodeMetric = new Map();
+  nodeResults.forEach((node) => {
+    const value = metricKey === "egl" ? node.egl : node.hgl;
+    nodeMetric.set(node.nodeId, value);
+  });
+
+  const metricValues = Array.from(nodeMetric.values()).filter((value) => Number.isFinite(value));
+  const minValue = metricValues.length ? Math.min(...metricValues) : NaN;
+  const maxValue = metricValues.length ? Math.max(...metricValues) : NaN;
+  buildPlanLegend(metricLabel, minValue, maxValue);
+
+  const flowRegimeMap = new Map();
+  conduitResults.forEach((conduit) => {
+    flowRegimeMap.set(conduit.conduitId, conduit.flowRegime);
+  });
+
+  const width = 800;
+  const height = 500;
+  const padding = 50;
+  const coords = Array.from(positions.values());
+  const xs = coords.map((pos) => pos.x);
+  const ys = coords.map((pos) => pos.y);
+  const minX = xs.length ? Math.min(...xs) : 0;
+  const maxX = xs.length ? Math.max(...xs) : 1;
+  const minY = ys.length ? Math.min(...ys) : 0;
+  const maxY = ys.length ? Math.max(...ys) : 1;
+
+  const scaleX = (value) =>
+    padding + ((value - minX) / (maxX - minX || 1)) * (width - padding * 2);
+  const scaleY = (value) =>
+    padding + ((value - minY) / (maxY - minY || 1)) * (height - padding * 2);
+
+  networkPlan.setAttribute("viewBox", `0 0 ${width} ${height}`);
+  networkPlan.innerHTML = `
+    <defs>
+      <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+        <path d="M 0 0 L 10 5 L 0 10 z" fill="currentColor"></path>
+      </marker>
+    </defs>
+  `;
+
+  const lineGroup = document.createElementNS("http://www.w3.org/2000/svg", "g");
+  const nodeGroup = document.createElementNS("http://www.w3.org/2000/svg", "g");
+
+  const regimeColors = {
+    subcritical: "#2563eb",
+    critical: "#f59e0b",
+    supercritical: "#dc2626"
+  };
+
+  conduits.forEach((conduit) => {
+    const fromPos = positions.get(conduit.fromNode);
+    const toPos = positions.get(conduit.toNode);
+    if (!fromPos || !toPos) {
+      return;
+    }
+    const line = document.createElementNS("http://www.w3.org/2000/svg", "line");
+    line.setAttribute("x1", scaleX(fromPos.x));
+    line.setAttribute("y1", scaleY(fromPos.y));
+    line.setAttribute("x2", scaleX(toPos.x));
+    line.setAttribute("y2", scaleY(toPos.y));
+    const regime = flowRegimeMap.get(conduit.id);
+    const stroke = regimeColors[regime] || "#94a3b8";
+    line.setAttribute("stroke", stroke);
+    line.setAttribute("color", stroke);
+    line.setAttribute("stroke-width", "2.5");
+    line.setAttribute("marker-end", "url(#arrow)");
+    lineGroup.appendChild(line);
+
+    line.addEventListener("mousemove", (event) => {
+      const text = `${conduit.id} → ${conduit.toNode} (${regime || "unknown"})`;
+      showPlanTooltip(text, event);
+    });
+    line.addEventListener("mouseleave", hidePlanTooltip);
+  });
+
+  nodes.forEach((node) => {
+    const pos = positions.get(node.id);
+    if (!pos) {
+      return;
+    }
+    const value = nodeMetric.get(node.id);
+    const color = colorScale(value, minValue, maxValue);
+    const cx = scaleX(pos.x);
+    const cy = scaleY(pos.y);
+
+    const circle = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+    circle.setAttribute("cx", cx);
+    circle.setAttribute("cy", cy);
+    circle.setAttribute("r", "6");
+    circle.setAttribute("fill", color);
+    circle.setAttribute("stroke", "#0f172a");
+    circle.setAttribute("stroke-width", "1");
+    nodeGroup.appendChild(circle);
+
+    const label = document.createElementNS("http://www.w3.org/2000/svg", "text");
+    label.setAttribute("x", cx + 8);
+    label.setAttribute("y", cy - 8);
+    label.setAttribute("font-size", "10");
+    label.setAttribute("fill", "#0f172a");
+    label.textContent = node.id;
+    nodeGroup.appendChild(label);
+
+    circle.addEventListener("mousemove", (event) => {
+      const text = `${node.id} ${metricLabel}: ${formatNumber(value)}`;
+      showPlanTooltip(text, event);
+    });
+    circle.addEventListener("mouseleave", hidePlanTooltip);
+  });
+
+  networkPlan.appendChild(lineGroup);
+  networkPlan.appendChild(nodeGroup);
+}
+
 function summarizeCsvState() {
   const parts = [];
   if (csvState.nodes) {
@@ -1893,11 +2230,13 @@ fileInput.addEventListener("change", async (event) => {
   }
   const text = await file.text();
   requestEl.value = text;
+  lastRequest = null;
   validateJsonInput();
 });
 
 loadSampleButton.addEventListener("click", () => {
   requestEl.value = JSON.stringify(sampleRequest, null, 2);
+  lastRequest = null;
   validateJsonInput();
 });
 
@@ -1985,6 +2324,7 @@ buildFromCsvButton.addEventListener("click", () => {
     const request = buildRequestFromCsv();
     requestEl.value = JSON.stringify(request, null, 2);
     updateCsvStatus("Request JSON built from CSV files.");
+    lastRequest = null;
     validateJsonInput();
   } catch (error) {
     updateCsvStatus(`Build failed: ${String(error.message || error)}`, true);
@@ -2162,6 +2502,7 @@ runButton.addEventListener("click", async () => {
     parsed.intensity = Number(intensityInput.value || parsed.intensity || 0);
     parsed.unit_system = unitSelect.value || parsed.unit_system;
     parsed.use_inlet_interception = interceptionToggle.checked;
+    lastRequest = parsed;
     const response = await callSolver(JSON.stringify(parsed));
     lastResult = JSON.parse(response);
     lastResultRaw = JSON.stringify(lastResult, null, 2);
@@ -2169,6 +2510,7 @@ runButton.addEventListener("click", async () => {
     statusEl.textContent = "Done";
     updateExportStatus("Results ready for export.");
     renderResultsTables();
+    renderPlanView();
   } catch (error) {
     statusEl.textContent = "Error";
     outputEl.textContent = String(error);
@@ -2176,6 +2518,7 @@ runButton.addEventListener("click", async () => {
     lastResultRaw = "";
     updateExportStatus("No results yet.", false);
     renderResultsTables();
+    renderPlanView();
   }
 });
 
@@ -2198,8 +2541,12 @@ renderCsvPreview();
 updateExportStatus("No results yet.");
 validateJsonInput();
 
-requestEl.addEventListener("input", scheduleValidation);
+requestEl.addEventListener("input", () => {
+  lastRequest = null;
+  scheduleValidation();
+});
 renderResultsTables();
+renderPlanView();
 
 if (nodeFilterInput) {
   nodeFilterInput.addEventListener("input", () => {
@@ -2212,5 +2559,11 @@ if (conduitFilterInput) {
   conduitFilterInput.addEventListener("input", () => {
     tableState.conduits.filter = conduitFilterInput.value || "";
     renderResultsTables();
+  });
+}
+
+if (planMetricSelect) {
+  planMetricSelect.addEventListener("change", () => {
+    renderPlanView();
   });
 }

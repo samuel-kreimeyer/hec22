@@ -108,6 +108,26 @@
         <div class="import-status" id="exportStatus">No results yet.</div>
       </div>
       <div class="section-block">
+        <h3>Network plan view</h3>
+        <p class="hint">Plan view colored by HGL/EGL at nodes and flow regime in conduits.</p>
+        <div class="field-row">
+          <label class="field">
+            <span>Node color metric</span>
+            <select id="planMetric">
+              <option value="hgl" selected>HGL</option>
+              <option value="egl">EGL</option>
+            </select>
+          </label>
+        </div>
+        <div class="import-status" id="planStatus">No plan view yet.</div>
+        <div class="plan-layout">
+          <div class="plan-wrap">
+            <svg id="networkPlan" viewBox="0 0 800 500" preserveAspectRatio="xMidYMid meet"></svg>
+          </div>
+          <div class="plan-legend" id="planLegend"></div>
+        </div>
+      </div>
+      <div class="section-block">
         <h3>Results tables</h3>
         <p class="hint">Filter and sort node and conduit results.</p>
         <div class="table-panel">
