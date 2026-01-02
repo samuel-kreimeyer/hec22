@@ -1,0 +1,129 @@
+<?xml version="1.0" encoding="iso-8859-1"?>
+<InRoads productName="OpenRoads Designer 2024" productVersion="24.00.02.18" outputGridScaleFactor="1.0" linearUnits="Imperial" angularUnits="Degrees" isInternationalFoot="false" commandName="Station Offset Elevation Feature Report" reportStyle="StationOffsetElevFeature">
+  <GeometryProject name="Alignment" file="c:\pwworking\jacobs_b&amp;i\samuel.kreimeyer@jacobs.com\d0489464\2024-12-19RainbowCurve_Alignment.dgn" lastRevisedDate="1/1/2026 19:00:16">
+    <HorizontalAlignment name="CL-Const-Hwy12-SE Walton">
+      <OffsetPoint>
+        <GeometryPointProperties PointName="2" PointDescription="" FeatureName="" northing="736142.533431104" easting="660204.510624730" elevation="0.000000000" offset="32.399338548">
+          <station internalStation="20018.491268430" externalStation="20018.491268000" externalStationName="" />
+        </GeometryPointProperties>
+        <GeometryPointProperties PointName="" PointDescription="" FeatureName="" northing="736208.435501106" easting="660208.146811705" elevation="0.000000000" offset="-33.602950427">
+          <station internalStation="20018.541629119" externalStation="20018.541629000" externalStationName="" />
+        </GeometryPointProperties>
+        <GeometryPointProperties PointName="4" PointDescription="" FeatureName="" northing="736198.795073433" easting="660537.588110650" elevation="0.000000000" offset="-41.859631117">
+          <station internalStation="20348.083393040" externalStation="20348.083393000" externalStationName="" />
+        </GeometryPointProperties>
+        <GeometryPointProperties PointName="3" PointDescription="" FeatureName="" northing="736123.824184394" easting="660533.821181196" elevation="0.000000000" offset="33.205572763">
+          <station internalStation="20348.281262353" externalStation="20348.281262000" externalStationName="" />
+        </GeometryPointProperties>
+        <GeometryPointProperties PointName="" PointDescription="" FeatureName="" northing="736122.625144645" easting="660594.399892522" elevation="0.000000000" offset="31.337038612">
+          <station internalStation="20408.701273463" externalStation="20408.701273000" externalStationName="" />
+        </GeometryPointProperties>
+        <GeometryPointProperties PointName="6" PointDescription="" FeatureName="" northing="736197.116614053" easting="660609.293115138" elevation="0.000000000" offset="-43.783674976">
+          <station internalStation="20419.999999805" externalStation="20420.000000000" externalStationName="" />
+        </GeometryPointProperties>
+        <GeometryPointProperties PointName="" PointDescription="" FeatureName="" northing="736196.808050084" easting="660619.341015255" elevation="0.000000000" offset="-43.955153585">
+          <station internalStation="20430.051174043" externalStation="20430.051174000" externalStationName="" />
+        </GeometryPointProperties>
+        <GeometryPointProperties PointName="" PointDescription="" FeatureName="" northing="736195.827243633" easting="660651.279434036" elevation="0.000000000" offset="-44.500218280">
+          <station internalStation="20462.000000000" externalStation="20462.000000000" externalStationName="" />
+        </GeometryPointProperties>
+        <GeometryPointProperties PointName="" PointDescription="" FeatureName="" northing="736119.457922136" easting="660653.046789892" elevation="0.000000000" offset="31.697650902">
+          <station internalStation="20467.411242442" externalStation="20467.411242000" externalStationName="" />
+        </GeometryPointProperties>
+        <GeometryPointProperties PointName="" PointDescription="" FeatureName="" northing="736110.400606449" easting="660838.631969480" elevation="0.000000000" offset="31.884728986">
+          <station internalStation="20653.217213422" externalStation="20653.217213000" externalStationName="" />
+        </GeometryPointProperties>
+        <GeometryPointProperties PointName="" PointDescription="" FeatureName="" northing="736186.612924090" easting="660844.063711674" elevation="0.000000000" offset="-44.500003162">
+          <station internalStation="20655.004355880" externalStation="20655.004356000" externalStationName="" />
+        </GeometryPointProperties>
+        <GeometryPointProperties PointName="" PointDescription="" FeatureName="" northing="736198.918141071" easting="660987.970621847" elevation="0.000000000" offset="-63.661362549">
+          <station internalStation="20798.159724160" externalStation="20798.159724000" externalStationName="" />
+        </GeometryPointProperties>
+        <GeometryPointProperties PointName="" PointDescription="" FeatureName="" northing="736228.467796041" easting="661005.604503930" elevation="0.000000000" offset="-94.019172868">
+          <station internalStation="20814.362787413" externalStation="20814.362787000" externalStationName="" />
+        </GeometryPointProperties>
+        <GeometryPointProperties PointName="" PointDescription="" FeatureName="" northing="736102.909748072" easting="661002.472350967" elevation="0.000000000" offset="31.545241175">
+          <station internalStation="20817.228396923" externalStation="20817.228397000" externalStationName="" />
+        </GeometryPointProperties>
+        <GeometryPointProperties PointName="" PointDescription="" FeatureName="" northing="736210.611343054" easting="661015.406488275" elevation="0.000000000" offset="-76.651030845">
+          <station internalStation="20825.006069475" externalStation="20825.006069000" externalStationName="" />
+        </GeometryPointProperties>
+        <GeometryPointProperties PointName="" PointDescription="" FeatureName="" northing="736090.547887169" easting="661049.098914824" elevation="0.000000000" offset="41.667036110">
+          <station internalStation="20864.391956260" externalStation="20864.391956000" externalStationName="" />
+        </GeometryPointProperties>
+        <GeometryPointProperties PointName="" PointDescription="" FeatureName="" northing="736201.041682156" easting="661087.809512275" elevation="0.000000000" offset="-70.546121531">
+          <station internalStation="20897.832057244" externalStation="20897.832057000" externalStationName="" />
+        </GeometryPointProperties>
+        <GeometryPointProperties PointName="" PointDescription="" FeatureName="" northing="736178.284106638" easting="661090.640047120" elevation="0.000000000" offset="-47.946265602">
+          <station internalStation="20901.746612418" externalStation="20901.746612000" externalStationName="" />
+        </GeometryPointProperties>
+        <GeometryPointProperties PointName="" PointDescription="" FeatureName="" northing="736173.425317072" easting="661169.424472888" elevation="0.000000000" offset="-46.499903215">
+          <station internalStation="20980.994205162" externalStation="20980.994205000" externalStationName="" />
+        </GeometryPointProperties>
+        <GeometryPointProperties PointName="" PointDescription="" FeatureName="" northing="736245.871603083" easting="661191.867888317" elevation="0.000000000" offset="-119.779606790">
+          <station internalStation="21000.551998782" externalStation="21000.551999000" externalStationName="" />
+        </GeometryPointProperties>
+        <GeometryPointProperties PointName="" PointDescription="" FeatureName="" northing="736225.186700608" easting="661241.079356684" elevation="0.000000000" offset="-101.063250788">
+          <station internalStation="21050.545316608" externalStation="21050.545317000" externalStationName="" />
+        </GeometryPointProperties>
+        <GeometryPointProperties PointName="" PointDescription="" FeatureName="" northing="736092.352727806" easting="661245.267693648" elevation="0.000000000" offset="31.500000000">
+          <station internalStation="21059.999999968" externalStation="21060.000000000" externalStationName="" />
+        </GeometryPointProperties>
+        <GeometryPointProperties PointName="" PointDescription="" FeatureName="" northing="736189.687958945" easting="661289.163624751" elevation="0.000000000" offset="-67.500000000">
+          <station internalStation="21099.999999821" externalStation="21100.000000000" externalStationName="" />
+        </GeometryPointProperties>
+        <GeometryPointProperties PointName="" PointDescription="" FeatureName="" northing="736084.418547498" easting="661445.110253636" elevation="0.000000000" offset="31.500000000">
+          <station internalStation="21259.999999968" externalStation="21260.000000000" externalStationName="" />
+        </GeometryPointProperties>
+        <GeometryPointProperties PointName="" PointDescription="" FeatureName="" northing="736182.119866285" easting="661489.020719208" elevation="0.000000000" offset="-67.866376060">
+          <station internalStation="21299.999999821" externalStation="21300.000000000" externalStationName="" />
+        </GeometryPointProperties>
+        <GeometryPointProperties PointName="" PointDescription="" FeatureName="" northing="736207.462997368" easting="661640.551547541" elevation="0.000000000" offset="-99.200921599">
+          <station internalStation="21450.406158220" externalStation="21450.406158000" externalStationName="" />
+        </GeometryPointProperties>
+        <GeometryPointProperties PointName="" PointDescription="" FeatureName="" northing="736076.484367190" easting="661644.952813625" elevation="0.000000000" offset="31.500000000">
+          <station internalStation="21459.999999968" externalStation="21460.000000000" externalStationName="" />
+        </GeometryPointProperties>
+        <GeometryPointProperties PointName="" PointDescription="" FeatureName="" northing="736173.819598329" easting="661688.848744728" elevation="0.000000000" offset="-67.500000000">
+          <station internalStation="21499.999999821" externalStation="21500.000000000" externalStationName="" />
+        </GeometryPointProperties>
+        <GeometryPointProperties PointName="" PointDescription="" FeatureName="" northing="736052.504925056" easting="661874.240596152" elevation="0.000000000" offset="46.364512471">
+          <station internalStation="21690.058573227" externalStation="21690.058573000" externalStationName="" />
+        </GeometryPointProperties>
+        <GeometryPointProperties PointName="" PointDescription="" FeatureName="" northing="736155.625422976" easting="661990.915770480" elevation="0.000000000" offset="-61.253860742">
+          <station internalStation="21802.646979399" externalStation="21802.646979000" externalStationName="" />
+        </GeometryPointProperties>
+        <GeometryPointProperties PointName="" PointDescription="" FeatureName="" northing="736061.852440484" easting="661990.336751918" elevation="0.000000000" offset="32.473078827">
+          <station internalStation="21805.641692547" externalStation="21805.641693000" externalStationName="" />
+        </GeometryPointProperties>
+        <GeometryPointProperties PointName="" PointDescription="" FeatureName="" northing="736133.725133688" easting="661993.240047027" elevation="0.000000000" offset="-39.458046388">
+          <station internalStation="21805.804099765" externalStation="21805.804100000" externalStationName="" />
+        </GeometryPointProperties>
+        <GeometryPointProperties PointName="" PointDescription="" FeatureName="" northing="736127.412516955" easting="662097.225978470" elevation="0.000000000" offset="-37.112500062">
+          <station internalStation="21909.955055020" externalStation="21909.955055000" externalStationName="" />
+        </GeometryPointProperties>
+        <GeometryPointProperties PointName="" PointDescription="" FeatureName="" northing="736058.848137242" easting="662094.656344385" elevation="0.000000000" offset="31.500000000">
+          <station internalStation="21909.999999969" externalStation="21910.000000000" externalStationName="" />
+        </GeometryPointProperties>
+        <GeometryPointProperties PointName="" PointDescription="" FeatureName="" northing="736126.809395497" easting="662107.210247477" elevation="0.000000000" offset="-36.890276980">
+          <station internalStation="21919.955055020" externalStation="21919.955055000" externalStationName="" />
+        </GeometryPointProperties>
+        <GeometryPointProperties PointName="" PointDescription="" FeatureName="" northing="736058.467077465" easting="662104.649081420" elevation="0.000000000" offset="31.500000000">
+          <station internalStation="21919.999999969" externalStation="21920.000000000" externalStationName="" />
+        </GeometryPointProperties>
+        <GeometryPointProperties PointName="" PointDescription="" FeatureName="" northing="736126.206274038" easting="662117.194516483" elevation="0.000000000" offset="-36.668053898">
+          <station internalStation="21929.955055020" externalStation="21929.955055000" externalStationName="" />
+        </GeometryPointProperties>
+        <GeometryPointProperties PointName="" PointDescription="" FeatureName="" northing="736058.086017689" easting="662114.641818454" elevation="0.000000000" offset="31.500000000">
+          <station internalStation="21929.999999969" externalStation="21930.000000000" externalStationName="" />
+        </GeometryPointProperties>
+        <GeometryPointProperties PointName="" PointDescription="" FeatureName="" northing="736055.176873288" easting="662190.929888773" elevation="0.000000000" offset="31.500000000">
+          <station internalStation="22006.343518319" externalStation="22006.343518000" externalStationName="" />
+        </GeometryPointProperties>
+        <GeometryPointProperties PointName="" PointDescription="" FeatureName="" northing="736121.438292817" easting="662195.114365763" elevation="0.000000000" offset="-34.872747676">
+          <station internalStation="22007.999999969" externalStation="22008.000000000" externalStationName="" />
+        </GeometryPointProperties>
+      </OffsetPoint>
+    </HorizontalAlignment>
+  </GeometryProject>
+</InRoads>

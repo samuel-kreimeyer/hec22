@@ -1,64 +1,64 @@
 id,type,invert_elev,rim_elev,x,y,shape,diameter,width,height,inlet_type,inlet_location,grate_length,grate_width,bar_configuration,curb_opening_length,curb_opening_height,throat_type,local_depression,clogging_factor,grate_count,boundary_condition,bypass_to
-111+64 LT,inlet,1275.0,1280.0,,,Circular,3,,,curb,on_grade,,,,,4,,2,0.15,,,
-111+65 RT,inlet,1274.47,1279.07,,,Circular,3,,,curb,on_grade,,,,,4,,2,0.15,,,
-112+35 LT,inlet,1280.0,1276.0,,,Circular,3,,,curb,on_grade,,,,,4,,2,0.15,,,111+64 LT
-112+35 RT,inlet,1275.14,1279.48,,,Circular,4,,,curb,on_grade,,,,4,4,horizontal,2,0.15,,,111+65 RT
-113+00 RT,inlet,1275.75,1279.9,,,Circular,4,,,curb,on_grade,,,,4,4,horizontal,2,0.15,,,112+35 RT
-113+78 LT,inlet,1276.0,1280.39,,,Rectangular,,4,4,grate,on_grade,3,2,perpendicular,4,,horizontal,,0.15,1,,112+35 LT
+111+64 LT,inlet,1275.0,1280.0,661079.55,735847.67,Circular,3,,,curb,on_grade,,,,,4,,2,0.15,,,
+111+65 RT,inlet,1274.47,1279.07,661113.72,735847.11,Circular,3,,,curb,on_grade,,,,,4,,2,0.15,,,
+112+35 LT,inlet,1280.0,1276.0,661082.78,735918.80,Circular,3,,,curb,on_grade,,,,,4,,2,0.15,,,111+64 LT
+112+35 RT,inlet,1275.14,1279.48,661122.31,735917.16,Circular,4,,,curb,on_grade,,,,4,4,horizontal,2,0.15,,,111+65 RT
+113+00 RT,inlet,1275.75,1279.9,661128.56,735981.57,Circular,4,,,curb,on_grade,,,,4,4,horizontal,2,0.15,,,112+35 RT
+113+78 LT,inlet,1276.0,1280.39,661075.07,736062.22,Rectangular,,4,4,grate,on_grade,3,2,perpendicular,4,,horizontal,,0.15,1,,112+35 LT
 115+24 LT,inlet,1274.1,1279.63,,,Circular,4,,,curb,on_grade,,,,12,4,horizontal,2,0.15,,,207+99 LT
 115+42 LT,inlet,1275.82,1279.4,,,Rectangular,,4,4,grate,sag,3,2,perpendicular,4,,horizontal,,0.15,1,,
-115+66 LT,inlet,1275.13,1280.24,,,Circular,4,,,curb,on_grade,,,,4,4,horizontal,2,0.15,,,115+24 LT
-115+90 RT,inlet,1275.62,1281.03,,,Circular,5,,,curb,on_grade,,,,5,4,horizontal,2,0.15,,,115+66 RT
-116+00 RT,inlet,1275.69,1281.13,,,Circular,5,,,curb,on_grade,,,,5,4,horizontal,2,0.15,,,115+90 RT
-116+25 LT,inlet,1276.31,1281.22,,,Circular,4,,,curb,on_grade,,,,4,4,horizontal,2,0.15,,,115+66 LT
-117+85 RT,inlet,1278.04,1283.99,,,Circular,5,,,curb,on_grade,,,,5,4,horizontal,2,0.15,,,116+00 RT
-118+25 LT,inlet,1280.28,1284.45,,,Circular,4,,,curb,on_grade,,,,4,4,horizontal,2,0.15,,,117+85 LT
-120+50 LT,inlet,1287.67,1291.59,,,Circular,4,,,curb,on_grade,,,,4,4,horizontal,2,0.15,,,118+25 LT
-120+50 RT,inlet,1288.26,1291.94,,,Circular,4,,,curb,on_grade,,,,4,4,horizontal,2,0.15,,,117+85 RT
+115+66 LT,inlet,1275.13,1280.24,661053.84,736250.77,Circular,4,,,curb,on_grade,,,,4,4,horizontal,2,0.15,,,115+24 LT
+115+90 RT,inlet,1275.62,1281.03,661180.02,736270.07,Circular,5,,,curb,on_grade,,,,5,4,horizontal,2,0.15,,,115+66 RT
+116+00 RT,inlet,1275.69,1281.13,661176.62,736280.20,Circular,5,,,curb,on_grade,,,,5,4,horizontal,2,0.15,,,115+90 RT
+116+25 LT,inlet,1276.31,1281.22,661071.79,736309.15,Circular,4,,,curb,on_grade,,,,4,4,horizontal,2,0.15,,,115+66 LT
+117+85 RT,inlet,1278.04,1283.99,661168.03,736465.51,Circular,5,,,curb,on_grade,,,,5,4,horizontal,2,0.15,,,116+00 RT
+118+25 LT,inlet,1280.28,1284.45,661084.05,736508.83,Circular,4,,,curb,on_grade,,,,4,4,horizontal,2,0.15,,,117+85 LT
+120+50 LT,inlet,1287.67,1291.59,661097.85,736733.46,Circular,4,,,curb,on_grade,,,,4,4,horizontal,2,0.15,,,118+25 LT
+120+50 RT,inlet,1288.26,1291.94,661177.90,736730.32,Circular,4,,,curb,on_grade,,,,4,4,horizontal,2,0.15,,,117+85 RT
 122+11 RT,inlet,1290.0,1295.0,,,Circular,3,,,curb,on_grade,,,,,4,,2,0.15,,,120+50 RT
-124+50 LT,inlet,1290.74,1294.35,,,Circular,4,,,curb,on_grade,,,,4,4,horizontal,2,0.15,,,120+50 LT
-200+19 LT,inlet,1277.09,1280.64,,,Circular,4,,,curb,on_grade,,,,4,4,horizontal,2,0.15,,,203+48 LT
-200+19 RT,outfall,1272.67,,,,Circular,3,,,,,,,,,,,,,,free,
-203+48 LT,inlet,1271.55,1278.44,,,Circular,7,,,curb,on_grade,,,,7,4,horizontal,2,0.15,,,204+20 LT
-203+48 RT,outfall,1271.2,,,,Circular,7,,,,,,,,,,horizontal,,,,free,
-204+09 RT,inlet,1272.99,1278.53,,,Circular,3,,,curb,sag,,,,,4,,2,0.15,,,
-204+20 LT,inlet,1271.88,1278.3,,,Circular,6,,,curb,sag,,,,6,4,horizontal,2,0.15,,,
-204+30 LT,inlet,1271.9,1278.3,,,Circular,6,,,curb,on_grade,,,,6,4,horizontal,2,0.15,,,204+20 LT
-204+62 LT,inlet,1272.03,1278.33,,,Circular,6,,,curb,on_grade,,,,6,4,horizontal,2,0.15,,,204+30 LT
-204+67 RT,inlet,1273.32,1278.55,,,Circular,3,,,curb,on_grade,,,,,4,,2,0.15,,,204+09 RT
-206+53 RT,inlet,1274.31,1279.51,,,Circular,3,,,curb,on_grade,,,,,4,,2,0.15,,,204+67 RT
-206+55 LT,inlet,1272.89,1279.28,,,Circular,6,,,curb,on_grade,,,,6,4,horizontal,2,0.15,,,204+30 LT
-207+99 LT,inlet,1273.64,1279.78,,,Circular,11,,,curb,on_grade,,,,11,4,horizontal,2,0.15,,,206+55 LT
-208+17 RT,inlet,1275.44,1280.48,,,Circular,4,,,curb,on_grade,,,,4,4,horizontal,2,0.15,,,206+53 RT
-208+65 RT,inlet,1275.75,1280.02,,,Rectangular,,4,4,grate,on_grade,3,2,perpendicular,4,,horizontal,,0.15,1,,208+17 RT
-208+98 LT,inlet,1274.11,1280.81,,,Circular,5,,,curb,on_grade,,,,7,4,horizontal,2,0.15,,,207+99 LT
-209+02 LT,inlet,1276.3,1280.35,,,Rectangular,,3,3,grate,on_grade,3,2,perpendicular,3,,horizontal,,0.15,1,,207+99 LT
-209+81 LT,inlet,1277.5,1282.37,,,Circular,4,,,curb,on_grade,,,,4,4,horizontal,2,0.15,,,209+02 LT
-210+00 LT,inlet,1274.64,1281.18,,,Circular,7,,,curb,on_grade,,,,7,4,horizontal,2,0.15,,,208+98 LT
-210+51 LT,inlet,1276.74,1283.0,,,Rectangular,,4,4,grate,sag,3,2,perpendicular,4,,horizontal,,0.15,1,,
-210+60 RT,inlet,1279.4,1284.82,,,Circular,4,,,curb,on_grade,,,,4,4,horizontal,2,0.15,,,113+00 RT
-211+00 LT,inlet,1278.74,1285.46,,,Circular,4,,,curb,on_grade,,,,4,4,horizontal,2,0.15,,,210+00 LT
-212+60 RT,inlet,1286.93,1291.13,,,Circular,4,,,curb,on_grade,,,,4,4,horizontal,2,0.15,,,210+60 RT
-213+00 LT,inlet,1284.25,1291.05,,,Circular,4,,,curb,on_grade,,,,4,4,horizontal,2,0.15,,,211+00 LT
-214+50 LT,inlet,1286.77,1289.8,,,Rectangular,,4,4,grate,sag,3,2,perpendicular,4,,horizontal,,0.15,1,,
-214+60 RT,inlet,1288.88,1292.57,,,Circular,4,,,curb,on_grade,,,,4,4,horizontal,2,0.15,,,212+60 RT
-215+00 LT,inlet,1288.29,1291.97,,,Circular,4,,,curb,on_grade,,,,4,4,horizontal,2,0.15,,,213+00 LT
-216+90 RT,outfall,1285.0,,,,Rectangular,,6,6,,,,,perpendicular,,,horizontal,,,1,free,
-218+00 LT,inlet,1287.0,1291.0,,,Circular,3,,,curb,sag,,,,,4,,2,0.15,,,
-218+03 LT,junction,1286.47,1290.23,,,Circular,6,,,,,,,,,,horizontal,,,,,
-218+06 LT,inlet,1286.33,1292.48,,,Circular,7,,,curb,on_grade,,,,7,4,horizontal,2,0.15,,,219+10 LT
-218+06 RT,inlet,1285.9,1292.64,,,Circular,7,,,curb,on_grade,,,,7,4,horizontal,2,0.15,,,219+10 RT
-219+10 LT,inlet,1286.97,1291.97,,,Circular,5,,,curb,on_grade,,,,5,4,horizontal,2,0.15,,,219+20 LT
-219+10 RT,inlet,1287.86,1292.08,,,Circular,4,,,curb,on_grade,,,,4,4,horizontal,2,0.15,,,219+20 RT
-219+20 LT,inlet,1287.0,1291.97,,,Circular,5,,,curb,sag,,,,5,4,horizontal,2,0.15,,,
-219+20 RT,inlet,1288.13,1292.07,,,Circular,4,,,curb,sag,,,,4,4,horizontal,2,0.15,,,
-219+30 LT,inlet,1287.04,1291.98,,,Circular,5,,,curb,on_grade,,,,5,4,horizontal,2,0.15,,,219+20 LT
-219+30 RT,inlet,1288.4,1292.07,,,Circular,4,,,curb,on_grade,,,,4,4,horizontal,2,0.15,,,219+20 RT
-220+06 RT,inlet,1288.61,1292.37,,,Circular,4,,,curb,on_grade,,,,,4,,2,0.15,,,219+30 RT
-220+08 LT,inlet,1287.49,1292.32,,,Circular,5,,,curb,on_grade,,,,5,4,horizontal,2,0.15,,,219+30 LT
+124+50 LT,inlet,1290.74,1294.35,661130.60,737132.48,Circular,4,,,curb,on_grade,,,,4,4,horizontal,2,0.15,,,120+50 LT
+200+19 LT,inlet,1277.09,1280.64,660208.15,736208.44,Circular,4,,,curb,on_grade,,,,4,4,horizontal,2,0.15,,,203+48 LT
+200+19 RT,outfall,1272.67,,660204.51,736142.53,Circular,3,,,,,,,,,,,,,,free,
+203+48 LT,inlet,1271.55,1278.44,660537.59,736198.80,Circular,7,,,curb,on_grade,,,,7,4,horizontal,2,0.15,,,204+20 LT
+203+48 RT,outfall,1271.2,,660533.82,736123.82,Circular,7,,,,,,,,,,horizontal,,,,free,
+204+09 RT,inlet,1272.99,1278.53,660594.40,736122.63,Circular,3,,,curb,sag,,,,,4,,2,0.15,,,
+204+20 LT,inlet,1271.88,1278.3,660609.29,736197.12,Circular,6,,,curb,sag,,,,6,4,horizontal,2,0.15,,,
+204+30 LT,inlet,1271.9,1278.3,660619.34,736196.81,Circular,6,,,curb,on_grade,,,,6,4,horizontal,2,0.15,,,204+20 LT
+204+62 LT,inlet,1272.03,1278.33,660651.28,736195.83,Circular,6,,,curb,on_grade,,,,6,4,horizontal,2,0.15,,,204+30 LT
+204+67 RT,inlet,1273.32,1278.55,660653.05,736119.46,Circular,3,,,curb,on_grade,,,,,4,,2,0.15,,,204+09 RT
+206+53 RT,inlet,1274.31,1279.51,660838.63,736110.40,Circular,3,,,curb,on_grade,,,,,4,,2,0.15,,,204+67 RT
+206+55 LT,inlet,1272.89,1279.28,660844.06,736186.61,Circular,6,,,curb,on_grade,,,,6,4,horizontal,2,0.15,,,204+30 LT
+207+99 LT,inlet,1273.64,1279.78,660987.97,736198.92,Circular,11,,,curb,on_grade,,,,11,4,horizontal,2,0.15,,,206+55 LT
+208+17 RT,inlet,1275.44,1280.48,661002.47,736102.91,Circular,4,,,curb,on_grade,,,,4,4,horizontal,2,0.15,,,206+53 RT
+208+65 RT,inlet,1275.75,1280.02,661049.10,736090.55,Rectangular,,4,4,grate,on_grade,3,2,perpendicular,4,,horizontal,,0.15,1,,208+17 RT
+208+98 LT,inlet,1274.11,1280.81,661087.81,736201.04,Circular,5,,,curb,on_grade,,,,7,4,horizontal,2,0.15,,,207+99 LT
+209+02 LT,inlet,1276.3,1280.35,661090.64,736178.28,Rectangular,,3,3,grate,on_grade,3,2,perpendicular,3,,horizontal,,0.15,1,,207+99 LT
+209+81 LT,inlet,1277.5,1282.37,661169.42,736173.43,Circular,4,,,curb,on_grade,,,,4,4,horizontal,2,0.15,,,209+02 LT
+210+00 LT,inlet,1274.64,1281.18,661191.87,736245.87,Circular,7,,,curb,on_grade,,,,7,4,horizontal,2,0.15,,,208+98 LT
+210+51 LT,inlet,1276.74,1283.0,661241.08,736225.19,Rectangular,,4,4,grate,sag,3,2,perpendicular,4,,horizontal,,0.15,1,,
+210+60 RT,inlet,1279.4,1284.82,661245.27,736092.35,Circular,4,,,curb,on_grade,,,,4,4,horizontal,2,0.15,,,113+00 RT
+211+00 LT,inlet,1278.74,1285.46,661289.16,736189.69,Circular,4,,,curb,on_grade,,,,4,4,horizontal,2,0.15,,,210+00 LT
+212+60 RT,inlet,1286.93,1291.13,661445.11,736084.42,Circular,4,,,curb,on_grade,,,,4,4,horizontal,2,0.15,,,210+60 RT
+213+00 LT,inlet,1284.25,1291.05,661489.02,736182.12,Circular,4,,,curb,on_grade,,,,4,4,horizontal,2,0.15,,,211+00 LT
+214+50 LT,inlet,1286.77,1289.8,661640.55,736207.46,Rectangular,,4,4,grate,sag,3,2,perpendicular,4,,horizontal,,0.15,1,,
+214+60 RT,inlet,1288.88,1292.57,661644.95,736076.48,Circular,4,,,curb,on_grade,,,,4,4,horizontal,2,0.15,,,212+60 RT
+215+00 LT,inlet,1288.29,1291.97,661688.85,736173.82,Circular,4,,,curb,on_grade,,,,4,4,horizontal,2,0.15,,,213+00 LT
+216+90 RT,outfall,1285.0,,661874.24,736052.50,Rectangular,,6,6,,,,,perpendicular,,,horizontal,,,1,free,
+218+00 LT,inlet,1287.0,1291.0,661990.92,736155.63,Circular,3,,,curb,sag,,,,,4,,2,0.15,,,
+218+03 LT,junction,1286.47,1290.23,661990.92,736155.63,Circular,6,,,,,,,,,,horizontal,,,,,
+218+06 LT,inlet,1286.33,1292.48,661993.24,736133.73,Circular,7,,,curb,on_grade,,,,7,4,horizontal,2,0.15,,,219+10 LT
+218+06 RT,inlet,1285.9,1292.64,661990.34,736061.85,Circular,7,,,curb,on_grade,,,,7,4,horizontal,2,0.15,,,219+10 RT
+219+10 LT,inlet,1286.97,1291.97,662097.23,736127.41,Circular,5,,,curb,on_grade,,,,5,4,horizontal,2,0.15,,,219+20 LT
+219+10 RT,inlet,1287.86,1292.08,662094.66,736058.85,Circular,4,,,curb,on_grade,,,,4,4,horizontal,2,0.15,,,219+20 RT
+219+20 LT,inlet,1287.0,1291.97,662107.21,736126.81,Circular,5,,,curb,sag,,,,5,4,horizontal,2,0.15,,,
+219+20 RT,inlet,1288.13,1292.07,662104.65,736058.47,Circular,4,,,curb,sag,,,,4,4,horizontal,2,0.15,,,
+219+30 LT,inlet,1287.04,1291.98,662117.19,736126.21,Circular,5,,,curb,on_grade,,,,5,4,horizontal,2,0.15,,,219+20 LT
+219+30 RT,inlet,1288.4,1292.07,662114.64,736058.09,Circular,4,,,curb,on_grade,,,,4,4,horizontal,2,0.15,,,219+20 RT
+220+06 RT,inlet,1288.61,1292.37,662190.93,736055.18,Circular,4,,,curb,on_grade,,,,,4,,2,0.15,,,219+30 RT
+220+08 LT,inlet,1287.49,1292.32,662195.11,736121.44,Circular,5,,,curb,on_grade,,,,5,4,horizontal,2,0.15,,,219+30 LT
 220+81 LT,inlet,1288.0,1293.0,,,Circular,3,,,curb,on_grade,,,,,4,,2,0.15,,,220+08 LT
-413+00 LT,inlet,1286.97,1290.53,,,Circular,4,,,curb,on_grade,,,,4,4,horizontal,2,0.15,,,413+25 LT
-413+25 LT,inlet,1286.87,1290.38,,,Circular,4,,,curb,sag,,,,4,4,horizontal,2,0.15,,,
-413+36 @ 11' LT,inlet,1285.84,1290.39,,,Circular,4,,,curb,on_grade,,,,4,4,horizontal,2,0.15,,,413+25 LT
-413+36 @ 23' LT,inlet,1285.95,1289.5,,,Rectangular,,4,4,grate,sag,3,2,perpendicular,4,,horizontal,,0.15,1,,
-413+36 RT,inlet,1285.41,1289.0,,,Rectangular,,4,4,grate,sag,3,2,perpendicular,4,,horizontal,,0.15,1,,
+413+00 LT,inlet,1286.97,1290.53,661541.42,736267.56,Circular,4,,,curb,on_grade,,,,4,4,horizontal,2,0.15,,,413+25 LT
+413+25 LT,inlet,1286.87,1290.38,661551.12,736246.78,Circular,4,,,curb,sag,,,,4,4,horizontal,2,0.15,,,
+413+36 @ 11' LT,inlet,1285.84,1290.39,661556.37,736238.25,Circular,4,,,curb,on_grade,,,,4,4,horizontal,2,0.15,,,413+25 LT
+413+36 @ 23' LT,inlet,1285.95,1289.5,661566.36,736245.17,Rectangular,,4,4,grate,sag,3,2,perpendicular,4,,horizontal,,0.15,1,,
+413+36 RT,inlet,1285.41,1289.0,661523.29,736218.24,Rectangular,,4,4,grate,sag,3,2,perpendicular,4,,horizontal,,0.15,1,,
