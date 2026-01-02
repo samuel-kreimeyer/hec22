@@ -33,6 +33,10 @@ const networkPlan = document.getElementById("networkPlan");
 const planLegend = document.getElementById("planLegend");
 const planStatus = document.getElementById("planStatus");
 const planWrap = networkPlan ? networkPlan.parentElement : null;
+const planLabelsToggle = document.getElementById("planLabels");
+const planZoomInButton = document.getElementById("planZoomIn");
+const planZoomOutButton = document.getElementById("planZoomOut");
+const planResetButton = document.getElementById("planReset");
 
 const sampleRequest = {
   network: {
@@ -113,6 +117,13 @@ let lastResult = null;
 let lastResultRaw = "";
 let validationTimer = null;
 let lastRequest = null;
+const PLAN_DEFAULT_VIEWBOX = { x: 0, y: 0, width: 800, height: 500 };
+const PLAN_MIN_SCALE = 0.5;
+const PLAN_MAX_SCALE = 4;
+const planViewBox = { ...PLAN_DEFAULT_VIEWBOX };
+let isPanning = false;
+let panStart = { x: 0, y: 0 };
+let panViewBoxStart = { x: 0, y: 0 };
 const tableState = {
   nodes: {
     sortKey: "nodeId",
@@ -1724,6 +1735,86 @@ function hidePlanTooltip() {
   tooltip.classList.remove("visible");
 }
 
+function applyPlanViewBox() {
+  if (!networkPlan) {
+    return;
+  }
+  networkPlan.setAttribute(
+    "viewBox",
+    `${planViewBox.x} ${planViewBox.y} ${planViewBox.width} ${planViewBox.height}`
+  );
+}
+
+function clampPlanScale(scale) {
+  return Math.min(Math.max(scale, PLAN_MIN_SCALE), PLAN_MAX_SCALE);
+}
+
+function getPlanScale() {
+  return PLAN_DEFAULT_VIEWBOX.width / planViewBox.width;
+}
+
+function setPlanScale(newScale, anchor) {
+  const scale = clampPlanScale(newScale);
+  const currentScale = getPlanScale();
+  if (!anchor || !networkPlan) {
+    planViewBox.width = PLAN_DEFAULT_VIEWBOX.width / scale;
+    planViewBox.height = PLAN_DEFAULT_VIEWBOX.height / scale;
+    applyPlanViewBox();
+    return;
+  }
+
+  const rect = networkPlan.getBoundingClientRect();
+  const relX = (anchor.x - rect.left) / rect.width;
+  const relY = (anchor.y - rect.top) / rect.height;
+  const cursorX = planViewBox.x + relX * planViewBox.width;
+  const cursorY = planViewBox.y + relY * planViewBox.height;
+  const nextWidth = PLAN_DEFAULT_VIEWBOX.width / scale;
+  const nextHeight = PLAN_DEFAULT_VIEWBOX.height / scale;
+
+  planViewBox.x = cursorX - relX * nextWidth;
+  planViewBox.y = cursorY - relY * nextHeight;
+  planViewBox.width = nextWidth;
+  planViewBox.height = nextHeight;
+  applyPlanViewBox();
+
+  if (Math.abs(scale - currentScale) < 0.0001) {
+    return;
+  }
+}
+
+function resetPlanView() {
+  planViewBox.x = PLAN_DEFAULT_VIEWBOX.x;
+  planViewBox.y = PLAN_DEFAULT_VIEWBOX.y;
+  planViewBox.width = PLAN_DEFAULT_VIEWBOX.width;
+  planViewBox.height = PLAN_DEFAULT_VIEWBOX.height;
+  applyPlanViewBox();
+}
+
+function startPan(event) {
+  if (!networkPlan || event.button !== 0) {
+    return;
+  }
+  isPanning = true;
+  panStart = { x: event.clientX, y: event.clientY };
+  panViewBoxStart = { x: planViewBox.x, y: planViewBox.y };
+}
+
+function movePan(event) {
+  if (!isPanning || !networkPlan) {
+    return;
+  }
+  const rect = networkPlan.getBoundingClientRect();
+  const dx = ((event.clientX - panStart.x) / rect.width) * planViewBox.width;
+  const dy = ((event.clientY - panStart.y) / rect.height) * planViewBox.height;
+  planViewBox.x = panViewBoxStart.x - dx;
+  planViewBox.y = panViewBoxStart.y - dy;
+  applyPlanViewBox();
+}
+
+function endPan() {
+  isPanning = false;
+}
+
 function renderPlanView() {
   if (!networkPlan) {
     return;
@@ -1779,8 +1870,8 @@ function renderPlanView() {
     flowRegimeMap.set(conduit.conduitId, conduit.flowRegime);
   });
 
-  const width = 800;
-  const height = 500;
+  const width = PLAN_DEFAULT_VIEWBOX.width;
+  const height = PLAN_DEFAULT_VIEWBOX.height;
   const padding = 50;
   const coords = Array.from(positions.values());
   const xs = coords.map((pos) => pos.x);
@@ -1795,7 +1886,7 @@ function renderPlanView() {
   const scaleY = (value) =>
     padding + ((value - minY) / (maxY - minY || 1)) * (height - padding * 2);
 
-  networkPlan.setAttribute("viewBox", `0 0 ${width} ${height}`);
+  applyPlanViewBox();
   networkPlan.innerHTML = `
     <defs>
       <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
@@ -1863,6 +1954,7 @@ function renderPlanView() {
     label.setAttribute("y", cy - 8);
     label.setAttribute("font-size", "10");
     label.setAttribute("fill", "#0f172a");
+    label.classList.add("plan-label");
     label.textContent = node.id;
     nodeGroup.appendChild(label);
 
@@ -2565,5 +2657,59 @@ if (conduitFilterInput) {
 if (planMetricSelect) {
   planMetricSelect.addEventListener("change", () => {
     renderPlanView();
+  });
+}
+
+if (planLabelsToggle && networkPlan) {
+  planLabelsToggle.addEventListener("change", () => {
+    networkPlan.classList.toggle("labels-hidden", !planLabelsToggle.checked);
+  });
+  networkPlan.classList.toggle("labels-hidden", !planLabelsToggle.checked);
+}
+
+if (networkPlan) {
+  networkPlan.addEventListener("wheel", (event) => {
+    event.preventDefault();
+    const direction = event.deltaY < 0 ? 1.1 : 0.9;
+    const targetScale = getPlanScale() * direction;
+    setPlanScale(targetScale, { x: event.clientX, y: event.clientY });
+  });
+  networkPlan.addEventListener("mousedown", startPan);
+  networkPlan.addEventListener("mousemove", movePan);
+  networkPlan.addEventListener("mouseleave", endPan);
+  window.addEventListener("mouseup", endPan);
+}
+
+if (planZoomInButton) {
+  planZoomInButton.addEventListener("click", () => {
+    if (planWrap) {
+      const rect = planWrap.getBoundingClientRect();
+      setPlanScale(getPlanScale() * 1.2, {
+        x: rect.left + rect.width / 2,
+        y: rect.top + rect.height / 2
+      });
+    } else {
+      setPlanScale(getPlanScale() * 1.2, null);
+    }
+  });
+}
+
+if (planZoomOutButton) {
+  planZoomOutButton.addEventListener("click", () => {
+    if (planWrap) {
+      const rect = planWrap.getBoundingClientRect();
+      setPlanScale(getPlanScale() / 1.2, {
+        x: rect.left + rect.width / 2,
+        y: rect.top + rect.height / 2
+      });
+    } else {
+      setPlanScale(getPlanScale() / 1.2, null);
+    }
+  });
+}
+
+if (planResetButton) {
+  planResetButton.addEventListener("click", () => {
+    resetPlanView();
   });
 }

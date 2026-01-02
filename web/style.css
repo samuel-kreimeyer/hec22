@@ -442,6 +442,15 @@ code {
   align-items: start;
 }
 
+.plan-controls {
+  gap: 8px;
+}
+
+.plan-controls button {
+  padding: 6px 12px;
+  font-size: 0.85rem;
+}
+
 .plan-wrap {
   border-radius: 16px;
   border: 1px solid rgba(210, 200, 187, 0.7);
@@ -455,6 +464,15 @@ code {
   width: 100%;
   height: 100%;
   display: block;
+  cursor: grab;
+}
+
+.plan-wrap svg:active {
+  cursor: grabbing;
+}
+
+.labels-hidden .plan-label {
+  display: none;
 }
 
 .plan-legend {
