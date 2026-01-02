@@ -28,6 +28,12 @@ const nodeFilterInput = document.getElementById("nodeFilter");
 const conduitFilterInput = document.getElementById("conduitFilter");
 const nodeTableMeta = document.getElementById("nodeTableMeta");
 const conduitTableMeta = document.getElementById("conduitTableMeta");
+const profileStartSelect = document.getElementById("profileStart");
+const profileEndSelect = document.getElementById("profileEnd");
+const profileInvertToggle = document.getElementById("profileInvert");
+const profileBuildButton = document.getElementById("profileBuild");
+const profileStatus = document.getElementById("profileStatus");
+const profileChart = document.getElementById("profileChart");
 const planMetricSelect = document.getElementById("planMetric");
 const networkPlan = document.getElementById("networkPlan");
 const planLegend = document.getElementById("planLegend");
@@ -638,6 +644,15 @@ function updatePlanStatus(message, isError = false) {
   planStatus.style.color = isError ? "#7a1c1b" : "";
 }
 
+function updateProfileStatus(message, isError = false) {
+  if (!profileStatus) {
+    return;
+  }
+  profileStatus.textContent = message;
+  profileStatus.style.background = isError ? "rgba(176, 26, 24, 0.12)" : "";
+  profileStatus.style.color = isError ? "#7a1c1b" : "";
+}
+
 function updateJsonStatus(message, isError = false) {
   if (!jsonStatus) {
     return;
@@ -901,6 +916,7 @@ function validateJsonInput() {
 
   try {
     const parsed = JSON.parse(text);
+    updateProfileOptions(parsed);
     const errors = validateRequestObject(parsed).map((error) => ({
       ...error,
       line: findLineForPath(text, error.path)
@@ -963,6 +979,34 @@ function ensureRequest() {
     return { ok: true, request: parsed };
   } catch (error) {
     return { ok: false, error: "Request JSON is invalid." };
+  }
+}
+
+function updateProfileOptions(request) {
+  if (!profileStartSelect || !profileEndSelect) {
+    return;
+  }
+  const nodes = request && request.network && Array.isArray(request.network.nodes)
+    ? request.network.nodes
+    : [];
+  const ids = nodes.map((node) => node.id).filter(Boolean);
+
+  const buildOptions = (select) => {
+    select.innerHTML = "";
+    ids.forEach((id) => {
+      const option = document.createElement("option");
+      option.value = id;
+      option.textContent = id;
+      select.appendChild(option);
+    });
+  };
+
+  buildOptions(profileStartSelect);
+  buildOptions(profileEndSelect);
+
+  if (ids.length) {
+    profileStartSelect.value = ids[0];
+    profileEndSelect.value = ids[ids.length - 1];
   }
 }
 
@@ -1969,6 +2013,241 @@ function renderPlanView() {
   networkPlan.appendChild(nodeGroup);
 }
 
+function buildPath(network, startId, endId) {
+  const conduits = network.conduits || [];
+  const adjacency = new Map();
+  conduits.forEach((conduit) => {
+    if (!adjacency.has(conduit.fromNode)) {
+      adjacency.set(conduit.fromNode, []);
+    }
+    adjacency.get(conduit.fromNode).push(conduit);
+  });
+
+  const queue = [startId];
+  const visited = new Set([startId]);
+  const prev = new Map();
+
+  while (queue.length) {
+    const current = queue.shift();
+    if (current === endId) {
+      break;
+    }
+    const edges = adjacency.get(current) || [];
+    edges.forEach((conduit) => {
+      const next = conduit.toNode;
+      if (!visited.has(next)) {
+        visited.add(next);
+        prev.set(next, { node: current, conduit });
+        queue.push(next);
+      }
+    });
+  }
+
+  if (!visited.has(endId)) {
+    return null;
+  }
+
+  const nodes = [];
+  const conduitsPath = [];
+  let cursor = endId;
+  while (cursor !== startId) {
+    const entry = prev.get(cursor);
+    if (!entry) {
+      break;
+    }
+    conduitsPath.push(entry.conduit);
+    nodes.push(cursor);
+    cursor = entry.node;
+  }
+  nodes.push(startId);
+  nodes.reverse();
+  conduitsPath.reverse();
+  return { nodes, conduits: conduitsPath };
+}
+
+function buildProfilePath(points) {
+  let path = "";
+  let started = false;
+  points.forEach((point) => {
+    if (!Number.isFinite(point.y)) {
+      started = false;
+      return;
+    }
+    if (!started) {
+      path += `M ${point.x} ${point.y}`;
+      started = true;
+    } else {
+      path += ` L ${point.x} ${point.y}`;
+    }
+  });
+  return path;
+}
+
+function renderProfileView() {
+  if (!profileChart) {
+    return;
+  }
+  const requestState = ensureRequest();
+  if (!requestState.ok) {
+    profileChart.innerHTML = "";
+    updateProfileStatus(requestState.error, true);
+    return;
+  }
+  const resultState = ensureResult();
+  if (!resultState.ok) {
+    profileChart.innerHTML = "";
+    updateProfileStatus("Run the solver to render the profile.", false);
+    return;
+  }
+
+  const network = requestState.request.network;
+  if (!network || !Array.isArray(network.nodes) || !Array.isArray(network.conduits)) {
+    profileChart.innerHTML = "";
+    updateProfileStatus("Network data missing in request JSON.", true);
+    return;
+  }
+
+  const startId = profileStartSelect ? profileStartSelect.value : null;
+  const endId = profileEndSelect ? profileEndSelect.value : null;
+  if (!startId || !endId) {
+    profileChart.innerHTML = "";
+    updateProfileStatus("Select start and end nodes.", true);
+    return;
+  }
+
+  const path = buildPath(network, startId, endId);
+  if (!path) {
+    profileChart.innerHTML = "";
+    updateProfileStatus("No path found between selected nodes.", true);
+    return;
+  }
+
+  const nodeMap = new Map(network.nodes.map((node) => [node.id, node]));
+  const { nodeResults } = getAnalysisData(resultState.result);
+  const resultMap = new Map(nodeResults.map((node) => [node.nodeId, node]));
+
+  const distances = [0];
+  path.conduits.forEach((conduit) => {
+    const length = Number(conduit.length || 0);
+    distances.push(distances[distances.length - 1] + (Number.isFinite(length) ? length : 0));
+  });
+
+  const hglValues = path.nodes.map((id) => resultMap.get(id)?.hgl ?? null);
+  const eglValues = path.nodes.map((id) => resultMap.get(id)?.egl ?? null);
+  const invertValues = path.nodes.map((id) => nodeMap.get(id)?.invertElevation ?? null);
+
+  const allValues = []
+    .concat(hglValues, eglValues, invertValues)
+    .filter((value) => Number.isFinite(value));
+  if (!allValues.length) {
+    profileChart.innerHTML = "";
+    updateProfileStatus("No HGL/EGL values available for this path.", true);
+    return;
+  }
+
+  const minValue = Math.min(...allValues);
+  const maxValue = Math.max(...allValues);
+  const width = 800;
+  const height = 320;
+  const paddingLeft = 50;
+  const paddingRight = 20;
+  const paddingTop = 20;
+  const paddingBottom = 40;
+  const plotWidth = width - paddingLeft - paddingRight;
+  const plotHeight = height - paddingTop - paddingBottom;
+  const totalLength = distances[distances.length - 1] || 1;
+
+  const scaleX = (value) => paddingLeft + (value / totalLength) * plotWidth;
+  const scaleY = (value) =>
+    paddingTop + ((maxValue - value) / (maxValue - minValue || 1)) * plotHeight;
+
+  const hglPoints = distances.map((dist, index) => ({
+    x: scaleX(dist),
+    y: Number.isFinite(hglValues[index]) ? scaleY(hglValues[index]) : NaN
+  }));
+  const eglPoints = distances.map((dist, index) => ({
+    x: scaleX(dist),
+    y: Number.isFinite(eglValues[index]) ? scaleY(eglValues[index]) : NaN
+  }));
+  const invertPoints = distances.map((dist, index) => ({
+    x: scaleX(dist),
+    y: Number.isFinite(invertValues[index]) ? scaleY(invertValues[index]) : NaN
+  }));
+
+  const gridLines = 5;
+  const ticks = [];
+  for (let i = 0; i <= gridLines; i += 1) {
+    const value = maxValue - (i / gridLines) * (maxValue - minValue || 1);
+    ticks.push({ value, y: scaleY(value) });
+  }
+
+  profileChart.setAttribute("viewBox", `0 0 ${width} ${height}`);
+  profileChart.innerHTML = "";
+
+  const svgNs = "http://www.w3.org/2000/svg";
+  const gridGroup = document.createElementNS(svgNs, "g");
+  ticks.forEach((tick) => {
+    const line = document.createElementNS(svgNs, "line");
+    line.setAttribute("x1", paddingLeft);
+    line.setAttribute("x2", width - paddingRight);
+    line.setAttribute("y1", tick.y);
+    line.setAttribute("y2", tick.y);
+    line.setAttribute("class", "profile-grid");
+    gridGroup.appendChild(line);
+
+    const label = document.createElementNS(svgNs, "text");
+    label.setAttribute("x", 8);
+    label.setAttribute("y", tick.y + 4);
+    label.setAttribute("class", "profile-label");
+    label.textContent = formatNumber(tick.value);
+    gridGroup.appendChild(label);
+  });
+
+  const axisLine = document.createElementNS(svgNs, "line");
+  axisLine.setAttribute("x1", paddingLeft);
+  axisLine.setAttribute("x2", width - paddingRight);
+  axisLine.setAttribute("y1", height - paddingBottom);
+  axisLine.setAttribute("y2", height - paddingBottom);
+  axisLine.setAttribute("class", "profile-axis");
+  gridGroup.appendChild(axisLine);
+
+  const xLabelsGroup = document.createElementNS(svgNs, "g");
+  path.nodes.forEach((nodeId, index) => {
+    const x = scaleX(distances[index]);
+    const label = document.createElementNS(svgNs, "text");
+    label.setAttribute("x", x);
+    label.setAttribute("y", height - 12);
+    label.setAttribute("text-anchor", "middle");
+    label.setAttribute("class", "profile-label");
+    label.textContent = nodeId;
+    xLabelsGroup.appendChild(label);
+  });
+
+  const lineGroup = document.createElementNS(svgNs, "g");
+
+  const hglPath = document.createElementNS(svgNs, "path");
+  hglPath.setAttribute("d", buildProfilePath(hglPoints));
+  hglPath.setAttribute("class", "profile-line hgl");
+  lineGroup.appendChild(hglPath);
+
+  const eglPath = document.createElementNS(svgNs, "path");
+  eglPath.setAttribute("d", buildProfilePath(eglPoints));
+  eglPath.setAttribute("class", "profile-line egl");
+  lineGroup.appendChild(eglPath);
+
+  if (profileInvertToggle && profileInvertToggle.checked) {
+    const invertPath = document.createElementNS(svgNs, "path");
+    invertPath.setAttribute("d", buildProfilePath(invertPoints));
+    invertPath.setAttribute("class", "profile-line invert");
+    lineGroup.appendChild(invertPath);
+  }
+
+  profileChart.appendChild(gridGroup);
+  profileChart.appendChild(lineGroup);
+  profileChart.appendChild(xLabelsGroup);
+  updateProfileStatus("Profile rendered.", false);
+}
+
 function summarizeCsvState() {
   const parts = [];
   if (csvState.nodes) {
@@ -2603,6 +2882,7 @@ runButton.addEventListener("click", async () => {
     updateExportStatus("Results ready for export.");
     renderResultsTables();
     renderPlanView();
+    renderProfileView();
   } catch (error) {
     statusEl.textContent = "Error";
     outputEl.textContent = String(error);
@@ -2611,6 +2891,7 @@ runButton.addEventListener("click", async () => {
     updateExportStatus("No results yet.", false);
     renderResultsTables();
     renderPlanView();
+    renderProfileView();
   }
 });
 
@@ -2639,6 +2920,7 @@ requestEl.addEventListener("input", () => {
 });
 renderResultsTables();
 renderPlanView();
+renderProfileView();
 
 if (nodeFilterInput) {
   nodeFilterInput.addEventListener("input", () => {
@@ -2711,5 +2993,17 @@ if (planZoomOutButton) {
 if (planResetButton) {
   planResetButton.addEventListener("click", () => {
     resetPlanView();
+  });
+}
+
+if (profileBuildButton) {
+  profileBuildButton.addEventListener("click", () => {
+    renderProfileView();
+  });
+}
+
+if (profileInvertToggle) {
+  profileInvertToggle.addEventListener("change", () => {
+    renderProfileView();
   });
 }

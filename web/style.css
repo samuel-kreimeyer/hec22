@@ -435,6 +435,53 @@ code {
   color: var(--muted);
 }
 
+.profile-wrap {
+  border-radius: 16px;
+  border: 1px solid rgba(210, 200, 187, 0.7);
+  background: #fff;
+  overflow: hidden;
+  min-height: 240px;
+}
+
+.profile-wrap svg {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+.profile-axis {
+  stroke: rgba(100, 116, 139, 0.5);
+  stroke-width: 1;
+}
+
+.profile-grid {
+  stroke: rgba(148, 163, 184, 0.3);
+  stroke-width: 1;
+}
+
+.profile-label {
+  fill: var(--muted);
+  font-size: 10px;
+}
+
+.profile-line {
+  fill: none;
+  stroke-width: 2.5;
+}
+
+.profile-line.hgl {
+  stroke: #2563eb;
+}
+
+.profile-line.egl {
+  stroke: #f97316;
+}
+
+.profile-line.invert {
+  stroke: #0f766e;
+  stroke-dasharray: 4 4;
+}
+
 .plan-layout {
   display: grid;
   grid-template-columns: minmax(0, 1fr) 200px;

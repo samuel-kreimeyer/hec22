@@ -156,6 +156,31 @@
           <div class="table-wrap" id="conduitTable"></div>
         </div>
       </div>
+      <div class="section-block">
+        <h3>Profile view</h3>
+        <p class="hint">Plot HGL/EGL along a selected path.</p>
+        <div class="field-row">
+          <label class="field">
+            <span>Start node</span>
+            <select id="profileStart"></select>
+          </label>
+          <label class="field">
+            <span>End node</span>
+            <select id="profileEnd"></select>
+          </label>
+          <label class="toggle">
+            <input id="profileInvert" type="checkbox" checked>
+            <span>Show invert</span>
+          </label>
+        </div>
+        <div class="actions">
+          <button id="profileBuild" class="primary">Build profile</button>
+        </div>
+        <div class="import-status" id="profileStatus">No profile yet.</div>
+        <div class="profile-wrap">
+          <svg id="profileChart" viewBox="0 0 800 320" preserveAspectRatio="xMidYMid meet"></svg>
+        </div>
+      </div>
       <pre id="output" class="output">Waiting for input…</pre>
     </section>
   </main>
