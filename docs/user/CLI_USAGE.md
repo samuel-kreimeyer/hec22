@@ -62,6 +62,14 @@ cargo run -- \
   - Units: in/hr for US customary, mm/hr for SI metric
   - Used with drainage areas for rational method flow calculation
 
+- `--gutter-params <FILE>` - Path to gutter parameters CSV file
+  - Defines cross slope, longitudinal slope, and optional depression width for inlets
+  - Used to compute gutter spread and inlet interception
+
+- `--max-spread <VALUE>` - Maximum allowable gutter spread (optional)
+  - Units: ft for US customary, m for SI metric
+  - Creates a spread violation when an inlet exceeds the limit
+
 - `--units, -u <SYSTEM>` - Unit system (default: us)
   - `us` - US Customary (ft, cfs, in/hr)
   - `si` - SI Metric (m, m³/s, mm/hr)
@@ -159,6 +167,29 @@ DA-002,1.0,0.75,12.0,IN-002,residential
 **Optional Columns:**
 - `land_use` - commercial, industrial, residential, etc.
 
+### gutter_parameters.csv
+
+Defines gutter/curb parameters for inlet calculations. Each row targets a node ID.
+
+**Example:**
+```csv
+node_id,cross_slope,long_slope,curb_height,gutter_width,manning_n,depression,depression_width
+IN-001,0.02,0.01,6,2.0,0.016,2.0,2.0
+```
+Example file: `examples/bentonville_complex_network/gutter_parameters.csv`.
+
+**Required Columns:**
+- `node_id` - Inlet node ID
+- `cross_slope` - Gutter cross slope (ft/ft or m/m)
+- `long_slope` - Longitudinal slope (ft/ft or m/m)
+
+**Optional Columns:**
+- `curb_height` - Curb height (in or mm)
+- `gutter_width` - Gutter width (ft or m)
+- `manning_n` - Manning's roughness
+- `depression` - Local depression depth (in or mm)
+- `depression_width` - Depression width (ft or m)
+
 ## Output Formats
 
 ### Text Output (default)
@@ -225,7 +256,7 @@ cargo run -- \
 ```
 
 Produces:
-- `results.nodes.csv` - Node results (HGL, EGL, depth, velocity, flooding)
+- `results.nodes.csv` - Node results (HGL, EGL, depth, velocity, gutter spread, flooding)
 - `results.conduits.csv` - Conduit results (flow, velocity, capacity, Froude number)
 
 ## Understanding the Results
@@ -236,6 +267,7 @@ Produces:
 - **EGL (Energy Grade Line)** - HGL + velocity head
 - **Depth** - Flow depth in the node
 - **Velocity** - Flow velocity at the node
+- **Spread** - Gutter spread at inlets (ft or m)
 - **Flooding** - YES if HGL exceeds rim elevation (water backs up)
 
 ### Conduit Results

@@ -30,6 +30,10 @@ struct Cli {
     #[arg(long, value_name = "FILE")]
     idf_curves: Option<PathBuf>,
 
+    /// Path to gutter parameters CSV file (columns: node_id, cross_slope, long_slope, ...)
+    #[arg(long, value_name = "FILE")]
+    gutter_params: Option<PathBuf>,
+
     /// Return period in years (used with IDF curves, default: 10)
     #[arg(short = 'r', long, default_value = "10")]
     return_period: f64,
@@ -38,6 +42,10 @@ struct Cli {
     /// If IDF curves are provided, this is used as fallback when time of concentration lookup fails.
     #[arg(short, long, default_value = "4.0")]
     intensity: f64,
+
+    /// Maximum allowable gutter spread (ft for US units, m for SI units)
+    #[arg(long)]
+    max_spread: Option<f64>,
 
     /// Unit system to use for analysis
     #[arg(short, long, value_enum, default_value = "us")]
@@ -118,6 +126,26 @@ fn run_analysis(cli: Cli) -> Result<(), Box<dyn std::error::Error>> {
         println!("  No drainage areas provided");
         None
     };
+
+    let mut gutter_params = HashMap::new();
+    if let Some(ref path) = cli.gutter_params {
+        let params = csv::parse_gutter_parameters_csv(path)
+            .map_err(|e| format!("Failed to parse gutter parameters file: {}", e))?;
+        println!("  Loaded {} gutter parameter rows", params.len());
+        for record in params {
+            gutter_params.insert(
+                record.node_id.clone(),
+                solver::InletGutterParameters {
+                    cross_slope: Some(record.cross_slope),
+                    longitudinal_slope: Some(record.long_slope),
+                    manning_n: record.manning_n,
+                    gutter_width: record.gutter_width,
+                    depression: record.depression,
+                    depression_width: record.depression_width,
+                },
+            );
+        }
+    }
 
     // Build network
     println!("\nBuilding network...");
@@ -234,7 +262,8 @@ fn run_analysis(cli: Cli) -> Result<(), Box<dyn std::error::Error>> {
         UnitSystemArg::Us => project::UnitSystem::US,
         UnitSystemArg::Si => project::UnitSystem::SI,
     };
-    let (conduit_flows, inlet_results) = solver::route_flows_with_inlets(&network, &node_inflows, unit_system)
+    let (conduit_flows, inlet_results) =
+        solver::route_flows_with_inlets(&network, &node_inflows, unit_system, &gutter_params)
         .map_err(|e| format!("Flow routing failed: {}", e))?;
 
     for (conduit_id, flow) in &conduit_flows {
@@ -249,8 +278,10 @@ fn run_analysis(cli: Cli) -> Result<(), Box<dyn std::error::Error>> {
     };
 
     let hgl_solver = solver::HglSolver::new(config);
-    let analysis = hgl_solver.solve(&network, &conduit_flows, &inlet_results, "Design Storm".to_string())
+    let mut analysis =
+        hgl_solver.solve(&network, &conduit_flows, &inlet_results, "Design Storm".to_string())
         .map_err(|e| format!("HGL solver failed: {}", e))?;
+    apply_spread_criteria(&mut analysis, cli.max_spread);
 
     // Generate output
     println!("\n{}", "=".repeat(80));
@@ -488,6 +519,38 @@ fn format_violation(violation: &analysis::Violation) -> String {
     )
 }
 
+fn apply_spread_criteria(analysis: &mut analysis::Analysis, max_spread: Option<f64>) {
+    let max_spread = match max_spread {
+        Some(value) if value > 0.0 => value,
+        _ => return,
+    };
+
+    let node_results = match analysis.node_results.as_ref() {
+        Some(results) => results,
+        None => return,
+    };
+
+    let mut violations = Vec::new();
+    for result in node_results {
+        let spread = match result.gutter_spread {
+            Some(value) => value,
+            None => continue,
+        };
+        if spread > max_spread {
+            violations.push(analysis::Violation::spread_violation(
+                result.node_id.clone(),
+                spread,
+                max_spread,
+                analysis::Severity::Warning,
+            ));
+        }
+    }
+
+    for violation in violations {
+        analysis.add_violation(violation);
+    }
+}
+
 fn write_csv_output(
     analysis: &analysis::Analysis,
     base_path: &Path,
@@ -498,18 +561,26 @@ fn write_csv_output(
     // Write node results
     let node_path = base_path.with_extension("nodes.csv");
     let mut node_file = File::create(node_path)?;
-    writeln!(node_file, "node_id,hgl,egl,depth,velocity,flooding")?;
+    writeln!(
+        node_file,
+        "node_id,hgl,egl,depth,velocity,gutter_spread,flooding"
+    )?;
 
     if let Some(ref node_results) = analysis.node_results {
         for result in node_results {
+            let spread = result
+                .gutter_spread
+                .map(|value| format!("{:.2}", value))
+                .unwrap_or_else(|| "".to_string());
             writeln!(
                 node_file,
-                "{},{:.2},{:.2},{:.2},{:.2},{}",
+                "{},{:.2},{:.2},{:.2},{:.2},{},{}",
                 result.node_id,
                 result.hgl.unwrap_or(0.0),
                 result.egl.unwrap_or(0.0),
                 result.depth.unwrap_or(0.0),
                 result.velocity.unwrap_or(0.0),
+                spread,
                 result.flooding.unwrap_or(false)
             )?;
         }
@@ -639,4 +710,40 @@ fn find_profile_path(network: &network::Network) -> Vec<&str> {
     // Reverse to go from upstream to downstream
     path.reverse();
     path
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_apply_spread_criteria_adds_violation() {
+        let mut analysis = analysis::Analysis::new(
+            analysis::AnalysisMethod::Rational,
+            "storm-10yr".to_string(),
+        );
+
+        analysis.node_results = Some(vec![analysis::NodeResult {
+            node_id: "IN-1".to_string(),
+            hgl: Some(100.0),
+            egl: Some(100.0),
+            depth: Some(1.0),
+            velocity: None,
+            flooding: Some(false),
+            pressure_head: None,
+            junction_loss: None,
+            gutter_spread: Some(12.0),
+        }]);
+
+        apply_spread_criteria(&mut analysis, Some(10.0));
+
+        let violations = analysis.violations.as_ref().unwrap();
+        assert_eq!(violations.len(), 1);
+        let violation = &violations[0];
+        assert_eq!(violation.violation_type, analysis::ViolationType::Spread);
+        assert_eq!(violation.severity, analysis::Severity::Warning);
+        assert_eq!(violation.element_id, "IN-1");
+        assert_eq!(violation.value, Some(12.0));
+        assert_eq!(violation.limit, Some(10.0));
+    }
 }

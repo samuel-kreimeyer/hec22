@@ -91,6 +91,7 @@ pub fn solve_from_json(request_json: &str) -> Result<String, JsValue> {
                 &request.network,
                 &node_inflows,
                 unit_system,
+                &std::collections::HashMap::new(),
             )
             .map_err(|err| js_error(&format!("Flow routing failed: {}", err)))?;
             (conduit_flows, inlet_results, Some(node_inflows))

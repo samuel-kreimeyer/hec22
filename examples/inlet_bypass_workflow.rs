@@ -282,6 +282,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         &network,
         &node_inflows,
         project::UnitSystem::US,
+        &std::collections::HashMap::new(),
     )?;
 
     // Display inlet interception results

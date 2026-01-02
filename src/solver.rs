@@ -1193,6 +1193,17 @@ pub struct InletInterception {
     pub drainage_area: Option<f64>,
 }
 
+/// Optional gutter parameters used for inlet interception calculations.
+#[derive(Debug, Clone, Default)]
+pub struct InletGutterParameters {
+    pub cross_slope: Option<f64>,
+    pub longitudinal_slope: Option<f64>,
+    pub manning_n: Option<f64>,
+    pub gutter_width: Option<f64>,
+    pub depression: Option<f64>,
+    pub depression_width: Option<f64>,
+}
+
 /// Route flows through network accounting for inlet interception
 ///
 /// This enhanced routing function:
@@ -1205,6 +1216,7 @@ pub struct InletInterception {
 /// * `network` - The drainage network
 /// * `node_inflows` - Direct inflows at each node (from drainage areas)
 /// * `unit_system` - Unit system for gutter calculations
+/// * `gutter_params` - Optional per-inlet gutter parameters (cross slope, long slope, etc.)
 ///
 /// # Returns
 /// Tuple of (conduit flows, inlet interception results)
@@ -1212,6 +1224,7 @@ pub fn route_flows_with_inlets(
     network: &Network,
     node_inflows: &HashMap<String, f64>,
     unit_system: UnitSystem,
+    gutter_params: &HashMap<String, InletGutterParameters>,
 ) -> Result<(HashMap<String, f64>, Vec<InletInterception>), String> {
     let mut conduit_flows = HashMap::new();
     let mut bypass_flows: HashMap<String, f64> = HashMap::new();
@@ -1249,7 +1262,20 @@ pub fn route_flows_with_inlets(
                 // This is an inlet - calculate interception for surface flow only.
                 // Get drainage area for this node (if it exists)
                 let drainage_area = node_inflows.get(&node_id).copied();
-                calculate_inlet_interception(node, inlet_props, surface_inflow, k, drainage_area)?
+                let gutter_context = resolve_gutter_context(
+                    network,
+                    &node_id,
+                    inlet_props,
+                    gutter_params.get(&node_id),
+                );
+                calculate_inlet_interception(
+                    node,
+                    inlet_props,
+                    surface_inflow,
+                    k,
+                    drainage_area,
+                    &gutter_context,
+                )?
             } else {
                 // Not an inlet - all surface flow enters system
                 (surface_inflow, 0.0, None)
@@ -1285,6 +1311,71 @@ pub fn route_flows_with_inlets(
     Ok((conduit_flows, inlet_results))
 }
 
+struct GutterContext {
+    cross_slope: f64,
+    longitudinal_slope: f64,
+    manning_n: f64,
+    gutter_width: Option<f64>,
+    depression: f64,
+    depression_width: Option<f64>,
+}
+
+fn resolve_gutter_context(
+    network: &Network,
+    node_id: &str,
+    inlet_props: &crate::node::InletProperties,
+    gutter_params: Option<&InletGutterParameters>,
+) -> GutterContext {
+    let mut context = GutterContext {
+        cross_slope: 0.02,
+        longitudinal_slope: 0.01,
+        manning_n: 0.016,
+        gutter_width: None,
+        depression: inlet_props.local_depression.unwrap_or(0.0),
+        depression_width: None,
+    };
+
+    if let Some(upstream) = network
+        .upstream_conduits(node_id)
+        .iter()
+        .find(|conduit| conduit.conduit_type == ConduitType::Gutter)
+    {
+        if let Some(ref gutter) = upstream.gutter {
+            context.cross_slope = gutter.cross_slope;
+            context.longitudinal_slope = gutter.longitudinal_slope;
+            context.manning_n = gutter.manning_n;
+            context.gutter_width = gutter.width;
+        }
+    }
+
+    if let Some(params) = gutter_params {
+        if let Some(cross_slope) = params.cross_slope {
+            context.cross_slope = cross_slope;
+        }
+        if let Some(longitudinal_slope) = params.longitudinal_slope {
+            context.longitudinal_slope = longitudinal_slope;
+        }
+        if let Some(manning_n) = params.manning_n {
+            context.manning_n = manning_n;
+        }
+        if let Some(gutter_width) = params.gutter_width {
+            context.gutter_width = Some(gutter_width);
+        }
+        if let Some(depression) = params.depression {
+            context.depression = depression;
+        }
+        if let Some(depression_width) = params.depression_width {
+            context.depression_width = Some(depression_width);
+        }
+    }
+
+    if context.depression_width.is_none() {
+        context.depression_width = context.gutter_width;
+    }
+
+    context
+}
+
 /// Calculate inlet interception for a given inlet node
 ///
 /// Returns (intercepted_flow, bypass_flow, inlet_result)
@@ -1294,6 +1385,7 @@ fn calculate_inlet_interception(
     approach_flow: f64,
     k: f64,
     drainage_area: Option<f64>,
+    gutter_context: &GutterContext,
 ) -> Result<(f64, f64, Option<InletInterception>), String> {
     if approach_flow <= 0.0 {
         return Ok((0.0, 0.0, None));
@@ -1318,16 +1410,21 @@ fn calculate_inlet_interception(
 
     // Get gutter properties from upstream conduit (if it's a gutter)
     // For now, use default gutter assumptions
-    let manning_n = 0.016; // Asphalt
-    let cross_slope = 0.02; // 2%
-    let longitudinal_slope = 0.01; // 1% (default)
+    let manning_n = gutter_context.manning_n;
+    let cross_slope = gutter_context.cross_slope;
+    let longitudinal_slope = gutter_context.longitudinal_slope;
+    let gutter_width = gutter_context.gutter_width;
 
-    let gutter = UniformGutter::new(manning_n, cross_slope, longitudinal_slope, None);
+    let gutter = UniformGutter::new(manning_n, cross_slope, longitudinal_slope, gutter_width);
     let gutter_result = gutter.result_for_flow(approach_flow, k);
 
     // Determine inlet type and calculate interception
-    let local_depression = inlet_props.local_depression.unwrap_or(0.0);
+    let local_depression = gutter_context.depression;
     let clogging_factor = inlet_props.clogging_factor.unwrap_or(0.15);
+    let depression_width = gutter_context
+        .depression_width
+        .or(gutter_context.gutter_width)
+        .unwrap_or(2.0);
 
     let interception: InletInterceptionResult = match inlet_props.inlet_type {
         crate::node::InletType::Grate => {
@@ -1368,14 +1465,13 @@ fn calculate_inlet_interception(
 
                 let inlet = if local_depression > 0.0 {
                     // Curb opening with depression
-                    let gutter_width = 2.0; // Standard gutter width, ft
                     CurbOpeningInletOnGrade::new_with_depression(
                         length,
                         height,
                         throat_type,
                         clogging_factor,
                         local_depression,
-                        gutter_width,
+                        depression_width,
                     )
                 } else {
                     // Curb opening without depression
@@ -1427,14 +1523,13 @@ fn calculate_inlet_interception(
 
             let curb = if local_depression > 0.0 {
                 // Curb opening with depression
-                let gutter_width = 2.0; // Standard gutter width, ft
                 CurbOpeningInletOnGrade::new_with_depression(
                     curb_length,
                     curb_height,
                     curb_throat,
                     clogging_factor,
                     local_depression,
-                    gutter_width,
+                    depression_width,
                 )
             } else {
                 // Curb opening without depression
@@ -1459,14 +1554,13 @@ fn calculate_inlet_interception(
 
                 let inlet = if local_depression > 0.0 {
                     // Slotted drain with depression
-                    let gutter_width = 2.0; // Assume 2 ft slot width
                     CurbOpeningInletOnGrade::new_with_depression(
                         length,
                         height,
                         throat_type,
                         clogging_factor,
                         local_depression,
-                        gutter_width,
+                        depression_width,
                     )
                 } else {
                     // Slotted drain without depression

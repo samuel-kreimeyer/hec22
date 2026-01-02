@@ -541,8 +541,8 @@ This roadmap defines the phased development of the HEC-22 drainage analysis syst
 #### 2.4 Gutter Spread Reporting 🚧
 - [x] **Gutter flow equations** - Implemented in library (Chapter 4/5)
 - [x] **Spread calculation** - Available via library functions
-- [ ] **CLI integration** - Automatic spread reporting in CLI output (planned)
-- [ ] **Criteria checking** - Compare to design limits (e.g., 10 ft max) (planned)
+- [x] **CLI integration** - Automatic spread reporting in CLI output
+- [x] **Criteria checking** - Compare to design limits (e.g., 10 ft max)
 
 #### 2.5 Basic Output Formats ✅
 - [x] **Text report** - Human-readable summary with tables (`.txt`)
@@ -633,13 +633,12 @@ A civil engineer with a spreadsheet can run the tool and get HGL results in unde
 
 **Completed Features**:
 - [x] **Network plan view** - SVG visualization of network layout showing nodes and conduits
-- [x] **Profile plots** - Elevation profiles along pipe runs (ground line and pipe invert)
+- [x] **Profile plots** - Elevation profiles along pipe runs (ground line, pipe invert, HGL/EGL)
 - [x] **SVG export** - Export visualizations as standalone SVG files
 - [x] **Interactive HTML viewer** - Web-based viewer with pan, zoom, and download capabilities
 - [x] **CLI integration** - Command-line flags for visualization export
 
 **In Progress**:
-- [ ] **HGL/EGL overlay** - Add hydraulic grade line and energy grade line to profile views (data structure ready, visualization pending)
 - [ ] **Drainage area mapping** - Catchment boundaries and flow paths
 - [ ] **Real-time editing** - Modify network and see immediate results
 - [ ] **Report generation** - Export professional PDF calculation packages
@@ -680,6 +679,7 @@ A civil engineer with a spreadsheet can run the tool and get HGL results in unde
 - **Profile View**: Elevation profile along a pipe run
   - Pipe invert elevations
   - Ground/rim elevations
+  - HGL/EGL overlay for the selected path
   - Station labels and node markers
   - Automatic profile path detection (follows upstream from outfall)
   - Custom profile paths via `--profile-path` flag
@@ -735,9 +735,7 @@ Engineers can now:
 - Fetch real NOAA ATLAS14 rainfall data using the `atlas14_fetch` utility
 
 **Next Steps**:
-- Add HGL/EGL overlay to profile visualizations
 - Implement drainage area boundary visualization
-- Complete gutter spread reporting integration in CLI
 - Consider Phase 3 (Design Automation) for pipe sizing optimization
 
 See [CLI_USAGE.md](docs/user/CLI_USAGE.md) for complete usage instructions.

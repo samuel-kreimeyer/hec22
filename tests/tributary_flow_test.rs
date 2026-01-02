@@ -500,7 +500,12 @@ fn test_inlet_routing_preserves_upstream_pipe_flow() {
 
     let node_inflows = solver::compute_rational_flows(&[drainage_area], 1.0);
     let (conduit_flows, _inlet_results) =
-        solver::route_flows_with_inlets(&network, &node_inflows, project::UnitSystem::US)
+        solver::route_flows_with_inlets(
+            &network,
+            &node_inflows,
+            project::UnitSystem::US,
+            &std::collections::HashMap::new(),
+        )
             .expect("Flow routing should succeed");
 
     let flow_p1 = conduit_flows.get("P-1").cloned().unwrap_or(0.0);
