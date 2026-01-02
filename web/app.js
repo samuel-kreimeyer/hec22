@@ -34,6 +34,7 @@ const profileInvertToggle = document.getElementById("profileInvert");
 const profileBuildButton = document.getElementById("profileBuild");
 const profileStatus = document.getElementById("profileStatus");
 const profileChart = document.getElementById("profileChart");
+const profileWrap = profileChart ? profileChart.parentElement : null;
 const planMetricSelect = document.getElementById("planMetric");
 const networkPlan = document.getElementById("networkPlan");
 const planLegend = document.getElementById("planLegend");
@@ -2013,6 +2014,41 @@ function renderPlanView() {
   networkPlan.appendChild(nodeGroup);
 }
 
+function ensureProfileTooltip() {
+  if (!profileWrap) {
+    return null;
+  }
+  let tooltip = profileWrap.querySelector(".profile-tooltip");
+  if (!tooltip) {
+    tooltip = document.createElement("div");
+    tooltip.className = "profile-tooltip";
+    profileWrap.appendChild(tooltip);
+  }
+  return tooltip;
+}
+
+function showProfileTooltip(text, event) {
+  const tooltip = ensureProfileTooltip();
+  if (!tooltip || !profileWrap) {
+    return;
+  }
+  tooltip.textContent = text;
+  const bounds = profileWrap.getBoundingClientRect();
+  const x = event.clientX - bounds.left + 12;
+  const y = event.clientY - bounds.top + 12;
+  tooltip.style.left = `${x}px`;
+  tooltip.style.top = `${y}px`;
+  tooltip.classList.add("visible");
+}
+
+function hideProfileTooltip() {
+  const tooltip = ensureProfileTooltip();
+  if (!tooltip) {
+    return;
+  }
+  tooltip.classList.remove("visible");
+}
+
 function buildPath(network, startId, endId) {
   const conduits = network.conduits || [];
   const adjacency = new Map();
@@ -2224,6 +2260,7 @@ function renderProfileView() {
   });
 
   const lineGroup = document.createElementNS(svgNs, "g");
+  const markerGroup = document.createElementNS(svgNs, "g");
 
   const hglPath = document.createElementNS(svgNs, "path");
   hglPath.setAttribute("d", buildProfilePath(hglPoints));
@@ -2242,8 +2279,46 @@ function renderProfileView() {
     lineGroup.appendChild(invertPath);
   }
 
+  const xPositions = distances.map((dist) => scaleX(dist));
+  const stations = path.nodes.map((nodeId, index) => ({
+    id: nodeId,
+    distance: distances[index],
+    hgl: hglValues[index],
+    egl: eglValues[index],
+    invert: invertValues[index]
+  }));
+
+  stations.forEach((station, index) => {
+    const left = index === 0 ? paddingLeft : (xPositions[index - 1] + xPositions[index]) / 2;
+    const right =
+      index === stations.length - 1
+        ? width - paddingRight
+        : (xPositions[index] + xPositions[index + 1]) / 2;
+    const rect = document.createElementNS(svgNs, "rect");
+    rect.setAttribute("x", left);
+    rect.setAttribute("y", paddingTop);
+    rect.setAttribute("width", right - left);
+    rect.setAttribute("height", plotHeight);
+    rect.setAttribute("fill", "transparent");
+    rect.addEventListener("mousemove", (event) => {
+      const parts = [
+        `${station.id}`,
+        `Sta ${formatNumber(station.distance)}`,
+        `HGL ${formatNumber(station.hgl)}`,
+        `EGL ${formatNumber(station.egl)}`
+      ];
+      if (profileInvertToggle && profileInvertToggle.checked) {
+        parts.push(`Inv ${formatNumber(station.invert)}`);
+      }
+      showProfileTooltip(parts.join(" | "), event);
+    });
+    rect.addEventListener("mouseleave", hideProfileTooltip);
+    markerGroup.appendChild(rect);
+  });
+
   profileChart.appendChild(gridGroup);
   profileChart.appendChild(lineGroup);
+  profileChart.appendChild(markerGroup);
   profileChart.appendChild(xLabelsGroup);
   updateProfileStatus("Profile rendered.", false);
 }

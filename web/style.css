@@ -441,6 +441,7 @@ code {
   background: #fff;
   overflow: hidden;
   min-height: 240px;
+  position: relative;
 }
 
 .profile-wrap svg {
@@ -480,6 +481,27 @@ code {
 .profile-line.invert {
   stroke: #0f766e;
   stroke-dasharray: 4 4;
+}
+
+.profile-tooltip {
+  position: absolute;
+  pointer-events: none;
+  background: #0f172a;
+  color: #f8fafc;
+  padding: 8px 10px;
+  border-radius: 10px;
+  font-size: 0.75rem;
+  box-shadow: 0 12px 24px rgba(15, 23, 42, 0.2);
+  opacity: 0;
+  transform: translateY(6px);
+  transition: opacity 0.15s ease, transform 0.15s ease;
+  max-width: 220px;
+  z-index: 2;
+}
+
+.profile-tooltip.visible {
+  opacity: 1;
+  transform: translateY(0);
 }
 
 .plan-layout {
