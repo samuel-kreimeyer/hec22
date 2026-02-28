@@ -66,9 +66,15 @@ cargo run -- \
   - Defines cross slope, longitudinal slope, and optional depression width for inlets
   - Used to compute gutter spread and inlet interception
 
+- `--design-criteria <FILE>` - Path to design criteria JSON file
+  - Defines spread, velocity, cover, and capacity targets for validation
+  - See `examples/design_criteria.json` for a starter template
+  - If omitted, design-criteria checks are skipped unless `--max-spread` is provided
+
 - `--max-spread <VALUE>` - Maximum allowable gutter spread (optional)
   - Units: ft for US customary, m for SI metric
   - Creates a spread violation when an inlet exceeds the limit
+  - Overrides `design_criteria.gutterSpread.maxSpread` if provided
 
 - `--units, -u <SYSTEM>` - Unit system (default: us)
   - `us` - US Customary (ft, cfs, in/hr)
@@ -190,6 +196,37 @@ Example file: `examples/bentonville_complex_network/gutter_parameters.csv`.
 - `depression` - Local depression depth (in or mm)
 - `depression_width` - Depression width (ft or m)
 
+### design_criteria.json
+
+Defines validation targets for spread, velocity, cover, and capacity checks.
+Missing fields default to typical values (see template).
+Units follow the `--units` selection (ft/cfs or m/m³/s).
+
+**Example:**
+```json
+{
+  "gutterSpread": {
+    "maxSpread": 10.0
+  },
+  "hglCriteria": {
+    "maxHglBelowRim": 0.5,
+    "allowSurcharge": false
+  },
+  "velocity": {
+    "minVelocity": 2.5,
+    "maxVelocity": 15.0
+  },
+  "cover": {
+    "minCover": 2.0
+  },
+  "capacity": {
+    "minCapacityRatio": 1.0
+  }
+}
+```
+
+Cover checks currently infer ground elevation from node rim elevation. A future enhancement could integrate terrain models for more accurate cover.
+
 ## Output Formats
 
 ### Text Output (default)
@@ -288,6 +325,7 @@ The tool checks for common design issues:
 - **Capacity violation** - Pipe over 100% capacity
 - **Cover violation** - Insufficient cover depth
 - **Spread violation** - Gutter spread exceeds limit
+- **Cover violation** - Cover below minimum (rim elevation minus pipe crown)
 
 ## Example Workflows
 
@@ -423,6 +461,40 @@ cargo run -- \
 - Add flow control structures
 
 ## Advanced Usage
+
+### Chapter 10-12 Screening Summaries
+
+The CLI can now print optional Chapter 10/11/12 screening summaries (detention, water quality, and pump calculations) after the standard hydraulic analysis. These do not change the core network solve.
+
+Example:
+
+```bash
+cargo run -- \
+  --nodes nodes.csv \
+  --conduits conduits.csv \
+  --drainage-areas areas.csv \
+  --intensity 4.0 \
+  --detention-target-outflow 50 \
+  --detention-tc 20 \
+  --detention-basin-length 100 \
+  --detention-basin-width 50 \
+  --detention-basin-side-slope 4 \
+  --wq-impervious-percent 75 \
+  --wq-design-rainfall 1.0 \
+  --wq-annual-rainfall 40 \
+  --wq-concentration 100 \
+  --wq-removal-efficiency 0.85 \
+  --wq-media-porosity 0.25 \
+  --wq-media-depth 3 \
+  --wq-infiltration-rate 2 \
+  --wq-drawdown-hours 24 \
+  --pump-static-head 15 \
+  --pump-discharge-diameter 1.0 \
+  --pump-discharge-length 200 \
+  --pump-manning-n 0.011 \
+  --pump-minor-k-total 5.5 \
+  --pump-efficiency 0.75
+```
 
 ### Using the Built Binary
 

@@ -361,6 +361,185 @@
         }
       }
     },
+    "storageFacilities": {
+      "type": "array",
+      "description": "Detention/retention facilities (HEC-22 Chapter 10)",
+      "items": {
+        "type": "object",
+        "required": ["id", "type"],
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Unique storage facility identifier"
+          },
+          "name": {
+            "type": "string",
+            "description": "Descriptive facility name"
+          },
+          "type": {
+            "type": "string",
+            "enum": ["detention", "retention"],
+            "description": "Storage facility type"
+          },
+          "drainageAreaIds": {
+            "type": "array",
+            "description": "Contributing drainage area IDs",
+            "items": {
+              "type": "string"
+            }
+          },
+          "requiredVolume": {
+            "type": "number",
+            "description": "Required storage volume"
+          },
+          "maxStage": {
+            "type": "number",
+            "description": "Maximum design stage above basin bottom"
+          },
+          "geometry": {
+            "type": "object",
+            "properties": {
+              "shape": {
+                "type": "string",
+                "enum": ["rectangular", "trapezoidal", "irregular"]
+              },
+              "bottomLength": {
+                "type": "number"
+              },
+              "bottomWidth": {
+                "type": "number"
+              },
+              "sideSlope": {
+                "type": "number",
+                "description": "Side slope expressed as H:V"
+              }
+            }
+          },
+          "outlet": {
+            "type": "object",
+            "properties": {
+              "type": {
+                "type": "string",
+                "enum": ["orifice", "weir"]
+              },
+              "dischargeCoefficient": {
+                "type": "number"
+              },
+              "openingArea": {
+                "type": "number"
+              },
+              "length": {
+                "type": "number"
+              }
+            }
+          }
+        }
+      }
+    },
+    "bmps": {
+      "type": "array",
+      "description": "Stormwater quality BMP facilities (HEC-22 Chapter 11)",
+      "items": {
+        "type": "object",
+        "required": ["id", "type"],
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Unique BMP facility identifier"
+          },
+          "name": {
+            "type": "string",
+            "description": "Descriptive BMP name"
+          },
+          "type": {
+            "type": "string",
+            "enum": ["extended-detention", "wet-pond", "infiltration", "bioretention", "swale", "filter-strip"]
+          },
+          "drainageAreaIds": {
+            "type": "array",
+            "description": "Contributing drainage area IDs",
+            "items": {
+              "type": "string"
+            }
+          },
+          "waterQualityVolume": {
+            "type": "number",
+            "description": "Water quality treatment volume"
+          },
+          "detentionTimeHours": {
+            "type": "number",
+            "description": "Nominal detention/retention time"
+          },
+          "removalEfficiencies": {
+            "type": "array",
+            "description": "Pollutant-specific removal assumptions",
+            "items": {
+              "type": "object",
+              "required": ["pollutant", "efficiency"],
+              "properties": {
+                "pollutant": {
+                  "type": "string"
+                },
+                "efficiency": {
+                  "type": "number",
+                  "minimum": 0,
+                  "maximum": 1
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "pumpStations": {
+      "type": "array",
+      "description": "Pump station metadata (HEC-22 Chapter 12)",
+      "items": {
+        "type": "object",
+        "required": ["id"],
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Unique pump station identifier"
+          },
+          "name": {
+            "type": "string",
+            "description": "Descriptive station name"
+          },
+          "wetWellNodeId": {
+            "type": "string",
+            "description": "Node ID representing the wet well connection"
+          },
+          "pumpCount": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "ratedFlow": {
+            "type": "number",
+            "description": "Rated flow per pump"
+          },
+          "ratedHead": {
+            "type": "number",
+            "description": "Rated head per pump"
+          },
+          "wetWell": {
+            "type": "object",
+            "properties": {
+              "shape": {
+                "type": "string",
+                "enum": ["cylindrical", "rectangular"]
+              },
+              "baseArea": {
+                "type": "number"
+              },
+              "radius": {
+                "type": "number"
+              }
+            }
+          }
+        }
+      }
+    },
     "network": {
       "type": "object",
       "description": "Drainage network topology (nodes and edges)",

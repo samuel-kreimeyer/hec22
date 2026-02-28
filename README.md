@@ -583,18 +583,21 @@ A civil engineer with a spreadsheet can run the tool and get HGL results in unde
 **Goal**: Complete coverage of HEC-22 methodology
 
 #### 4.1 Detention/Retention (Chapter 10)
+- [x] Core storage and outlet equation helpers in library (`storage` module)
 - [ ] Stage-storage-discharge relationships
 - [ ] Modified Puls routing method
 - [ ] Outlet structure design (weirs, orifices, culverts)
 - [ ] Pond sizing for peak flow attenuation
 
 #### 4.2 Water Quality BMPs (Chapter 11)
+- [x] Core pollutant load and WQv equation helpers in library (`quality` module)
 - [ ] Pollutant load estimation (runoff quality)
 - [ ] BMP removal efficiency calculations
 - [ ] LID/Green infrastructure sizing (bioretention, permeable pavement)
 - [ ] Treatment train analysis
 
 #### 4.3 Pump Stations (Chapter 12)
+- [x] Core head, horsepower, and wet well sizing helpers in library (`pump` module)
 - [ ] Pump selection and system curves
 - [ ] Wet well volume calculations
 - [ ] Storage routing with pumping

@@ -13,6 +13,9 @@
 //! - [`conduit`] - Conduit types (pipes, gutters, channels)
 //! - [`drainage`] - Drainage areas and subcatchments
 //! - [`rainfall`] - Rainfall events and IDF curves
+//! - [`storage`] - Detention/retention equations and storage metadata (Chapter 10)
+//! - [`quality`] - Stormwater quality and BMP calculations (Chapter 11)
+//! - [`pump`] - Pump station equations and wet well sizing (Chapter 12)
 //! - [`analysis`] - Analysis results and violations
 //! - [`hydraulics`] - Hydraulic calculations (Manning's equation, HGL/EGL)
 //! - [`gutter`] - Gutter spread calculations (Chapter 5)
@@ -46,8 +49,11 @@ pub mod inlet;
 pub mod network;
 pub mod node;
 pub mod project;
+pub mod pump;
+pub mod quality;
 pub mod rainfall;
 pub mod solver;
+pub mod storage;
 
 #[cfg(feature = "csv")]
 pub mod csv;
@@ -82,6 +88,20 @@ pub struct DrainageNetwork {
     #[serde(rename = "drainageAreas")]
     pub drainage_areas: Option<Vec<drainage::DrainageArea>>,
 
+    /// Detention/retention facilities (optional, Chapter 10)
+    #[serde(skip_serializing_if = "Option::is_none")]
+    #[serde(rename = "storageFacilities")]
+    pub storage_facilities: Option<Vec<storage::StorageFacility>>,
+
+    /// Stormwater quality BMP facilities (optional, Chapter 11)
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub bmps: Option<Vec<quality::BmpFacility>>,
+
+    /// Pump stations (optional, Chapter 12)
+    #[serde(skip_serializing_if = "Option::is_none")]
+    #[serde(rename = "pumpStations")]
+    pub pump_stations: Option<Vec<pump::PumpStation>>,
+
     /// Design criteria and constraints (optional)
     #[serde(skip_serializing_if = "Option::is_none")]
     #[serde(rename = "designCriteria")]
@@ -101,6 +121,9 @@ impl DrainageNetwork {
             network,
             rainfall: None,
             drainage_areas: None,
+            storage_facilities: None,
+            bmps: None,
+            pump_stations: None,
             design_criteria: None,
             analysis: None,
         }
@@ -185,5 +208,58 @@ mod tests {
 
         assert_eq!(drainage_network.version, "1.0.0");
         assert_eq!(drainage_network.project.name, "Test Project");
+    }
+
+    #[test]
+    fn test_chapter_10_12_fields_round_trip() {
+        let project = project::Project {
+            name: "Advanced Features Test".to_string(),
+            description: None,
+            location: None,
+            units: project::Units::us_customary(),
+            author: None,
+            created: None,
+            modified: None,
+        };
+
+        let mut drainage_network = DrainageNetwork::new(project, network::Network::new());
+
+        drainage_network.storage_facilities = Some(vec![storage::StorageFacility {
+            id: "DET-1".to_string(),
+            name: Some("Detention Basin 1".to_string()),
+            facility_type: storage::StorageType::Detention,
+            drainage_area_ids: Some(vec!["DA-1".to_string()]),
+            required_volume: Some(25000.0),
+            max_stage: Some(8.0),
+            geometry: None,
+            outlet: None,
+        }]);
+
+        drainage_network.bmps = Some(vec![quality::BmpFacility {
+            id: "BMP-1".to_string(),
+            name: Some("Bioretention A".to_string()),
+            bmp_type: quality::BmpType::Bioretention,
+            drainage_area_ids: Some(vec!["DA-1".to_string()]),
+            water_quality_volume: Some(4500.0),
+            detention_time_hours: Some(24.0),
+            removal_efficiencies: None,
+        }]);
+
+        drainage_network.pump_stations = Some(vec![pump::PumpStation {
+            id: "PS-1".to_string(),
+            name: Some("Lift Station 1".to_string()),
+            wet_well_node_id: Some("J-100".to_string()),
+            pump_count: Some(2),
+            rated_flow: Some(3.5),
+            rated_head: Some(45.0),
+            wet_well: None,
+        }]);
+
+        let json = drainage_network.to_json().unwrap();
+        let parsed = DrainageNetwork::from_json(&json).unwrap();
+
+        assert!(parsed.storage_facilities.is_some());
+        assert!(parsed.bmps.is_some());
+        assert!(parsed.pump_stations.is_some());
     }
 }
