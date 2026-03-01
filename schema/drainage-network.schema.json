@@ -432,6 +432,58 @@
                 "type": "number"
               }
             }
+          },
+          "stageStorage": {
+            "type": "array",
+            "description": "Stage-storage curve for routing",
+            "items": {
+              "type": "object",
+              "required": ["stage", "storage"],
+              "properties": {
+                "stage": {
+                  "type": "number"
+                },
+                "storage": {
+                  "type": "number"
+                }
+              }
+            }
+          },
+          "stageDischarge": {
+            "type": "array",
+            "description": "Stage-discharge curve for routing",
+            "items": {
+              "type": "object",
+              "required": ["stage", "discharge"],
+              "properties": {
+                "stage": {
+                  "type": "number"
+                },
+                "discharge": {
+                  "type": "number"
+                }
+              }
+            }
+          },
+          "inflowHydrograph": {
+            "type": "array",
+            "description": "Inflow hydrograph used for storage routing",
+            "items": {
+              "type": "object",
+              "required": ["timeSeconds", "inflow"],
+              "properties": {
+                "timeSeconds": {
+                  "type": "number"
+                },
+                "inflow": {
+                  "type": "number"
+                }
+              }
+            }
+          },
+          "initialStage": {
+            "type": "number",
+            "description": "Initial stage at start of routing"
           }
         }
       }
@@ -1101,6 +1153,52 @@
               "intensity": {
                 "type": "number",
                 "description": "Rainfall intensity used (in/hr)"
+              }
+            }
+          }
+        },
+        "storageResults": {
+          "type": "array",
+          "description": "Storage routing results for detention/retention facilities",
+          "items": {
+            "type": "object",
+            "required": ["facilityId", "maxStage", "maxStorage", "maxOutflow"],
+            "properties": {
+              "facilityId": {
+                "type": "string"
+              },
+              "maxStage": {
+                "type": "number"
+              },
+              "maxStorage": {
+                "type": "number"
+              },
+              "maxOutflow": {
+                "type": "number"
+              },
+              "routedHydrograph": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "required": ["timeSeconds", "inflow", "outflow", "storage", "stage"],
+                  "properties": {
+                    "timeSeconds": {
+                      "type": "number"
+                    },
+                    "inflow": {
+                      "type": "number"
+                    },
+                    "outflow": {
+                      "type": "number"
+                    },
+                    "storage": {
+                      "type": "number"
+                    },
+                    "stage": {
+                      "type": "number"
+                    }
+                  }
+                }
               }
             }
           }

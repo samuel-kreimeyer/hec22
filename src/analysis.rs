@@ -3,6 +3,7 @@
 //! Defines design constraints, computed results, and violation reporting
 //! for drainage network analysis.
 
+use crate::storage;
 use serde::{Deserialize, Serialize};
 
 /// Design criteria and constraints
@@ -136,9 +137,35 @@ pub struct Analysis {
     #[serde(rename = "drainageAreaResults")]
     pub drainage_area_results: Option<Vec<DrainageAreaResult>>,
 
+    /// Computed storage routing results (Chapter 10)
+    #[serde(skip_serializing_if = "Option::is_none")]
+    #[serde(rename = "storageResults")]
+    pub storage_results: Option<Vec<StorageRoutingResult>>,
+
     /// Design criteria violations
     #[serde(skip_serializing_if = "Option::is_none")]
     pub violations: Option<Vec<Violation>>,
+}
+
+/// Computed storage routing result for a facility.
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct StorageRoutingResult {
+    /// Storage facility ID.
+    #[serde(rename = "facilityId")]
+    pub facility_id: String,
+    /// Maximum stage reached during routed event.
+    #[serde(rename = "maxStage")]
+    pub max_stage: f64,
+    /// Maximum storage reached during routed event.
+    #[serde(rename = "maxStorage")]
+    pub max_storage: f64,
+    /// Maximum outflow reached during routed event.
+    #[serde(rename = "maxOutflow")]
+    pub max_outflow: f64,
+    /// Routed hydrograph time series.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    #[serde(rename = "routedHydrograph")]
+    pub routed_hydrograph: Option<Vec<storage::RoutedHydrographPoint>>,
 }
 
 /// Analysis method
@@ -377,6 +404,7 @@ impl Analysis {
             node_results: Some(Vec::new()),
             conduit_results: Some(Vec::new()),
             drainage_area_results: Some(Vec::new()),
+            storage_results: Some(Vec::new()),
             violations: Some(Vec::new()),
         }
     }
@@ -387,6 +415,15 @@ impl Analysis {
             violations.push(violation);
         } else {
             self.violations = Some(vec![violation]);
+        }
+    }
+
+    /// Add a storage routing result to the analysis.
+    pub fn add_storage_result(&mut self, result: StorageRoutingResult) {
+        if let Some(ref mut storage_results) = self.storage_results {
+            storage_results.push(result);
+        } else {
+            self.storage_results = Some(vec![result]);
         }
     }
 
@@ -437,12 +474,7 @@ fn current_timestamp() -> Option<String> {
 
 impl Violation {
     /// Create a new HGL violation
-    pub fn hgl_violation(
-        element_id: String,
-        hgl: f64,
-        rim: f64,
-        severity: Severity,
-    ) -> Self {
+    pub fn hgl_violation(element_id: String, hgl: f64, rim: f64, severity: Severity) -> Self {
         Self {
             violation_type: ViolationType::Hgl,
             severity,
@@ -479,11 +511,7 @@ impl Violation {
     }
 
     /// Create a new capacity violation
-    pub fn capacity_violation(
-        element_id: String,
-        capacity_used: f64,
-        severity: Severity,
-    ) -> Self {
+    pub fn capacity_violation(element_id: String, capacity_used: f64, severity: Severity) -> Self {
         Self {
             violation_type: ViolationType::Capacity,
             severity,
@@ -508,12 +536,8 @@ mod tests {
 
     #[test]
     fn test_create_hgl_violation() {
-        let violation = Violation::hgl_violation(
-            "MH-001".to_string(),
-            125.5,
-            125.0,
-            Severity::Error,
-        );
+        let violation =
+            Violation::hgl_violation("MH-001".to_string(), 125.5, 125.0, Severity::Error);
 
         assert_eq!(violation.violation_type, ViolationType::Hgl);
         assert_eq!(violation.severity, Severity::Error);
@@ -523,17 +547,10 @@ mod tests {
 
     #[test]
     fn test_analysis_add_violation() {
-        let mut analysis = Analysis::new(
-            AnalysisMethod::Rational,
-            "storm-10yr".to_string(),
-        );
+        let mut analysis = Analysis::new(AnalysisMethod::Rational, "storm-10yr".to_string());
 
-        let violation = Violation::spread_violation(
-            "G-101".to_string(),
-            12.5,
-            10.0,
-            Severity::Warning,
-        );
+        let violation =
+            Violation::spread_violation("G-101".to_string(), 12.5, 10.0, Severity::Warning);
 
         analysis.add_violation(violation);
 
@@ -542,10 +559,7 @@ mod tests {
 
     #[test]
     fn test_filter_violations() {
-        let mut analysis = Analysis::new(
-            AnalysisMethod::Rational,
-            "storm-10yr".to_string(),
-        );
+        let mut analysis = Analysis::new(AnalysisMethod::Rational, "storm-10yr".to_string());
 
         analysis.add_violation(Violation::hgl_violation(
             "MH-001".to_string(),

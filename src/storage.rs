@@ -37,6 +37,22 @@ pub struct StorageFacility {
     /// Optional outflow structure metadata.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub outlet: Option<OutletStructure>,
+    /// Stage-storage curve used for routing.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    #[serde(rename = "stageStorage")]
+    pub stage_storage: Option<Vec<StageStoragePoint>>,
+    /// Stage-discharge curve used for routing.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    #[serde(rename = "stageDischarge")]
+    pub stage_discharge: Option<Vec<StageDischargePoint>>,
+    /// Inflow hydrograph for routing.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    #[serde(rename = "inflowHydrograph")]
+    pub inflow_hydrograph: Option<Vec<HydrographPoint>>,
+    /// Initial stage for routing.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    #[serde(rename = "initialStage")]
+    pub initial_stage: Option<f64>,
 }
 
 /// Storage facility type.
@@ -172,6 +188,41 @@ pub struct StageStorageDischargeTable {
     /// Stage-discharge curve.
     #[serde(rename = "stageDischarge")]
     pub stage_discharge: Vec<StageDischargePoint>,
+}
+
+impl StorageFacility {
+    /// Build a routing table from facility-defined curves.
+    pub fn routing_table(&self) -> Result<StageStorageDischargeTable, String> {
+        let stage_storage = self
+            .stage_storage
+            .clone()
+            .ok_or_else(|| format!("Storage facility {} missing stageStorage", self.id))?;
+        let stage_discharge = self
+            .stage_discharge
+            .clone()
+            .ok_or_else(|| format!("Storage facility {} missing stageDischarge", self.id))?;
+        StageStorageDischargeTable::new(stage_storage, stage_discharge)
+    }
+
+    /// Route the facility's inflow hydrograph with Modified Puls.
+    pub fn route_modified_puls(&self) -> Result<Vec<RoutedHydrographPoint>, String> {
+        let hydro = self
+            .inflow_hydrograph
+            .as_ref()
+            .ok_or_else(|| format!("Storage facility {} missing inflowHydrograph", self.id))?;
+        let table = self.routing_table()?;
+        let initial_stage = if let Some(stage) = self.initial_stage {
+            stage
+        } else {
+            table
+                .stage_storage
+                .first()
+                .map(|p| p.stage)
+                .ok_or_else(|| format!("Storage facility {} has empty stageStorage", self.id))?
+        };
+
+        route_modified_puls(hydro, &table, initial_stage)
+    }
 }
 
 impl StageStorageDischargeTable {

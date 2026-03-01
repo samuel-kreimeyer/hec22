@@ -175,6 +175,70 @@ impl DrainageNetwork {
             .filter(|c| c.from_node == node_id)
             .collect()
     }
+
+    /// Run Chapter 10 Modified Puls routing for storage facilities that include
+    /// stage-storage, stage-discharge, and inflow hydrograph data.
+    pub fn run_storage_routing(&mut self) -> Result<(), String> {
+        let facilities = match self.storage_facilities.as_ref() {
+            Some(facilities) => facilities,
+            None => return Ok(()),
+        };
+
+        let mut storage_results = Vec::new();
+        for facility in facilities {
+            let has_any_routing_input = facility.stage_storage.is_some()
+                || facility.stage_discharge.is_some()
+                || facility.inflow_hydrograph.is_some();
+
+            if !has_any_routing_input {
+                continue;
+            }
+
+            let routed = facility.route_modified_puls()?;
+            let max_stage = routed
+                .iter()
+                .map(|p| p.stage)
+                .reduce(f64::max)
+                .unwrap_or(0.0);
+            let max_storage = routed
+                .iter()
+                .map(|p| p.storage)
+                .reduce(f64::max)
+                .unwrap_or(0.0);
+            let max_outflow = routed
+                .iter()
+                .map(|p| p.outflow)
+                .reduce(f64::max)
+                .unwrap_or(0.0);
+
+            storage_results.push(analysis::StorageRoutingResult {
+                facility_id: facility.id.clone(),
+                max_stage,
+                max_storage,
+                max_outflow,
+                routed_hydrograph: Some(routed),
+            });
+        }
+
+        if storage_results.is_empty() {
+            return Ok(());
+        }
+
+        if self.analysis.is_none() {
+            self.analysis = Some(analysis::Analysis::new(
+                analysis::AnalysisMethod::KinematicWave,
+                "storage-routing".to_string(),
+            ));
+        }
+
+        if let Some(analysis) = self.analysis.as_mut() {
+            for result in storage_results {
+                analysis.add_storage_result(result);
+            }
+        }
+
+        Ok(())
+    }
 }
 
 #[cfg(test)]
@@ -233,6 +297,10 @@ mod tests {
             max_stage: Some(8.0),
             geometry: None,
             outlet: None,
+            stage_storage: None,
+            stage_discharge: None,
+            inflow_hydrograph: None,
+            initial_stage: None,
         }]);
 
         drainage_network.bmps = Some(vec![quality::BmpFacility {
@@ -261,5 +329,81 @@ mod tests {
         assert!(parsed.storage_facilities.is_some());
         assert!(parsed.bmps.is_some());
         assert!(parsed.pump_stations.is_some());
+    }
+
+    #[test]
+    fn test_run_storage_routing_populates_analysis() {
+        let project = project::Project {
+            name: "Storage Routing Test".to_string(),
+            description: None,
+            location: None,
+            units: project::Units::us_customary(),
+            author: None,
+            created: None,
+            modified: None,
+        };
+
+        let mut drainage_network = DrainageNetwork::new(project, network::Network::new());
+        drainage_network.storage_facilities = Some(vec![storage::StorageFacility {
+            id: "DET-ROUTE-1".to_string(),
+            name: None,
+            facility_type: storage::StorageType::Detention,
+            drainage_area_ids: None,
+            required_volume: None,
+            max_stage: None,
+            geometry: None,
+            outlet: None,
+            stage_storage: Some(vec![
+                storage::StageStoragePoint {
+                    stage: 0.0,
+                    storage: 0.0,
+                },
+                storage::StageStoragePoint {
+                    stage: 1.0,
+                    storage: 1000.0,
+                },
+                storage::StageStoragePoint {
+                    stage: 2.0,
+                    storage: 2000.0,
+                },
+            ]),
+            stage_discharge: Some(vec![
+                storage::StageDischargePoint {
+                    stage: 0.0,
+                    discharge: 0.0,
+                },
+                storage::StageDischargePoint {
+                    stage: 1.0,
+                    discharge: 10.0,
+                },
+                storage::StageDischargePoint {
+                    stage: 2.0,
+                    discharge: 20.0,
+                },
+            ]),
+            inflow_hydrograph: Some(vec![
+                storage::HydrographPoint {
+                    time_seconds: 0.0,
+                    inflow: 10.0,
+                },
+                storage::HydrographPoint {
+                    time_seconds: 60.0,
+                    inflow: 20.0,
+                },
+                storage::HydrographPoint {
+                    time_seconds: 120.0,
+                    inflow: 10.0,
+                },
+            ]),
+            initial_stage: Some(1.0),
+        }]);
+
+        drainage_network.run_storage_routing().unwrap();
+
+        let analysis = drainage_network.analysis.as_ref().unwrap();
+        let storage_results = analysis.storage_results.as_ref().unwrap();
+        assert_eq!(storage_results.len(), 1);
+        assert_eq!(storage_results[0].facility_id, "DET-ROUTE-1");
+        assert!(storage_results[0].max_storage > 0.0);
     }
 }
