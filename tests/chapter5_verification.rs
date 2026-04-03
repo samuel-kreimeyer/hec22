@@ -44,8 +44,16 @@ fn test_example_5_1_uniform_gutter_capacity() {
 
     println!("Gutter characteristics:");
     println!("  n = {}", gutter.manning_n);
-    println!("  Sx = {}% ({:.3})", gutter.cross_slope * 100.0, gutter.cross_slope);
-    println!("  SL = {}% ({:.4})", gutter.longitudinal_slope * 100.0, gutter.longitudinal_slope);
+    println!(
+        "  Sx = {}% ({:.3})",
+        gutter.cross_slope * 100.0,
+        gutter.cross_slope
+    );
+    println!(
+        "  SL = {}% ({:.4})",
+        gutter.longitudinal_slope * 100.0,
+        gutter.longitudinal_slope
+    );
     println!("\nResults:");
     println!("  Spread: {:.1} ft", spread);
     println!("  Capacity: {:.2} cfs", capacity);
@@ -136,9 +144,21 @@ fn test_example_5_3_composite_gutter_with_depression() {
 
     println!("Composite gutter:");
     println!("  Gutter width: {:.1} ft", gutter.gutter_width);
-    println!("  Gutter base slope Sg: {:.4} ({:.1} in/ft)", gutter.gutter_slope, gutter.gutter_slope * 12.0);
-    println!("  Roadway slope Sx: {:.3} ({:.0}%)", gutter.roadway_slope, gutter.roadway_slope * 100.0);
-    println!("  Longitudinal slope SL: {:.3} ({:.0}%)", gutter.longitudinal_slope, gutter.longitudinal_slope * 100.0);
+    println!(
+        "  Gutter base slope Sg: {:.4} ({:.1} in/ft)",
+        gutter.gutter_slope,
+        gutter.gutter_slope * 12.0
+    );
+    println!(
+        "  Roadway slope Sx: {:.3} ({:.0}%)",
+        gutter.roadway_slope,
+        gutter.roadway_slope * 100.0
+    );
+    println!(
+        "  Longitudinal slope SL: {:.3} ({:.0}%)",
+        gutter.longitudinal_slope,
+        gutter.longitudinal_slope * 100.0
+    );
     println!("  Local depression: {:.1} in", gutter.local_depression);
     println!("\nResults:");
     println!("  Total spread: {:.1} ft", total_spread);
@@ -192,13 +212,19 @@ fn test_example_5_4_spread_limits() {
     println!("  Allowable spread: {:.1} ft", allowable_spread);
     println!("\nResults:");
     println!("  Actual spread: {:.2} ft", actual_spread);
-    println!("  Meets criteria: {}", if meets_criteria { "YES" } else { "NO" });
+    println!(
+        "  Meets criteria: {}",
+        if meets_criteria { "YES" } else { "NO" }
+    );
 
     if !meets_criteria {
-        let required_slope = gutter.longitudinal_slope
-            * (actual_spread / allowable_spread).powf(16.0 / 3.0);
-        println!("  Required slope for compliance: {:.4} ({:.2}%)",
-                 required_slope, required_slope * 100.0);
+        let required_slope =
+            gutter.longitudinal_slope * (actual_spread / allowable_spread).powf(16.0 / 3.0);
+        println!(
+            "  Required slope for compliance: {:.4} ({:.2}%)",
+            required_slope,
+            required_slope * 100.0
+        );
     }
 
     // For this example, spread should exceed limit (needs design modification)
@@ -235,9 +261,15 @@ fn test_example_5_5_parabolic_crown() {
 
     println!("Parabolic crown:");
     println!("  Width to crown: {:.1} ft", crown.width_to_crown);
-    println!("  Crown height: {:.2} ft ({:.1} in)",
-             crown.crown_height, crown.crown_height * 12.0);
-    println!("  Longitudinal slope: {:.2}%", crown.longitudinal_slope * 100.0);
+    println!(
+        "  Crown height: {:.2} ft ({:.1} in)",
+        crown.crown_height,
+        crown.crown_height * 12.0
+    );
+    println!(
+        "  Longitudinal slope: {:.2}%",
+        crown.longitudinal_slope * 100.0
+    );
     println!("\nResults:");
     println!("  Design flow: {:.1} cfs", flow);
     println!("  Required spread: {:.2} ft", spread);
@@ -290,12 +322,10 @@ fn test_example_5_6_composite_vs_uniform_comparison() {
 
     // Composite gutter
     let composite = CompositeGutter::new(
-        n,
-        0.0417, // Steeper gutter section
+        n, 0.0417, // Steeper gutter section
         0.02,   // Roadway slope
-        sl,
-        2.0,    // Gutter width
-        2.0,    // Depression (inches)
+        sl, 2.0, // Gutter width
+        2.0, // Depression (inches)
     );
     let spread_composite = composite.spread_for_flow(flow, GUTTER_K_US);
 
@@ -305,9 +335,11 @@ fn test_example_5_6_composite_vs_uniform_comparison() {
     println!("\nComposite gutter:");
     println!("  Required spread: {:.2} ft", spread_composite);
     println!("\nBenefit:");
-    println!("  Spread reduction: {:.2} ft ({:.1}%)",
-             spread_uniform - spread_composite,
-             ((spread_uniform - spread_composite) / spread_uniform) * 100.0);
+    println!(
+        "  Spread reduction: {:.2} ft ({:.1}%)",
+        spread_uniform - spread_composite,
+        ((spread_uniform - spread_composite) / spread_uniform) * 100.0
+    );
 
     // Composite gutter should require less spread for same flow
     assert!(
@@ -352,7 +384,12 @@ fn test_manning_coefficient_variations() {
     let sx = 0.02;
     let sl = 0.01;
 
-    println!("Gutter: Sx = {:.1}%, SL = {:.1}%, T = {:.1} ft\n", sx * 100.0, sl * 100.0, spread);
+    println!(
+        "Gutter: Sx = {:.1}%, SL = {:.1}%, T = {:.1} ft\n",
+        sx * 100.0,
+        sl * 100.0,
+        spread
+    );
     println!("{:<20} {:>6} {:>12}", "Surface", "n", "Q (cfs)");
     println!("{}", "-".repeat(40));
 

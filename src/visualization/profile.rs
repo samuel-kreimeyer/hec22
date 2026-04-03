@@ -64,6 +64,8 @@ struct ProfilePoint {
     junction_loss: Option<f64>,
 }
 
+type NodeHydraulicData = (Option<f64>, Option<f64>, Option<f64>);
+
 /// Profile view generator
 pub struct ProfileView<'a> {
     network: &'a Network,
@@ -97,11 +99,7 @@ impl<'a> ProfileView<'a> {
     }
 
     /// Create a new profile view with analysis results (includes HGL/EGL)
-    pub fn with_analysis(
-        network: &'a Network,
-        node_path: &[&str],
-        analysis: &Analysis,
-    ) -> Self {
+    pub fn with_analysis(network: &'a Network, node_path: &[&str], analysis: &Analysis) -> Self {
         Self::with_analysis_and_config(network, node_path, analysis, ProfileConfig::default())
     }
 
@@ -133,13 +131,11 @@ impl<'a> ProfileView<'a> {
         let mut cumulative_station = 0.0;
 
         // Create node lookup
-        let node_map: HashMap<&str, &Node> = network.nodes
-            .iter()
-            .map(|n| (n.id.as_str(), n))
-            .collect();
+        let node_map: HashMap<&str, &Node> =
+            network.nodes.iter().map(|n| (n.id.as_str(), n)).collect();
 
         // Create HGL/EGL/JunctionLoss lookup from analysis results if available
-        let node_data_map: HashMap<&str, (Option<f64>, Option<f64>, Option<f64>)> = if let Some(analysis) = analysis {
+        let node_data_map: HashMap<&str, NodeHydraulicData> = if let Some(analysis) = analysis {
             if let Some(ref node_results) = analysis.node_results {
                 node_results
                     .iter()
@@ -158,10 +154,10 @@ impl<'a> ProfileView<'a> {
                 if i > 0 {
                     // Find conduit connecting previous node to this node
                     let prev_node_id = &node_path[i - 1];
-                    if let Some(conduit) = network.conduits.iter().find(|c|
-                        (&c.from_node == prev_node_id && &c.to_node == node_id) ||
-                        (&c.from_node == node_id && &c.to_node == prev_node_id)
-                    ) {
+                    if let Some(conduit) = network.conduits.iter().find(|c| {
+                        (&c.from_node == prev_node_id && &c.to_node == node_id)
+                            || (&c.from_node == node_id && &c.to_node == prev_node_id)
+                    }) {
                         cumulative_station += conduit.length;
                     }
                 }
@@ -266,7 +262,11 @@ impl<'a> ProfileView<'a> {
 
     /// Transform station and elevation to SVG coordinates
     fn transform(&self, station: f64, elevation: f64, min_elev: f64, max_elev: f64) -> (f64, f64) {
-        let max_station = self.profile_points.last().map(|p| p.station).unwrap_or(100.0);
+        let max_station = self
+            .profile_points
+            .last()
+            .map(|p| p.station)
+            .unwrap_or(100.0);
 
         let plot_width = self.config.width - 2.0 * self.config.margin;
         let plot_height = self.config.height - 2.0 * self.config.margin - 40.0; // Extra space for title
@@ -289,7 +289,7 @@ impl<'a> ProfileView<'a> {
             "Profile View - HGL/EGL Elevations",
             16.0,
             "middle",
-            "#000"
+            "#000",
         );
     }
 
@@ -307,7 +307,14 @@ impl<'a> ProfileView<'a> {
         svg.line(x_start, y_start, x_start, y_end, "#000", 2.0);
 
         // Draw elevation labels
-        svg.text(15.0, (y_start + y_end) / 2.0, "Elevation (ft)", 12.0, "middle", "#000");
+        svg.text(
+            15.0,
+            (y_start + y_end) / 2.0,
+            "Elevation (ft)",
+            12.0,
+            "middle",
+            "#000",
+        );
 
         // Draw station label
         svg.text(
@@ -316,7 +323,7 @@ impl<'a> ProfileView<'a> {
             "Station (ft)",
             12.0,
             "middle",
-            "#000"
+            "#000",
         );
 
         // Draw grid lines and elevation ticks
@@ -329,7 +336,14 @@ impl<'a> ProfileView<'a> {
             svg.line(x_start, y, x_start + plot_width, y, "#ddd", 1.0);
 
             // Elevation label
-            svg.text(x_start - 10.0, y + 4.0, &format!("{:.1}", elev), 10.0, "end", "#000");
+            svg.text(
+                x_start - 10.0,
+                y + 4.0,
+                &format!("{:.1}", elev),
+                10.0,
+                "end",
+                "#000",
+            );
         }
     }
 
@@ -377,7 +391,8 @@ impl<'a> ProfileView<'a> {
                     if junction_loss > 0.0 {
                         // Add point at outlet-side HGL (after the drop)
                         let outlet_hgl = hgl - junction_loss;
-                        let (x_out, y_out) = self.transform(point.station, outlet_hgl, min_elev, max_elev);
+                        let (x_out, y_out) =
+                            self.transform(point.station, outlet_hgl, min_elev, max_elev);
                         points.push((x_out, y_out));
                     }
                 }
@@ -403,7 +418,8 @@ impl<'a> ProfileView<'a> {
                     if junction_loss > 0.0 {
                         // Add point at outlet-side EGL (after the drop)
                         let outlet_egl = egl - junction_loss;
-                        let (x_out, y_out) = self.transform(point.station, outlet_egl, min_elev, max_elev);
+                        let (x_out, y_out) =
+                            self.transform(point.station, outlet_egl, min_elev, max_elev);
                         points.push((x_out, y_out));
                     }
                 }
@@ -418,13 +434,16 @@ impl<'a> ProfileView<'a> {
     /// Draw node markers
     fn draw_node_markers(&self, svg: &mut SvgBuilder, min_elev: f64, max_elev: f64) {
         // Create node lookup to get node types
-        let node_map: std::collections::HashMap<&str, &Node> = self.network.nodes
+        let node_map: std::collections::HashMap<&str, &Node> = self
+            .network
+            .nodes
             .iter()
             .map(|n| (n.id.as_str(), n))
             .collect();
 
         for point in &self.profile_points {
-            let (x, y_invert) = self.transform(point.station, point.invert_elev, min_elev, max_elev);
+            let (x, y_invert) =
+                self.transform(point.station, point.invert_elev, min_elev, max_elev);
 
             // Get node type from network
             if let Some(node) = node_map.get(point.node_id.as_str()) {
@@ -442,9 +461,9 @@ impl<'a> ProfileView<'a> {
                         y_rim,
                         rect_width,
                         rect_height,
-                        "none",     // Transparent fill to see grade lines
-                        "#1565C0",  // Dark blue stroke
-                        2.0
+                        "none",    // Transparent fill to see grade lines
+                        "#1565C0", // Dark blue stroke
+                        2.0,
                     );
 
                     // Draw junction label if enabled
@@ -458,7 +477,7 @@ impl<'a> ProfileView<'a> {
                     } else if node.is_outfall() {
                         "#F44336" // Red for outfalls
                     } else {
-                        "#000"     // Black default
+                        "#000" // Black default
                     };
 
                     svg.circle(x, y_invert, 5.0, color, "#000", 2.0);
@@ -477,7 +496,7 @@ impl<'a> ProfileView<'a> {
                         &format!("{:.0}", point.station),
                         9.0,
                         "middle",
-                        "#666"
+                        "#666",
                     );
                 }
             }
@@ -495,26 +514,75 @@ impl<'a> ProfileView<'a> {
         let mut y_offset = legend_y + line_height;
 
         if self.config.show_egl {
-            svg.line(legend_x, y_offset, legend_x + 30.0, y_offset, "#FF9800", 2.0);
-            svg.text(legend_x + 40.0, y_offset + 4.0, "EGL", 11.0, "start", "#000");
+            svg.line(
+                legend_x,
+                y_offset,
+                legend_x + 30.0,
+                y_offset,
+                "#FF9800",
+                2.0,
+            );
+            svg.text(
+                legend_x + 40.0,
+                y_offset + 4.0,
+                "EGL",
+                11.0,
+                "start",
+                "#000",
+            );
             y_offset += line_height;
         }
 
         if self.config.show_hgl {
-            svg.line(legend_x, y_offset, legend_x + 30.0, y_offset, "#2196F3", 2.0);
-            svg.text(legend_x + 40.0, y_offset + 4.0, "HGL", 11.0, "start", "#000");
+            svg.line(
+                legend_x,
+                y_offset,
+                legend_x + 30.0,
+                y_offset,
+                "#2196F3",
+                2.0,
+            );
+            svg.text(
+                legend_x + 40.0,
+                y_offset + 4.0,
+                "HGL",
+                11.0,
+                "start",
+                "#000",
+            );
             y_offset += line_height;
         }
 
         if self.config.show_ground {
-            svg.line(legend_x, y_offset, legend_x + 30.0, y_offset, "#8B4513", 2.0);
-            svg.text(legend_x + 40.0, y_offset + 4.0, "Ground", 11.0, "start", "#000");
+            svg.line(
+                legend_x,
+                y_offset,
+                legend_x + 30.0,
+                y_offset,
+                "#8B4513",
+                2.0,
+            );
+            svg.text(
+                legend_x + 40.0,
+                y_offset + 4.0,
+                "Ground",
+                11.0,
+                "start",
+                "#000",
+            );
             y_offset += line_height;
         }
 
         if self.config.show_pipe {
             svg.line(legend_x, y_offset, legend_x + 30.0, y_offset, "#000", 3.0);
-            svg.text(legend_x + 40.0, y_offset + 4.0, "Pipe Invert", 11.0, "start", "#000");
+            svg.text(
+                legend_x + 40.0,
+                y_offset + 4.0,
+                "Pipe Invert",
+                11.0,
+                "start",
+                "#000",
+            );
         }
     }
 
@@ -528,8 +596,8 @@ impl<'a> ProfileView<'a> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::conduit::{Conduit, PipeProperties, PipeShape, PipeMaterial};
-    use crate::node::{InletProperties, InletType, InletLocation, JunctionProperties};
+    use crate::conduit::{Conduit, PipeMaterial, PipeProperties, PipeShape};
+    use crate::node::{InletLocation, InletProperties, InletType, JunctionProperties};
 
     #[test]
     fn test_profile_view_basic() {

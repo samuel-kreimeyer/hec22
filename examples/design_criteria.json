@@ -1,0 +1,19 @@
+{
+  "gutterSpread": {
+    "maxSpread": 10.0
+  },
+  "hglCriteria": {
+    "maxHglBelowRim": 0.5,
+    "allowSurcharge": false
+  },
+  "velocity": {
+    "minVelocity": 2.5,
+    "maxVelocity": 15.0
+  },
+  "cover": {
+    "minCover": 2.0
+  },
+  "capacity": {
+    "minCapacityRatio": 1.0
+  }
+}

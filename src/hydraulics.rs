@@ -19,11 +19,11 @@ use std::f64::consts::PI;
 
 /// Gravitational acceleration constant
 pub const GRAVITY_US: f64 = 32.17; // ft/s²
-pub const GRAVITY_SI: f64 = 9.81;  // m/s²
+pub const GRAVITY_SI: f64 = 9.81; // m/s²
 
 /// Manning's equation constants
 pub const MANNING_CONST_US: f64 = 1.486; // US customary
-pub const MANNING_CONST_SI: f64 = 1.0;   // SI metric
+pub const MANNING_CONST_SI: f64 = 1.0; // SI metric
 
 /// Pipe flow result
 #[derive(Debug, Clone, PartialEq)]
@@ -68,12 +68,16 @@ pub struct ManningsEquation {
 impl ManningsEquation {
     /// Create for US customary units
     pub fn us_customary() -> Self {
-        Self { k: MANNING_CONST_US }
+        Self {
+            k: MANNING_CONST_US,
+        }
     }
 
     /// Create for SI metric units
     pub fn si_metric() -> Self {
-        Self { k: MANNING_CONST_SI }
+        Self {
+            k: MANNING_CONST_SI,
+        }
     }
 
     /// Calculate full pipe flow capacity using Manning's equation
@@ -101,12 +105,7 @@ impl ManningsEquation {
     ///
     /// # Returns
     /// Flow capacity (cfs or cms)
-    pub fn full_pipe_capacity(
-        &self,
-        diameter: f64,
-        slope: f64,
-        manning_n: f64,
-    ) -> f64 {
+    pub fn full_pipe_capacity(&self, diameter: f64, slope: f64, manning_n: f64) -> f64 {
         let area = PI * diameter.powi(2) / 4.0;
         let perimeter = PI * diameter;
         let hydraulic_radius = area / perimeter; // For circle: D/4
@@ -317,12 +316,7 @@ impl ManningsEquation {
     ///
     /// # Returns
     /// Critical depth (ft or m)
-    pub fn critical_depth(
-        &self,
-        flow: f64,
-        diameter: f64,
-        gravity: f64,
-    ) -> Option<f64> {
+    pub fn critical_depth(&self, flow: f64, diameter: f64, gravity: f64) -> Option<f64> {
         // Iteratively solve for yc where Fr = 1
         let radius = diameter / 2.0;
         let mut y_low = 0.0001 * diameter;
@@ -363,13 +357,7 @@ impl ManningsEquation {
     ///
     /// # Returns
     /// Froude number (dimensionless)
-    pub fn froude_number(
-        &self,
-        velocity: f64,
-        area: f64,
-        top_width: f64,
-        gravity: f64,
-    ) -> f64 {
+    pub fn froude_number(&self, velocity: f64, area: f64, top_width: f64, gravity: f64) -> f64 {
         let hydraulic_depth = area / top_width;
         velocity / (gravity * hydraulic_depth).sqrt()
     }
@@ -397,12 +385,16 @@ pub struct EnergyLoss {
 impl EnergyLoss {
     /// Create for US customary units
     pub fn us_customary() -> Self {
-        Self { gravity: GRAVITY_US }
+        Self {
+            gravity: GRAVITY_US,
+        }
     }
 
     /// Create for SI metric units
     pub fn si_metric() -> Self {
-        Self { gravity: GRAVITY_SI }
+        Self {
+            gravity: GRAVITY_SI,
+        }
     }
 
     /// Calculate friction loss using Manning's equation
@@ -501,12 +493,7 @@ impl EnergyLoss {
     /// * `v_upstream` - Upstream velocity (ft/s or m/s)
     /// * `v_downstream` - Downstream velocity (ft/s or m/s)
     /// * `k_exit` - Exit loss coefficient (typically 1.0)
-    pub fn exit_loss(
-        &self,
-        v_upstream: f64,
-        v_downstream: f64,
-        k_exit: f64,
-    ) -> f64 {
+    pub fn exit_loss(&self, v_upstream: f64, v_downstream: f64, k_exit: f64) -> f64 {
         let vh_up = v_upstream.powi(2) / (2.0 * self.gravity);
         let vh_down = v_downstream.powi(2) / (2.0 * self.gravity);
         k_exit * (vh_up - vh_down).max(0.0)
@@ -563,12 +550,7 @@ impl EnergyLoss {
     ///
     /// # Returns
     /// Expansion loss (ft or m)
-    pub fn expansion_loss(
-        &self,
-        v_upstream: f64,
-        v_downstream: f64,
-        k_expansion: f64,
-    ) -> f64 {
+    pub fn expansion_loss(&self, v_upstream: f64, v_downstream: f64, k_expansion: f64) -> f64 {
         let vh_upstream = v_upstream.powi(2) / (2.0 * self.gravity);
         let vh_downstream = v_downstream.powi(2) / (2.0 * self.gravity);
         k_expansion * (vh_downstream - vh_upstream).max(0.0)
@@ -600,12 +582,7 @@ impl EnergyLoss {
     ///
     /// # Returns
     /// Contraction loss (ft or m)
-    pub fn contraction_loss(
-        &self,
-        v_upstream: f64,
-        v_downstream: f64,
-        k_contraction: f64,
-    ) -> f64 {
+    pub fn contraction_loss(&self, v_upstream: f64, v_downstream: f64, k_contraction: f64) -> f64 {
         let vh_upstream = v_upstream.powi(2) / (2.0 * self.gravity);
         let vh_downstream = v_downstream.powi(2) / (2.0 * self.gravity);
         k_contraction * (vh_downstream - vh_upstream).max(0.0)
@@ -650,6 +627,7 @@ impl EnergyLoss {
     ///
     /// # Returns
     /// Junction loss (ft or m)
+    #[allow(clippy::too_many_arguments)]
     pub fn junction_loss(
         &self,
         q_outlet: f64,
@@ -670,7 +648,8 @@ impl EnergyLoss {
         let h_inlet = v_inlet.powi(2) / (2.0 * self.gravity);
 
         // Momentum term: [(Q_o·V_o) - (Q_i·V_i) - (Q_l·V_l·cos θ_j)]
-        let momentum_term = (q_outlet * v_outlet) - (q_inlet * v_inlet) - (q_lateral * v_lateral * theta_rad.cos());
+        let momentum_term =
+            (q_outlet * v_outlet) - (q_inlet * v_inlet) - (q_lateral * v_lateral * theta_rad.cos());
 
         // Denominator: 0.5g(A_o + A_i)
         let denominator = 0.5 * self.gravity * (a_outlet + a_inlet);
@@ -734,13 +713,7 @@ impl EnergyLoss {
     /// Calculate total head loss for a conduit
     ///
     /// H_total = H_friction + H_entrance + H_exit + H_bend
-    pub fn total_conduit_loss(
-        &self,
-        friction: f64,
-        entrance: f64,
-        exit: f64,
-        bend: f64,
-    ) -> f64 {
+    pub fn total_conduit_loss(&self, friction: f64, entrance: f64, exit: f64, bend: f64) -> f64 {
         friction + entrance + exit + bend
     }
 }
@@ -812,12 +785,16 @@ pub struct FhwaAccessHoleMethod {
 impl FhwaAccessHoleMethod {
     /// Create for US customary units
     pub fn us_customary() -> Self {
-        Self { gravity: GRAVITY_US }
+        Self {
+            gravity: GRAVITY_US,
+        }
     }
 
     /// Create for SI metric units
     pub fn si_metric() -> Self {
-        Self { gravity: GRAVITY_SI }
+        Self {
+            gravity: GRAVITY_SI,
+        }
     }
 
     /// Calculate outflow pipe energy head from components
@@ -1032,15 +1009,7 @@ impl FhwaAccessHoleMethod {
 
         // Coefficients from HEC-22 Table 9.5
         match benching_type {
-            BenchingType::Flat => {
-                if ratio > 2.5 {
-                    0.0 // Submerged - no effect
-                } else if ratio < 1.0 {
-                    0.0 // Unsubmerged - no effect
-                } else {
-                    0.0 // Transition
-                }
-            }
+            BenchingType::Flat => 0.0, // Flat benching has no correction in this model.
             BenchingType::Depressed => {
                 if ratio > 2.5 {
                     0.5 // Submerged - increased loss
@@ -1081,12 +1050,8 @@ impl FhwaAccessHoleMethod {
     /// # Arguments
     /// * `inflow_pipes` - Non-plunging inflow pipes with flows and angles
     pub fn flow_weighted_angle(&self, inflow_pipes: &[InflowPipe]) -> f64 {
-        let sum_q_theta: f64 = inflow_pipes.iter()
-            .map(|pipe| pipe.flow * pipe.angle)
-            .sum();
-        let sum_q: f64 = inflow_pipes.iter()
-            .map(|pipe| pipe.flow)
-            .sum();
+        let sum_q_theta: f64 = inflow_pipes.iter().map(|pipe| pipe.flow * pipe.angle).sum();
+        let sum_q: f64 = inflow_pipes.iter().map(|pipe| pipe.flow).sum();
 
         if sum_q > 0.0 {
             sum_q_theta / sum_q
@@ -1190,7 +1155,8 @@ impl FhwaAccessHoleMethod {
         outflow_diameter: f64,
     ) -> f64 {
         if outflow > 0.0 {
-            let sum: f64 = plunging_pipes.iter()
+            let sum: f64 = plunging_pipes
+                .iter()
                 .map(|pipe| {
                     let h_k = self.relative_plunge_height(
                         pipe.invert_offset,
@@ -1341,6 +1307,7 @@ impl FhwaAccessHoleMethod {
     ///
     /// # Returns
     /// Complete access hole analysis results
+    #[allow(clippy::too_many_arguments)]
     pub fn analyze_access_hole(
         &self,
         outflow_egl: f64,
@@ -1371,14 +1338,12 @@ impl FhwaAccessHoleMethod {
         let unsubmerged_inlet = self.unsubmerged_inlet_control(outflow_diameter, di);
 
         // Equation 9.13: Initial energy level
-        let initial_energy = self.initial_energy_level(
-            outlet_control,
-            submerged_inlet,
-            unsubmerged_inlet,
-        );
+        let initial_energy =
+            self.initial_energy_level(outlet_control, submerged_inlet, unsubmerged_inlet);
 
         // Separate plunging and non-plunging pipes
-        let (plunging, non_plunging): (Vec<_>, Vec<_>) = inflow_pipes.iter()
+        let (plunging, non_plunging): (Vec<_>, Vec<_>) = inflow_pipes
+            .iter()
             .partition(|pipe| pipe.invert_offset > initial_energy);
 
         // Clone into owned vectors for use in methods
@@ -1391,11 +1356,8 @@ impl FhwaAccessHoleMethod {
         // Equations 9.21-9.23: Angled inflow
         let theta_w = self.flow_weighted_angle(&non_plunging_owned);
         let total_non_plunging_flow: f64 = non_plunging_owned.iter().map(|p| p.flow).sum();
-        let c_angle = self.angled_inflow_coefficient(
-            total_non_plunging_flow,
-            outflow_flow,
-            theta_w,
-        );
+        let c_angle =
+            self.angled_inflow_coefficient(total_non_plunging_flow, outflow_flow, theta_w);
 
         // Equations 9.24-9.26: Plunging flow
         let c_plunging = self.plunging_flow_coefficient(
@@ -1415,11 +1377,7 @@ impl FhwaAccessHoleMethod {
         );
 
         // Equation 9.28: Final energy level
-        let final_energy = self.final_energy_level(
-            initial_energy,
-            additional_loss,
-            outflow_energy,
-        );
+        let final_energy = self.final_energy_level(initial_energy, additional_loss, outflow_energy);
 
         // Equation 9.29: EGL elevation
         let egl_elevation = self.access_hole_egl(final_energy, access_hole_invert);
@@ -1451,12 +1409,16 @@ pub struct DesignCalculations {
 impl DesignCalculations {
     /// Create for US customary units
     pub fn us_customary() -> Self {
-        Self { k: MANNING_CONST_US }
+        Self {
+            k: MANNING_CONST_US,
+        }
     }
 
     /// Create for SI metric units
     pub fn si_metric() -> Self {
-        Self { k: MANNING_CONST_SI }
+        Self {
+            k: MANNING_CONST_SI,
+        }
     }
 
     /// Calculate contributing area for shorter time of concentration
@@ -1586,13 +1548,7 @@ mod tests {
         let slope = 0.01;
         let n = 0.013;
 
-        let result = mannings.partial_pipe_flow(
-            diameter,
-            depth,
-            slope,
-            n,
-            GRAVITY_US,
-        );
+        let result = mannings.partial_pipe_flow(diameter, depth, slope, n, GRAVITY_US);
 
         // Half-full pipe flows at about 50% of full capacity
         assert!(result.depth_ratio - 0.5 < TOLERANCE);
@@ -1620,8 +1576,12 @@ mod tests {
 
         // Verify the depth produces approximately the desired flow
         let check = mannings.partial_pipe_flow(diameter, depth, slope, n, GRAVITY_US);
-        assert!((check.flow - flow).abs() < 0.01,
-            "Expected flow {}, got {}", flow, check.flow);
+        assert!(
+            (check.flow - flow).abs() < 0.01,
+            "Expected flow {}, got {}",
+            flow,
+            check.flow
+        );
     }
 
     #[test]
@@ -1651,14 +1611,8 @@ mod tests {
         let hydraulic_radius = 0.375; // ft (D/4)
         let n = 0.013;
 
-        let hf = energy_loss.friction_loss(
-            flow,
-            length,
-            area,
-            hydraulic_radius,
-            n,
-            MANNING_CONST_US,
-        );
+        let hf =
+            energy_loss.friction_loss(flow, length, area, hydraulic_radius, n, MANNING_CONST_US);
 
         // Friction loss should be positive
         assert!(hf > 0.0);
@@ -1682,20 +1636,11 @@ mod tests {
     fn test_flow_regime_classification() {
         let mannings = ManningsEquation::us_customary();
 
-        assert_eq!(
-            mannings.flow_regime(0.5),
-            FlowRegime::Subcritical
-        );
+        assert_eq!(mannings.flow_regime(0.5), FlowRegime::Subcritical);
 
-        assert_eq!(
-            mannings.flow_regime(1.0),
-            FlowRegime::Critical
-        );
+        assert_eq!(mannings.flow_regime(1.0), FlowRegime::Critical);
 
-        assert_eq!(
-            mannings.flow_regime(2.0),
-            FlowRegime::Supercritical
-        );
+        assert_eq!(mannings.flow_regime(2.0), FlowRegime::Supercritical);
     }
 
     #[test]
@@ -1708,12 +1653,12 @@ mod tests {
         // Lateral: 18" pipe, Q=4 cfs, 90 degrees
 
         let q_outlet = 10.0; // cfs
-        let q_inlet = 6.0;   // cfs
+        let q_inlet = 6.0; // cfs
         let q_lateral = 4.0; // cfs
 
         // Calculate areas
         let d_outlet: f64 = 2.0; // ft (24 inches)
-        let d_inlet: f64 = 1.5;  // ft (18 inches)
+        let d_inlet: f64 = 1.5; // ft (18 inches)
         let a_outlet = std::f64::consts::PI * d_outlet.powi(2) / 4.0;
         let a_inlet = std::f64::consts::PI * d_inlet.powi(2) / 4.0;
 
@@ -1725,10 +1670,7 @@ mod tests {
         let theta_j = 90.0; // degrees
 
         let hj = energy_loss.junction_loss(
-            q_outlet, q_inlet, q_lateral,
-            v_outlet, v_inlet, v_lateral,
-            a_outlet, a_inlet,
-            theta_j
+            q_outlet, q_inlet, q_lateral, v_outlet, v_inlet, v_lateral, a_outlet, a_inlet, theta_j,
         );
 
         // Junction loss should be positive for this configuration
@@ -1759,14 +1701,15 @@ mod tests {
         let theta_j = 180.0; // Straight through
 
         let hj = energy_loss.junction_loss(
-            q_outlet, q_inlet, q_lateral,
-            v_outlet, v_inlet, v_lateral,
-            a, a,
-            theta_j
+            q_outlet, q_inlet, q_lateral, v_outlet, v_inlet, v_lateral, a, a, theta_j,
         );
 
         // For straight through with same diameter, loss should be minimal/near zero
-        assert!(hj.abs() < 0.01, "Straight through junction loss should be near zero, got {}", hj);
+        assert!(
+            hj.abs() < 0.01,
+            "Straight through junction loss should be near zero, got {}",
+            hj
+        );
     }
 
     #[test]
@@ -1781,7 +1724,11 @@ mod tests {
         let h_e = energy_loss.expansion_loss(v_upstream, v_downstream, k_expansion);
 
         // Should have positive loss for expansion
-        assert!(h_e >= 0.0, "Expansion loss should be non-negative, got {}", h_e);
+        assert!(
+            h_e >= 0.0,
+            "Expansion loss should be non-negative, got {}",
+            h_e
+        );
         // Loss should be reasonable (less than 1 ft for these velocities)
         assert!(h_e < 1.0, "Expansion loss seems excessive: {}", h_e);
     }
@@ -1798,7 +1745,11 @@ mod tests {
         let h_c = energy_loss.contraction_loss(v_upstream, v_downstream, k_contraction);
 
         // Should have positive loss for contraction
-        assert!(h_c >= 0.0, "Contraction loss should be non-negative, got {}", h_c);
+        assert!(
+            h_c >= 0.0,
+            "Contraction loss should be non-negative, got {}",
+            h_c
+        );
         // Loss should be reasonable
         assert!(h_c < 1.0, "Contraction loss seems excessive: {}", h_c);
     }
@@ -1842,14 +1793,23 @@ mod tests {
 
         // Equation 9.17: Submerged inlet control
         let e_ais = fhwa.submerged_inlet_control(diameter, di);
-        assert!(e_ais > 0.0, "Submerged inlet control energy should be positive");
+        assert!(
+            e_ais > 0.0,
+            "Submerged inlet control energy should be positive"
+        );
 
         // Equation 9.18: Unsubmerged inlet control
         let e_aiu = fhwa.unsubmerged_inlet_control(diameter, di);
-        assert!(e_aiu > 0.0, "Unsubmerged inlet control energy should be positive");
+        assert!(
+            e_aiu > 0.0,
+            "Unsubmerged inlet control energy should be positive"
+        );
 
         // For same DI, unsubmerged should be greater than submerged
-        assert!(e_aiu > e_ais, "Unsubmerged control should be greater than submerged");
+        assert!(
+            e_aiu > e_ais,
+            "Unsubmerged control should be greater than submerged"
+        );
     }
 
     #[test]
@@ -1879,7 +1839,11 @@ mod tests {
         let theta_w = fhwa.flow_weighted_angle(&inflow_pipes);
 
         // θ_w = (3.0×180 + 2.0×90) / (3.0 + 2.0) = 720/5 = 144°
-        assert!((theta_w - 144.0).abs() < 1.0, "Flow-weighted angle = {}", theta_w);
+        assert!(
+            (theta_w - 144.0).abs() < 1.0,
+            "Flow-weighted angle = {}",
+            theta_w
+        );
     }
 
     #[test]
@@ -1917,12 +1881,24 @@ mod tests {
         );
 
         // Verify all results are reasonable
-        assert!(result.initial_energy_level > 0.0, "Initial energy should be positive");
-        assert!(result.final_energy_level > 0.0, "Final energy should be positive");
-        assert!(result.egl_elevation > outflow_invert, "EGL should be above invert");
+        assert!(
+            result.initial_energy_level > 0.0,
+            "Initial energy should be positive"
+        );
+        assert!(
+            result.final_energy_level > 0.0,
+            "Final energy should be positive"
+        );
+        assert!(
+            result.egl_elevation > outflow_invert,
+            "EGL should be above invert"
+        );
 
         // For straight through with improved benching, losses should be minimal
-        assert!(result.additional_loss >= 0.0, "Additional loss should be non-negative");
+        assert!(
+            result.additional_loss >= 0.0,
+            "Additional loss should be non-negative"
+        );
     }
 
     #[test]
@@ -1953,11 +1929,18 @@ mod tests {
 
         // Slope should be positive and reasonable
         assert!(s_min > 0.0, "Minimum slope should be positive");
-        assert!(s_min < 0.1, "Minimum slope should be reasonable, got {}", s_min);
+        assert!(
+            s_min < 0.1,
+            "Minimum slope should be reasonable, got {}",
+            s_min
+        );
 
         // For typical pipe, minimum slope should be in range 0.001 to 0.01
-        assert!(s_min >= 0.0001 && s_min <= 0.02,
-            "Minimum slope {} outside expected range", s_min);
+        assert!(
+            (0.0001..=0.02).contains(&s_min),
+            "Minimum slope {} outside expected range",
+            s_min
+        );
     }
 
     #[test]
@@ -1966,18 +1949,22 @@ mod tests {
 
         let initial_energy = 3.0; // ft
         let outflow_diameter = 2.0; // ft
-        let _ratio = initial_energy / outflow_diameter; // 1.5
-
-        // Test all benching types
-        let c_flat = fhwa.benching_coefficient(BenchingType::Flat, initial_energy, outflow_diameter);
-        let c_depressed = fhwa.benching_coefficient(BenchingType::Depressed, initial_energy, outflow_diameter);
-        let c_improved = fhwa.benching_coefficient(BenchingType::Improved, initial_energy, outflow_diameter);
+                                    // Test all benching types
+        let c_flat =
+            fhwa.benching_coefficient(BenchingType::Flat, initial_energy, outflow_diameter);
+        let c_depressed =
+            fhwa.benching_coefficient(BenchingType::Depressed, initial_energy, outflow_diameter);
+        let c_improved =
+            fhwa.benching_coefficient(BenchingType::Improved, initial_energy, outflow_diameter);
 
         // Flat should be zero (no effect)
         assert_eq!(c_flat, 0.0, "Flat benching coefficient should be 0");
 
         // Depressed should be positive (increased loss)
-        assert!(c_depressed > 0.0, "Depressed benching should increase losses");
+        assert!(
+            c_depressed > 0.0,
+            "Depressed benching should increase losses"
+        );
 
         // Improved should be negative (reduced loss)
         assert!(c_improved < 0.0, "Improved benching should reduce losses");
@@ -2009,6 +1996,9 @@ mod tests {
         );
 
         // Plunging coefficient should be positive
-        assert!(c_p > 0.0, "Plunging coefficient should be positive for plunging flow");
+        assert!(
+            c_p > 0.0,
+            "Plunging coefficient should be positive for plunging flow"
+        );
     }
 }

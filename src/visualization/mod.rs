@@ -24,11 +24,11 @@
 //! # Ok::<(), Box<dyn std::error::Error>>(())
 //! ```
 
+pub mod html;
 pub mod network_plan;
 pub mod profile;
 pub mod svg;
-pub mod html;
 
+pub use html::HtmlViewer;
 pub use network_plan::NetworkPlanView;
 pub use profile::ProfileView;
-pub use html::HtmlViewer;

@@ -183,11 +183,7 @@ impl IdfCurve {
     }
 
     /// Create IDF curve from equation
-    pub fn from_equation(
-        return_period: f64,
-        equation: IdfEquation,
-        durations: &[f64],
-    ) -> Self {
+    pub fn from_equation(return_period: f64, equation: IdfEquation, durations: &[f64]) -> Self {
         let points = durations
             .iter()
             .filter_map(|&d| {
@@ -299,12 +295,7 @@ mod tests {
 
     #[test]
     fn test_create_uniform_storm() {
-        let storm = DesignStorm::uniform(
-            "storm-1".to_string(),
-            "10-Year".to_string(),
-            10.0,
-            3.8,
-        );
+        let storm = DesignStorm::uniform("storm-1".to_string(), "10-Year".to_string(), 10.0, 3.8);
 
         assert_eq!(storm.return_period, 10.0);
         assert_eq!(storm.peak_intensity, Some(3.8));

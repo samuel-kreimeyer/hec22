@@ -7,8 +7,8 @@
 //! - Optional labels and annotations
 
 use crate::network::Network;
-use crate::node::{Node, NodeType};
-use crate::visualization::svg::{SvgBuilder, bounding_box, add_padding};
+use crate::node::NodeType;
+use crate::visualization::svg::{add_padding, bounding_box, SvgBuilder};
 use std::collections::HashMap;
 
 /// Configuration for network plan visualization
@@ -87,7 +87,10 @@ impl<'a> NetworkPlanView<'a> {
     }
 
     /// Transform coordinates from network space to SVG space
-    fn transform_coordinates(&self, positions: &HashMap<String, (f64, f64)>) -> HashMap<String, (f64, f64)> {
+    fn transform_coordinates(
+        &self,
+        positions: &HashMap<String, (f64, f64)>,
+    ) -> HashMap<String, (f64, f64)> {
         if positions.is_empty() {
             return HashMap::new();
         }
@@ -220,7 +223,14 @@ impl<'a> NetworkPlanView<'a> {
 
                 // Draw label if enabled
                 if self.config.show_labels {
-                    svg.text(x, y - self.config.node_radius - 5.0, &node.id, 11.0, "middle", "#000");
+                    svg.text(
+                        x,
+                        y - self.config.node_radius - 5.0,
+                        &node.id,
+                        11.0,
+                        "middle",
+                        "#000",
+                    );
                 }
             }
         }
@@ -236,7 +246,10 @@ impl<'a> NetworkPlanView<'a> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::node::{Coordinates, InletProperties, InletType, InletLocation, JunctionProperties, OutfallProperties, BoundaryCondition};
+    use crate::node::{
+        BoundaryCondition, Coordinates, InletLocation, InletProperties, InletType,
+        JunctionProperties, Node, OutfallProperties,
+    };
 
     #[test]
     fn test_network_plan_basic() {

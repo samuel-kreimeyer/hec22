@@ -87,12 +87,12 @@ impl GrateType {
     /// Values from HEC-22 Table 7.5
     pub fn opening_ratio(&self) -> f64 {
         match self {
-            GrateType::P1_7_8_4 => 0.80,    // P-1-7/8-4: 80% open
-            GrateType::P1_7_8 => 0.90,      // P-1-7/8: 90% open
-            GrateType::P1_1_8 => 0.60,      // P-1-1/8: 60% open
-            GrateType::Reticuline => 0.80,  // Reticuline: 80% open
-            GrateType::CurvedVane => 0.35,  // Curved vane: 35% open
-            GrateType::TiltBar30 => 0.34,   // 30° tilt-bar: 34% open
+            GrateType::P1_7_8_4 => 0.80,   // P-1-7/8-4: 80% open
+            GrateType::P1_7_8 => 0.90,     // P-1-7/8: 90% open
+            GrateType::P1_1_8 => 0.60,     // P-1-1/8: 60% open
+            GrateType::Reticuline => 0.80, // Reticuline: 80% open
+            GrateType::CurvedVane => 0.35, // Curved vane: 35% open
+            GrateType::TiltBar30 => 0.34,  // 30° tilt-bar: 34% open
             GrateType::Custom(ratio) => *ratio,
         }
     }
@@ -142,9 +142,9 @@ impl GrateInletOnGrade {
     /// If Rf > 1.0, use Rf = 1.0 (velocity below splash-over threshold)
     fn frontal_capture_efficiency(&self, velocity: f64) -> f64 {
         // Constants for US customary units
-        const KU_RF: f64 = 0.09;  // Eq. 7.5 constant
-        const KU_VO: f64 = 0.09;  // Splash-over velocity constant
-        const G: f64 = 32.2;      // Gravitational acceleration, ft/s²
+        const KU_RF: f64 = 0.09; // Eq. 7.5 constant
+        const KU_VO: f64 = 0.09; // Splash-over velocity constant
+        const G: f64 = 32.2; // Gravitational acceleration, ft/s²
 
         // Calculate splash-over velocity: Vo = Ku·√(g·L)
         let vo = KU_VO * (G * self.length).sqrt();
@@ -153,7 +153,7 @@ impl GrateInletOnGrade {
         let rf = 1.0 - KU_RF * (velocity - vo);
 
         // Cap at 1.0 (100% efficiency when V ≤ Vo)
-        rf.min(1.0).max(0.0)
+        rf.clamp(0.0, 1.0)
     }
 
     /// Calculate side flow capture efficiency (Rs)
@@ -167,7 +167,7 @@ impl GrateInletOnGrade {
     ///   L = Length of grate, ft
     fn side_capture_efficiency(&self, velocity: f64, cross_slope: f64) -> f64 {
         // Constant for US customary units
-        const KU_RS: f64 = 0.15;  // Eq. 7.6 constant
+        const KU_RS: f64 = 0.15; // Eq. 7.6 constant
 
         // HEC-22 Equation 7.6: Rs = 1 / [1 + (Ku·V^1.8) / (Sx·L^2.3)]
         let numerator = KU_RS * velocity.powf(1.8);
@@ -286,12 +286,7 @@ pub enum ThroatType {
 
 impl CurbOpeningInletOnGrade {
     /// Create a new curb opening inlet without depression
-    pub fn new(
-        length: f64,
-        height: f64,
-        throat_type: ThroatType,
-        clogging_factor: f64,
-    ) -> Self {
+    pub fn new(length: f64, height: f64, throat_type: ThroatType, clogging_factor: f64) -> Self {
         Self {
             length,
             height,
@@ -347,11 +342,7 @@ impl CurbOpeningInletOnGrade {
     ///
     /// # Returns
     /// Effective cross slope Se, or original Sx if no depression
-    fn effective_cross_slope(
-        &self,
-        cross_slope: f64,
-        gutter_result: &GutterFlowResult,
-    ) -> f64 {
+    fn effective_cross_slope(&self, cross_slope: f64, gutter_result: &GutterFlowResult) -> f64 {
         if let (Some(depression), Some(width)) = (self.depression_depth, self.gutter_width) {
             // Calculate depression slope S'w = a/W
             let sw_prime = depression / width;
@@ -459,8 +450,8 @@ impl CurbOpeningInletOnGrade {
         longitudinal_slope: f64,
     ) -> f64 {
         let ku = 0.6; // US customary units
-        // HEC-22 Equation 7.10: LT = Ku * Q^0.42 * SL^0.3 * [1/(n*Sx)]^0.6
-        // The 0.6 exponent applies to BOTH n and Sx
+                      // HEC-22 Equation 7.10: LT = Ku * Q^0.42 * SL^0.3 * [1/(n*Sx)]^0.6
+                      // The 0.6 exponent applies to BOTH n and Sx
         ku * flow.powf(0.42) * longitudinal_slope.powf(0.3)
             / (manning_n.powf(0.6) * cross_slope.powf(0.6))
     }
@@ -502,7 +493,9 @@ impl CombinationInletOnGrade {
         longitudinal_slope: f64,
     ) -> InletInterceptionResult {
         // Grate intercepts first
-        let grate_result = self.grate.interception(approach_flow, gutter_result, cross_slope);
+        let grate_result = self
+            .grate
+            .interception(approach_flow, gutter_result, cross_slope);
 
         // Curb opening intercepts from grate bypass
         if grate_result.bypass_flow > 0.0 {
@@ -567,9 +560,13 @@ impl GrateInletSag {
     /// # Arguments
     /// * `ponding_depth` - Water depth above grate (ft)
     /// * `opening_ratio` - Grate opening ratio (0.0 to 1.0), typically 0.35-0.90
-    ///                     For P-grates: ~0.5-0.6, Curved vane: ~0.80-0.90
-    ///                     If None, assumes 100% open area (conservative)
-    pub fn capacity_with_opening_ratio(&self, ponding_depth: f64, opening_ratio: Option<f64>) -> f64 {
+    ///   For P-grates: ~0.5-0.6, Curved vane: ~0.80-0.90
+    ///   If None, assumes 100% open area (conservative)
+    pub fn capacity_with_opening_ratio(
+        &self,
+        ponding_depth: f64,
+        opening_ratio: Option<f64>,
+    ) -> f64 {
         // Gross area
         let gross_area = self.length * self.width * self.count as f64;
         let perimeter = 2.0 * (self.length + self.width) * self.count as f64;
@@ -603,7 +600,12 @@ impl GrateInletSag {
     }
 
     /// Check if flooding occurs (capacity exceeded)
-    pub fn check_flooding(&self, design_flow: f64, rim_elevation: f64, invert_elevation: f64) -> (bool, f64) {
+    pub fn check_flooding(
+        &self,
+        design_flow: f64,
+        rim_elevation: f64,
+        invert_elevation: f64,
+    ) -> (bool, f64) {
         // Iterate to find ponding depth
         let max_depth = rim_elevation - invert_elevation;
         let mut depth = 0.1;
@@ -642,7 +644,7 @@ impl GrateInletSag {
     /// * `grate_width` - Standard grate width (ft), typically 2 or 3 ft
     /// * `clogging_factor` - Expected clogging from curb (0.0 to 1.0), e.g., 0.5 for 50%
     /// * `grate_type` - Grate type with opening ratio from HEC-22 Table 7.5
-    ///                  If None, assumes 100% open (overly conservative)
+    ///   If None, assumes 100% open (overly conservative)
     ///
     /// # Returns
     /// Tuple of (length, count) where:
@@ -671,7 +673,7 @@ impl GrateInletSag {
         grate_type: Option<GrateType>,
     ) -> (f64, usize) {
         // Constants from HEC-22
-        let cw = 3.0;  // Weir coefficient (approximates 0.37 × √(2g))
+        let cw = 3.0; // Weir coefficient (approximates 0.37 × √(2g))
         let co = 0.67; // Orifice coefficient
         let g = 32.17; // Gravity (ft/s²)
 
@@ -705,7 +707,7 @@ impl GrateInletSag {
 
                     // Step 3: Verify depth using Equation 7.14 (rearranged)
                     // d = [Qi / (Cw × P)]^(2/3)
-                    let depth_weir = (design_flow / (cw * perimeter_effective)).powf(2.0/3.0);
+                    let depth_weir = (design_flow / (cw * perimeter_effective)).powf(2.0 / 3.0);
 
                     if depth_weir <= max_ponding_depth {
                         weir_grate = Some((length, count, depth_weir));
@@ -759,15 +761,15 @@ impl GrateInletSag {
                 } else {
                     (l_o, c_o) // Orifice is more conservative
                 }
-            },
+            }
             (Some((l_w, c_w, _)), None) => {
                 // Only weir solution works
                 (l_w, c_w)
-            },
+            }
             (None, Some((l_o, c_o, _))) => {
                 // Only orifice solution works
                 (l_o, c_o)
-            },
+            }
             (None, None) => {
                 // No standard size works - calculate custom length using more restrictive equation
                 // Use the equation that requires longer total length (more conservative)
@@ -792,12 +794,7 @@ pub struct CurbOpeningInletSag {
 
 impl CurbOpeningInletSag {
     /// Create a new sag curb opening inlet
-    pub fn new(
-        length: f64,
-        height: f64,
-        throat_type: ThroatType,
-        clogging_factor: f64,
-    ) -> Self {
+    pub fn new(length: f64, height: f64, throat_type: ThroatType, clogging_factor: f64) -> Self {
         Self {
             length,
             height,
@@ -838,8 +835,8 @@ mod tests {
     #[test]
     fn test_grate_inlet_on_grade() {
         let inlet = GrateInletOnGrade::new(
-            3.0,  // 3 ft length
-            2.0,  // 2 ft width
+            3.0, // 3 ft length
+            2.0, // 2 ft width
             BarConfiguration::Perpendicular,
             0.15, // 15% clogging
             2.0,  // 2 inch depression
@@ -862,8 +859,8 @@ mod tests {
     #[test]
     fn test_curb_opening_on_grade() {
         let inlet = CurbOpeningInletOnGrade::new(
-            5.0,  // 5 ft length
-            0.5,  // 6 inch height
+            5.0, // 5 ft length
+            0.5, // 6 inch height
             ThroatType::Horizontal,
             0.10,
         );
@@ -884,20 +881,9 @@ mod tests {
 
     #[test]
     fn test_combination_inlet() {
-        let grate = GrateInletOnGrade::new(
-            2.0,
-            1.5,
-            BarConfiguration::Perpendicular,
-            0.15,
-            2.0,
-        );
+        let grate = GrateInletOnGrade::new(2.0, 1.5, BarConfiguration::Perpendicular, 0.15, 2.0);
 
-        let curb = CurbOpeningInletOnGrade::new(
-            3.0,
-            0.5,
-            ThroatType::Horizontal,
-            0.10,
-        );
+        let curb = CurbOpeningInletOnGrade::new(3.0, 0.5, ThroatType::Horizontal, 0.10);
 
         let combo = CombinationInletOnGrade::new(grate, curb);
 
@@ -951,8 +937,8 @@ mod tests {
     fn test_grate_inlet_with_composite_gutter() {
         // Test that grate inlet correctly uses composite gutter frontal flow
         let inlet = GrateInletOnGrade::new(
-            3.0,  // 3 ft length
-            2.0,  // 2 ft width
+            3.0, // 3 ft length
+            2.0, // 2 ft width
             BarConfiguration::Perpendicular,
             0.15, // 15% clogging
             2.0,  // 2 inch depression
@@ -960,12 +946,12 @@ mod tests {
 
         // Create composite gutter result
         let composite_gutter = CompositeGutter::new(
-            0.016,  // Manning's n
-            0.04,   // 4% gutter slope
-            0.02,   // 2% roadway slope
-            0.01,   // 1% longitudinal slope
-            2.0,    // 2 ft gutter width
-            2.0,    // 2 inch local depression
+            0.016, // Manning's n
+            0.04,  // 4% gutter slope
+            0.02,  // 2% roadway slope
+            0.01,  // 1% longitudinal slope
+            2.0,   // 2 ft gutter width
+            2.0,   // 2 inch local depression
         );
 
         let gutter_result = composite_gutter.result_for_flow(4.0, GUTTER_K_US);
@@ -974,7 +960,7 @@ mod tests {
         assert!(gutter_result.frontal_flow.is_some());
         assert!(gutter_result.side_flow.is_some());
 
-        let cross_slope = 0.02;  // Roadway cross slope
+        let cross_slope = 0.02; // Roadway cross slope
         let result = inlet.interception(4.0, &gutter_result, cross_slope);
 
         // Should intercept some flow
@@ -988,8 +974,11 @@ mod tests {
         let frontal = gutter_result.frontal_flow.unwrap();
         let simple_ratio = inlet.width / gutter_result.spread;
         let composite_ratio = frontal / gutter_result.flow;
-        assert!(composite_ratio > simple_ratio,
+        assert!(
+            composite_ratio > simple_ratio,
             "Composite gutter frontal ratio ({}) should be > simple W/T ({})",
-            composite_ratio, simple_ratio);
+            composite_ratio,
+            simple_ratio
+        );
     }
 }

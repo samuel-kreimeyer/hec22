@@ -52,12 +52,23 @@
           <input id="intensity" type="number" step="0.01" value="4.0">
           <small>Used with drainage_areas if conduit_flows are not provided.</small>
         </label>
+          <label class="field">
+            <span>Unit system</span>
+            <select id="unitSystem">
+              <option value="US" selected>US</option>
+              <option value="SI">SI</option>
+            </select>
+          </label>
+      </div>
+      <div class="field-row">
+        <label class="file">
+          <span>IDF curves CSV</span>
+          <input id="idfCsv" type="file" accept=".csv,text/csv">
+        </label>
         <label class="field">
-          <span>Unit system</span>
-          <select id="unitSystem">
-            <option value="US" selected>US</option>
-            <option value="SI">SI</option>
-          </select>
+          <span>Return period</span>
+          <input id="returnPeriod" type="number" step="0.1" value="10">
+          <small>Used to derive intensity from IDF tables.</small>
         </label>
       </div>
 
@@ -80,6 +91,43 @@
         <span>Request JSON</span>
         <textarea id="requestJson" spellcheck="false"></textarea>
       </label>
+
+      <div class="section-block">
+        <h3>Design criteria</h3>
+        <p class="hint">Defaults are prefilled. Cover checks infer ground elevation from rim elevation.</p>
+        <div class="field-row">
+          <label class="field">
+            <span>Max spread</span>
+            <input id="criteriaMaxSpread" type="number" step="0.01" value="10">
+          </label>
+          <label class="field">
+            <span>Max HGL below rim</span>
+            <input id="criteriaMaxHglBelowRim" type="number" step="0.01" value="0.5">
+          </label>
+          <label class="toggle">
+            <input id="criteriaAllowSurcharge" type="checkbox">
+            <span>Allow surcharge</span>
+          </label>
+        </div>
+        <div class="field-row">
+          <label class="field">
+            <span>Min velocity</span>
+            <input id="criteriaMinVelocity" type="number" step="0.01" value="2.5">
+          </label>
+          <label class="field">
+            <span>Max velocity</span>
+            <input id="criteriaMaxVelocity" type="number" step="0.01" value="15.0">
+          </label>
+          <label class="field">
+            <span>Min cover</span>
+            <input id="criteriaMinCover" type="number" step="0.01" value="2.0">
+          </label>
+          <label class="field">
+            <span>Min capacity ratio</span>
+            <input id="criteriaMinCapacityRatio" type="number" step="0.01" value="1.0">
+          </label>
+        </div>
+      </div>
 
       <div class="section-block json-validation">
         <h3>Validation</h3>

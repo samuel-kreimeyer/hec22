@@ -16,10 +16,10 @@ fn main() {
     println!("  Longitudinal slope: 1.0% (0.01 ft/ft)");
 
     let uniform_gutter = UniformGutter::new(
-        0.016,  // Manning's n
-        0.02,   // 2% cross slope
-        0.01,   // 1% longitudinal slope
-        None,   // No width limit
+        0.016, // Manning's n
+        0.02,  // 2% cross slope
+        0.01,  // 1% longitudinal slope
+        None,  // No width limit
     );
 
     // Calculate spread for design flow
@@ -30,8 +30,11 @@ fn main() {
 
     println!("\nResults:");
     println!("  Spread (T): {:.2} ft", result.spread);
-    println!("  Depth at curb: {:.3} ft ({:.2} inches)",
-        result.depth_at_curb, result.depth_at_curb * 12.0);
+    println!(
+        "  Depth at curb: {:.3} ft ({:.2} inches)",
+        result.depth_at_curb,
+        result.depth_at_curb * 12.0
+    );
     println!("  Flow area: {:.3} sq ft", result.area);
     println!("  Velocity: {:.2} ft/s", result.velocity);
 
@@ -41,14 +44,20 @@ fn main() {
 
     println!("\nDesign Criteria Check:");
     if result.spread <= max_spread_local {
-        println!("  ✓ Spread {:.2} ft is within limit for local streets ({:.1} ft)",
-            result.spread, max_spread_local);
+        println!(
+            "  ✓ Spread {:.2} ft is within limit for local streets ({:.1} ft)",
+            result.spread, max_spread_local
+        );
     } else if result.spread <= max_spread_arterial {
-        println!("  ✓ Spread {:.2} ft is within limit for arterial streets ({:.1} ft)",
-            result.spread, max_spread_arterial);
+        println!(
+            "  ✓ Spread {:.2} ft is within limit for arterial streets ({:.1} ft)",
+            result.spread, max_spread_arterial
+        );
     } else {
-        println!("  ✗ Spread {:.2} ft EXCEEDS arterial street limit ({:.1} ft)",
-            result.spread, max_spread_arterial);
+        println!(
+            "  ✗ Spread {:.2} ft EXCEEDS arterial street limit ({:.1} ft)",
+            result.spread, max_spread_arterial
+        );
     }
 
     // Example 2: Composite Gutter Section
@@ -62,12 +71,12 @@ fn main() {
     println!("  Local depression: 2.0 inches");
 
     let composite_gutter = CompositeGutter::new(
-        0.016,  // Manning's n
-        0.04,   // 4% gutter slope
-        0.02,   // 2% roadway slope
-        0.01,   // 1% longitudinal slope
-        2.0,    // 2 ft gutter width
-        2.0,    // 2 inch local depression
+        0.016, // Manning's n
+        0.04,  // 4% gutter slope
+        0.02,  // 2% roadway slope
+        0.01,  // 1% longitudinal slope
+        2.0,   // 2 ft gutter width
+        2.0,   // 2 inch local depression
     );
 
     let flow = 5.0; // cfs
@@ -77,25 +86,38 @@ fn main() {
 
     println!("\nResults:");
     println!("  Total spread (T): {:.2} ft", result.spread);
-    println!("  Depth at curb: {:.3} ft ({:.2} inches)",
-        result.depth_at_curb, result.depth_at_curb * 12.0);
+    println!(
+        "  Depth at curb: {:.3} ft ({:.2} inches)",
+        result.depth_at_curb,
+        result.depth_at_curb * 12.0
+    );
     println!("  Total flow: {:.2} cfs", result.flow);
 
     if let (Some(frontal), Some(side)) = (result.frontal_flow, result.side_flow) {
         println!("\nFlow Distribution:");
-        println!("  Frontal flow (in gutter): {:.2} cfs ({:.1}%)",
-            frontal, (frontal / result.flow) * 100.0);
-        println!("  Side flow (on roadway): {:.2} cfs ({:.1}%)",
-            side, (side / result.flow) * 100.0);
+        println!(
+            "  Frontal flow (in gutter): {:.2} cfs ({:.1}%)",
+            frontal,
+            (frontal / result.flow) * 100.0
+        );
+        println!(
+            "  Side flow (on roadway): {:.2} cfs ({:.1}%)",
+            side,
+            (side / result.flow) * 100.0
+        );
     }
 
     println!("\nDesign Criteria Check:");
     if result.spread <= max_spread_local {
-        println!("  ✓ Spread {:.2} ft is within limit for local streets ({:.1} ft)",
-            result.spread, max_spread_local);
+        println!(
+            "  ✓ Spread {:.2} ft is within limit for local streets ({:.1} ft)",
+            result.spread, max_spread_local
+        );
     } else {
-        println!("  ✗ Spread {:.2} ft EXCEEDS local street limit ({:.1} ft)",
-            result.spread, max_spread_local);
+        println!(
+            "  ✗ Spread {:.2} ft EXCEEDS local street limit ({:.1} ft)",
+            result.spread, max_spread_local
+        );
         println!("  Recommendation: Increase gutter capacity or add inlet");
     }
 
@@ -108,10 +130,10 @@ fn main() {
     println!("  Longitudinal slope: 1.0% (0.01 ft/ft)");
 
     let parabolic = ParabolicCrown::new(
-        0.016,  // Manning's n
-        0.10,   // 0.10 ft crown height
-        12.0,   // 12 ft width to crown
-        0.01,   // 1% longitudinal slope
+        0.016, // Manning's n
+        0.10,  // 0.10 ft crown height
+        12.0,  // 12 ft width to crown
+        0.01,  // 1% longitudinal slope
     );
 
     let flow = 2.5; // cfs
@@ -121,25 +143,36 @@ fn main() {
 
     println!("\nResults:");
     println!("  Spread (T): {:.2} ft", result.spread);
-    println!("  Depth at curb: {:.3} ft ({:.2} inches)",
-        result.depth_at_curb, result.depth_at_curb * 12.0);
+    println!(
+        "  Depth at curb: {:.3} ft ({:.2} inches)",
+        result.depth_at_curb,
+        result.depth_at_curb * 12.0
+    );
     println!("  Flow area: {:.3} sq ft", result.area);
     println!("  Velocity: {:.2} ft/s", result.velocity);
 
     // Example 4: Spread vs. Flow Relationship
     println!("\n\n--- Example 4: Spread vs. Flow Relationship ---");
     println!("Uniform gutter (n=0.016, Sx=2%, SL=1%):\n");
-    println!("{:>10} {:>10} {:>12} {:>10}", "Spread", "Flow", "Depth", "Velocity");
-    println!("{:>10} {:>10} {:>12} {:>10}", "(ft)", "(cfs)", "(inches)", "(ft/s)");
+    println!(
+        "{:>10} {:>10} {:>12} {:>10}",
+        "Spread", "Flow", "Depth", "Velocity"
+    );
+    println!(
+        "{:>10} {:>10} {:>12} {:>10}",
+        "(ft)", "(cfs)", "(inches)", "(ft/s)"
+    );
     println!("{}", "-".repeat(46));
 
     for spread in [4.0, 6.0, 8.0, 10.0, 12.0] {
         let result = uniform_gutter.flow_result(spread, GUTTER_K_US);
-        println!("{:>10.1} {:>10.2} {:>12.2} {:>10.2}",
+        println!(
+            "{:>10.1} {:>10.2} {:>12.2} {:>10.2}",
             spread,
             result.flow,
             result.depth_at_curb * 12.0,
-            result.velocity);
+            result.velocity
+        );
     }
 
     // Example 5: Compare Gutter Types
@@ -149,25 +182,33 @@ fn main() {
 
     let uniform_result = uniform_gutter.result_for_flow(target_flow, GUTTER_K_US);
 
-    let composite_result = CompositeGutter::new(
-        0.016, 0.04, 0.02, 0.01, 2.0, 2.0
-    ).result_for_flow(target_flow, GUTTER_K_US);
+    let composite_result = CompositeGutter::new(0.016, 0.04, 0.02, 0.01, 2.0, 2.0)
+        .result_for_flow(target_flow, GUTTER_K_US);
 
-    println!("\n{:<25} {:>10} {:>12}", "Gutter Type", "Spread", "Depth at Curb");
+    println!(
+        "\n{:<25} {:>10} {:>12}",
+        "Gutter Type", "Spread", "Depth at Curb"
+    );
     println!("{:<25} {:>10} {:>12}", "", "(ft)", "(inches)");
     println!("{}", "-".repeat(50));
-    println!("{:<25} {:>10.2} {:>12.2}",
+    println!(
+        "{:<25} {:>10.2} {:>12.2}",
         "Uniform Cross-Slope",
         uniform_result.spread,
-        uniform_result.depth_at_curb * 12.0);
-    println!("{:<25} {:>10.2} {:>12.2}",
+        uniform_result.depth_at_curb * 12.0
+    );
+    println!(
+        "{:<25} {:>10.2} {:>12.2}",
         "Composite (w/ depression)",
         composite_result.spread,
-        composite_result.depth_at_curb * 12.0);
+        composite_result.depth_at_curb * 12.0
+    );
 
     println!("\nObservation:");
-    println!("  Composite gutter with local depression reduces spread by {:.1} ft",
-        uniform_result.spread - composite_result.spread);
+    println!(
+        "  Composite gutter with local depression reduces spread by {:.1} ft",
+        uniform_result.spread - composite_result.spread
+    );
     println!("  This is due to increased gutter efficiency from the depressed section");
 
     // Example 6: Design Iteration
@@ -193,8 +234,10 @@ fn main() {
             "✗ Exceeds"
         };
 
-        println!("{:>15.1}% {:>12.2} ft {:>10}",
-            sx_percent, result.spread, status);
+        println!(
+            "{:>15.1}% {:>12.2} ft {:>10}",
+            sx_percent, result.spread, status
+        );
     }
 
     println!("\nConclusion: Use 3.0% or steeper cross slope to meet 8 ft spread limit");

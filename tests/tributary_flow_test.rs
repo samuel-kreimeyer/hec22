@@ -23,7 +23,9 @@ fn test_tributary_flow_isolation_in_parallel_branches() {
     // Create project metadata
     let _project = project::Project {
         name: "Tributary Flow Isolation Test".to_string(),
-        description: Some("Verify that parallel branches maintain separate tributary flows".to_string()),
+        description: Some(
+            "Verify that parallel branches maintain separate tributary flows".to_string(),
+        ),
         location: None,
         units: project::Units::us_customary(),
         author: Some("Test Suite".to_string()),
@@ -238,7 +240,7 @@ fn test_tributary_flow_isolation_in_parallel_branches() {
 
     // Expected flows from rational method
     let expected_flow_a = 0.80 * 5.0 * 1.25; // 5.0 cfs
-    let expected_flow_b = 0.75 * 5.0 * 0.8;  // 3.0 cfs
+    let expected_flow_b = 0.75 * 5.0 * 0.8; // 3.0 cfs
     let expected_total_flow = expected_flow_a + expected_flow_b; // 8.0 cfs
 
     let actual_flow_a = node_inflows.get("Inlet-A").unwrap();
@@ -259,8 +261,8 @@ fn test_tributary_flow_isolation_in_parallel_branches() {
     );
 
     // Route flows through network
-    let conduit_flows = solver::route_flows(&network, &node_inflows)
-        .expect("Flow routing should succeed");
+    let conduit_flows =
+        solver::route_flows(&network, &node_inflows).expect("Flow routing should succeed");
 
     // Verify conduit flows
     println!("\n=== Conduit Flows ===");
@@ -318,14 +320,16 @@ fn test_tributary_flow_isolation_in_parallel_branches() {
     let hgl_solver = solver::HglSolver::new(config);
 
     let analysis = hgl_solver
-        .solve(&network, &conduit_flows, &[], "tributary-flow-test".to_string())
+        .solve(
+            &network,
+            &conduit_flows,
+            &[],
+            "tributary-flow-test".to_string(),
+        )
         .expect("HGL solver should succeed");
 
     // Verify analysis results
-    assert!(
-        analysis.node_results.is_some(),
-        "Should have node results"
-    );
+    assert!(analysis.node_results.is_some(), "Should have node results");
     assert!(
         analysis.conduit_results.is_some(),
         "Should have conduit results"
@@ -376,11 +380,22 @@ fn test_tributary_flow_isolation_in_parallel_branches() {
 
     println!("\n=== TEST RESULTS ===");
     println!("✓ Tributary flow isolation verified:");
-    println!("  - Conduit-A carries only {:.2} cfs (Branch A tributary)", flow_a);
-    println!("  - Conduit-B carries only {:.2} cfs (Branch B tributary)", flow_b);
-    println!("  - Trunk carries combined {:.2} cfs (total at junction)", flow_trunk);
-    println!("  - Flows combine correctly: {:.2} + {:.2} = {:.2} cfs",
-             flow_a, flow_b, flow_trunk);
+    println!(
+        "  - Conduit-A carries only {:.2} cfs (Branch A tributary)",
+        flow_a
+    );
+    println!(
+        "  - Conduit-B carries only {:.2} cfs (Branch B tributary)",
+        flow_b
+    );
+    println!(
+        "  - Trunk carries combined {:.2} cfs (total at junction)",
+        flow_trunk
+    );
+    println!(
+        "  - Flows combine correctly: {:.2} + {:.2} = {:.2} cfs",
+        flow_a, flow_b, flow_trunk
+    );
     println!("\n✓ Hydraulic calculations completed successfully");
     println!("  - All nodes have valid HGL values");
     println!("  - All conduits have reasonable velocities");
@@ -483,7 +498,9 @@ fn test_inlet_routing_preserves_upstream_pipe_flow() {
     network.add_node(outfall);
     network.add_conduit(pipe_1);
     network.add_conduit(pipe_2);
-    network.validate_connectivity().expect("Network should be valid");
+    network
+        .validate_connectivity()
+        .expect("Network should be valid");
 
     let drainage_area = drainage::DrainageArea {
         id: "DA-A".to_string(),
@@ -499,14 +516,13 @@ fn test_inlet_routing_preserves_upstream_pipe_flow() {
     };
 
     let node_inflows = solver::compute_rational_flows(&[drainage_area], 1.0);
-    let (conduit_flows, _inlet_results) =
-        solver::route_flows_with_inlets(
-            &network,
-            &node_inflows,
-            project::UnitSystem::US,
-            &std::collections::HashMap::new(),
-        )
-            .expect("Flow routing should succeed");
+    let (conduit_flows, _inlet_results) = solver::route_flows_with_inlets(
+        &network,
+        &node_inflows,
+        project::UnitSystem::US,
+        &std::collections::HashMap::new(),
+    )
+    .expect("Flow routing should succeed");
 
     let flow_p1 = conduit_flows.get("P-1").cloned().unwrap_or(0.0);
     let flow_p2 = conduit_flows.get("P-2").cloned().unwrap_or(0.0);

@@ -1,7 +1,7 @@
 //! Regression tests for HEC-22 Chapter 9 Tables 9.6 and 9.7 behavior.
 
-use std::collections::HashMap;
 use hec22::*;
+use std::collections::HashMap;
 
 fn build_simple_network(
     upstream_invert: f64,
@@ -163,7 +163,10 @@ fn plunging_outlet_uses_case_e_downstream_seed() {
     let downstream_egl = downstream_hgl + flow_result.velocity_head; // EGLa
 
     // Table 9.6 Case E expected EGL at downstream end inside pipe
-    assert!(downstream_egl < boc_o, "EGLa should be below invert for case E");
+    assert!(
+        downstream_egl < boc_o,
+        "EGLa should be below invert for case E"
+    );
     let egl_o = boc_o + yn + flow_result.velocity_head;
 
     // Losses
@@ -177,15 +180,8 @@ fn plunging_outlet_uses_case_e_downstream_seed() {
         manning_n,
         manning_k,
     );
-    let entrance_loss = energy_loss.entrance_loss(
-        flow_result.velocity,
-        0.0,
-    );
-    let exit_loss = energy_loss.exit_loss(
-        flow_result.velocity,
-        0.0,
-        0.0,
-    );
+    let entrance_loss = energy_loss.entrance_loss(flow_result.velocity, 0.0);
+    let exit_loss = energy_loss.exit_loss(flow_result.velocity, 0.0, 0.0);
     let total_loss = friction_loss + entrance_loss + exit_loss;
 
     // Provisional upstream HGL from energy equation
@@ -194,12 +190,7 @@ fn plunging_outlet_uses_case_e_downstream_seed() {
 
     // Determine condition: expect downstream-controlled partial (Condition B/C) or surcharge if high
     let boc_i = upstream_invert;
-    let toc_i = boc_i + diameter_ft;
-    let expected_hgl = if provisional_upstream_hgl >= toc_i {
-        provisional_upstream_hgl
-    } else if provisional_upstream_hgl > boc_i + yn && provisional_upstream_hgl > boc_i + yc {
-        provisional_upstream_hgl
-    } else if provisional_upstream_hgl > boc_i + yc {
+    let expected_hgl = if provisional_upstream_hgl > boc_i + yc {
         provisional_upstream_hgl
     } else {
         boc_i + yn

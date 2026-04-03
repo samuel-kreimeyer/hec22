@@ -11,6 +11,8 @@ const interceptionToggle = document.getElementById("useInterception");
 const nodesCsvInput = document.getElementById("nodesCsv");
 const conduitsCsvInput = document.getElementById("conduitsCsv");
 const areasCsvInput = document.getElementById("areasCsv");
+const idfCsvInput = document.getElementById("idfCsv");
+const returnPeriodInput = document.getElementById("returnPeriod");
 const buildFromCsvButton = document.getElementById("buildFromCsv");
 const downloadTemplatesButton = document.getElementById("downloadTemplates");
 const csvStatus = document.getElementById("csvStatus");
@@ -44,6 +46,13 @@ const planLabelsToggle = document.getElementById("planLabels");
 const planZoomInButton = document.getElementById("planZoomIn");
 const planZoomOutButton = document.getElementById("planZoomOut");
 const planResetButton = document.getElementById("planReset");
+const criteriaMaxSpreadInput = document.getElementById("criteriaMaxSpread");
+const criteriaMaxHglBelowRimInput = document.getElementById("criteriaMaxHglBelowRim");
+const criteriaAllowSurchargeToggle = document.getElementById("criteriaAllowSurcharge");
+const criteriaMinVelocityInput = document.getElementById("criteriaMinVelocity");
+const criteriaMaxVelocityInput = document.getElementById("criteriaMaxVelocity");
+const criteriaMinCoverInput = document.getElementById("criteriaMinCover");
+const criteriaMinCapacityRatioInput = document.getElementById("criteriaMinCapacityRatio");
 
 const sampleRequest = {
   network: {
@@ -105,6 +114,25 @@ const sampleRequest = {
     }
   ],
   intensity: 4.0,
+  design_criteria: {
+    gutterSpread: {
+      maxSpread: 10.0
+    },
+    hglCriteria: {
+      maxHglBelowRim: 0.5,
+      allowSurcharge: false
+    },
+    velocity: {
+      minVelocity: 2.5,
+      maxVelocity: 15.0
+    },
+    cover: {
+      minCover: 2.0
+    },
+    capacity: {
+      minCapacityRatio: 1.0
+    }
+  },
   unit_system: "US",
   use_inlet_interception: true,
   design_storm_id: "web-sample"
@@ -118,7 +146,8 @@ const pending = new Map();
 const csvState = {
   nodes: null,
   conduits: null,
-  areas: null
+  areas: null,
+  idf: null
 };
 let lastResult = null;
 let lastResultRaw = "";
@@ -141,6 +170,26 @@ const tableState = {
     sortKey: "conduitId",
     sortDir: "asc",
     filter: ""
+  }
+};
+const CRITERIA_DEFAULTS = {
+  US: {
+    maxSpread: 10.0,
+    maxHglBelowRim: 0.5,
+    allowSurcharge: false,
+    minVelocity: 2.5,
+    maxVelocity: 15.0,
+    minCover: 2.0,
+    minCapacityRatio: 1.0
+  },
+  SI: {
+    maxSpread: 10.0 * 0.3048,
+    maxHglBelowRim: 0.5 * 0.3048,
+    allowSurcharge: false,
+    minVelocity: 2.5 * 0.3048,
+    maxVelocity: 15.0 * 0.3048,
+    minCover: 2.0 * 0.3048,
+    minCapacityRatio: 1.0
   }
 };
 
@@ -569,6 +618,93 @@ function parseAreasCsv(records, mapping) {
   });
 }
 
+function parseIdfCsv(records, mapping) {
+  const pointsByPeriod = new Map();
+  records.forEach((record) => {
+    const returnPeriod = getNumber(
+      record,
+      ["return_period", "returnperiod", "return_period_years"],
+      mapping
+    );
+    const duration = getNumber(record, ["duration", "duration_min", "minutes"], mapping);
+    const intensity = getNumber(record, ["intensity", "intensity_in"], mapping);
+    if (returnPeriod === null || duration === null || intensity === null) {
+      throw new Error("IDF CSV requires return_period, duration, intensity columns.");
+    }
+    if (!pointsByPeriod.has(returnPeriod)) {
+      pointsByPeriod.set(returnPeriod, []);
+    }
+    pointsByPeriod.get(returnPeriod).push({ duration, intensity });
+  });
+
+  return Array.from(pointsByPeriod.entries())
+    .map(([returnPeriod, points]) => ({
+      returnPeriod,
+      points: points.sort((a, b) => a.duration - b.duration)
+    }))
+    .sort((a, b) => a.returnPeriod - b.returnPeriod);
+}
+
+function readNumberInput(input) {
+  if (!input) {
+    return null;
+  }
+  const raw = String(input.value || "").trim();
+  if (!raw.length) {
+    return null;
+  }
+  const value = Number(raw);
+  return isNumber(value) ? value : null;
+}
+
+function buildDesignCriteriaFromInputs() {
+  const maxSpread = readNumberInput(criteriaMaxSpreadInput);
+  const maxHglBelowRim = readNumberInput(criteriaMaxHglBelowRimInput);
+  const minVelocity = readNumberInput(criteriaMinVelocityInput);
+  const maxVelocity = readNumberInput(criteriaMaxVelocityInput);
+  const minCover = readNumberInput(criteriaMinCoverInput);
+  const minCapacityRatio = readNumberInput(criteriaMinCapacityRatioInput);
+
+  return {
+    gutterSpread: isNumber(maxSpread) ? { maxSpread } : undefined,
+    hglCriteria: {
+      maxHglBelowRim: isNumber(maxHglBelowRim) ? maxHglBelowRim : undefined,
+      allowSurcharge: Boolean(criteriaAllowSurchargeToggle?.checked)
+    },
+    velocity: {
+      minVelocity: isNumber(minVelocity) ? minVelocity : undefined,
+      maxVelocity: isNumber(maxVelocity) ? maxVelocity : undefined
+    },
+    cover: isNumber(minCover) ? { minCover } : undefined,
+    capacity: isNumber(minCapacityRatio) ? { minCapacityRatio } : undefined
+  };
+}
+
+function applyCriteriaDefaults(unitSystem) {
+  const defaults = CRITERIA_DEFAULTS[unitSystem] || CRITERIA_DEFAULTS.US;
+  if (criteriaMaxSpreadInput) {
+    criteriaMaxSpreadInput.value = defaults.maxSpread;
+  }
+  if (criteriaMaxHglBelowRimInput) {
+    criteriaMaxHglBelowRimInput.value = defaults.maxHglBelowRim;
+  }
+  if (criteriaAllowSurchargeToggle) {
+    criteriaAllowSurchargeToggle.checked = defaults.allowSurcharge;
+  }
+  if (criteriaMinVelocityInput) {
+    criteriaMinVelocityInput.value = defaults.minVelocity;
+  }
+  if (criteriaMaxVelocityInput) {
+    criteriaMaxVelocityInput.value = defaults.maxVelocity;
+  }
+  if (criteriaMinCoverInput) {
+    criteriaMinCoverInput.value = defaults.minCover;
+  }
+  if (criteriaMinCapacityRatioInput) {
+    criteriaMinCapacityRatioInput.value = defaults.minCapacityRatio;
+  }
+}
+
 function buildRequestFromCsv() {
   if (!csvState.nodes || !csvState.conduits) {
     throw new Error("Please load both nodes and conduits CSV files.");
@@ -582,11 +718,20 @@ function buildRequestFromCsv() {
     intensity: Number(intensityInput.value || 0),
     unit_system: unitSelect.value,
     use_inlet_interception: interceptionToggle.checked,
-    design_storm_id: "web-import"
+    design_storm_id: "web-import",
+    design_criteria: buildDesignCriteriaFromInputs()
   };
 
   if (csvState.areas) {
     request.drainage_areas = parseAreasCsv(csvState.areas.records, csvState.areas.mapping);
+  }
+  if (csvState.idf) {
+    const curves = parseIdfCsv(csvState.idf.records, csvState.idf.mapping);
+    request.rainfall = { idfCurves: curves };
+    const returnPeriod = Number(returnPeriodInput?.value || "");
+    if (isNumber(returnPeriod)) {
+      request.return_period = returnPeriod;
+    }
   }
 
   return request;
@@ -691,6 +836,55 @@ function validateRequestObject(data) {
 
   if (data.intensity !== undefined && !isNumber(data.intensity)) {
     pushError("intensity", "intensity must be a number.");
+  }
+  const returnPeriodValue =
+    data.return_period !== undefined ? data.return_period : data.returnPeriod;
+  if (returnPeriodValue !== undefined && !isNumber(returnPeriodValue)) {
+    pushError("return_period", "return_period must be a number.");
+  }
+
+  const criteriaInput = data.design_criteria || data.designCriteria;
+  if (criteriaInput !== undefined) {
+    if (typeof criteriaInput !== "object" || criteriaInput === null) {
+      pushError("design_criteria", "designCriteria must be an object.");
+    } else {
+      const criteria = criteriaInput;
+      if (criteria.gutterSpread && !isNumber(criteria.gutterSpread.maxSpread)) {
+        pushError("design_criteria.gutterSpread.maxSpread", "maxSpread must be a number.");
+      }
+      if (criteria.hglCriteria) {
+        if (
+          criteria.hglCriteria.maxHglBelowRim !== undefined &&
+          !isNumber(criteria.hglCriteria.maxHglBelowRim)
+        ) {
+          pushError("design_criteria.hglCriteria.maxHglBelowRim", "maxHglBelowRim must be a number.");
+        }
+        if (
+          criteria.hglCriteria.allowSurcharge !== undefined &&
+          typeof criteria.hglCriteria.allowSurcharge !== "boolean"
+        ) {
+          pushError("design_criteria.hglCriteria.allowSurcharge", "allowSurcharge must be true/false.");
+        }
+      }
+      if (criteria.velocity) {
+        if (criteria.velocity.minVelocity !== undefined && !isNumber(criteria.velocity.minVelocity)) {
+          pushError("design_criteria.velocity.minVelocity", "minVelocity must be a number.");
+        }
+        if (criteria.velocity.maxVelocity !== undefined && !isNumber(criteria.velocity.maxVelocity)) {
+          pushError("design_criteria.velocity.maxVelocity", "maxVelocity must be a number.");
+        }
+      }
+      if (criteria.cover && criteria.cover.minCover !== undefined && !isNumber(criteria.cover.minCover)) {
+        pushError("design_criteria.cover.minCover", "minCover must be a number.");
+      }
+      if (
+        criteria.capacity &&
+        criteria.capacity.minCapacityRatio !== undefined &&
+        !isNumber(criteria.capacity.minCapacityRatio)
+      ) {
+        pushError("design_criteria.capacity.minCapacityRatio", "minCapacityRatio must be a number.");
+      }
+    }
   }
 
   const network = data.network;
@@ -822,15 +1016,55 @@ function validateRequestObject(data) {
     }
   }
 
+  if (data.rainfall !== undefined) {
+    if (!data.rainfall || typeof data.rainfall !== "object") {
+      pushError("rainfall", "rainfall must be an object.");
+    } else if (data.rainfall.idfCurves !== undefined) {
+      if (!Array.isArray(data.rainfall.idfCurves)) {
+        pushError("rainfall.idfCurves", "idfCurves must be an array.");
+      } else {
+        if (!isNumber(returnPeriodValue)) {
+          pushError("return_period", "return_period is required when idfCurves are provided.");
+        }
+        data.rainfall.idfCurves.forEach((curve, index) => {
+          const base = `rainfall.idfCurves[${index}]`;
+          if (!isNumber(curve.returnPeriod)) {
+            pushError(`${base}.returnPeriod`, "returnPeriod must be a number.");
+          }
+          if (!Array.isArray(curve.points) || curve.points.length === 0) {
+            pushError(`${base}.points`, "points must be a non-empty array.");
+          } else {
+            curve.points.forEach((point, pointIndex) => {
+              const pointBase = `${base}.points[${pointIndex}]`;
+              if (!isNumber(point.duration)) {
+                pushError(`${pointBase}.duration`, "duration must be a number.");
+              }
+              if (!isNumber(point.intensity)) {
+                pushError(`${pointBase}.intensity`, "intensity must be a number.");
+              }
+            });
+          }
+        });
+      }
+    }
+  }
+
   const hasConduitFlows = data.conduit_flows && typeof data.conduit_flows === "object";
   const hasNodeInflows = data.node_inflows && typeof data.node_inflows === "object";
+  const hasIdf =
+    data.rainfall &&
+    Array.isArray(data.rainfall.idfCurves) &&
+    data.rainfall.idfCurves.length > 0 &&
+    isNumber(returnPeriodValue);
   const hasAreas =
-    Array.isArray(data.drainage_areas) && data.drainage_areas.length > 0 && isNumber(data.intensity);
+    Array.isArray(data.drainage_areas) &&
+    data.drainage_areas.length > 0 &&
+    (isNumber(data.intensity) || hasIdf);
 
   if (!hasConduitFlows && !hasNodeInflows && !hasAreas) {
     pushError(
       "$",
-      "Provide conduit_flows, node_inflows, or (drainage_areas + intensity) to run the solver."
+      "Provide conduit_flows, node_inflows, or (drainage_areas + intensity/IDF) to run the solver."
     );
   }
 
@@ -1691,24 +1925,149 @@ function computeAutoLayout(nodes, conduits) {
   return positions;
 }
 
-function buildCoordinateMap(nodes, conduits) {
-  const coordsAvailable = nodes.every(
-    (node) =>
-      node.coordinates &&
-      typeof node.coordinates.x === "number" &&
-      typeof node.coordinates.y === "number"
-  );
+function estimatePlanSpacing(conduits, positions) {
+  const distances = [];
+  conduits.forEach((conduit) => {
+    const fromPos = positions.get(conduit.fromNode);
+    const toPos = positions.get(conduit.toNode);
+    if (!fromPos || !toPos) {
+      return;
+    }
+    const dx = fromPos.x - toPos.x;
+    const dy = fromPos.y - toPos.y;
+    const distance = Math.hypot(dx, dy);
+    if (distance > 0) {
+      distances.push(distance);
+    }
+  });
 
-  if (coordsAvailable) {
-    const positions = new Map();
-    nodes.forEach((node) => {
-      positions.set(node.id, { x: node.coordinates.x, y: node.coordinates.y });
-    });
-    return { positions, usedAutoLayout: false };
+  if (distances.length) {
+    const total = distances.reduce((sum, value) => sum + value, 0);
+    return total / distances.length;
   }
 
-  const autoPositions = computeAutoLayout(nodes, conduits);
-  return { positions: autoPositions, usedAutoLayout: true };
+  const coords = Array.from(positions.values());
+  if (coords.length > 1) {
+    const xs = coords.map((pos) => pos.x);
+    const ys = coords.map((pos) => pos.y);
+    const spanX = Math.max(...xs) - Math.min(...xs);
+    const spanY = Math.max(...ys) - Math.min(...ys);
+    const diag = Math.hypot(spanX, spanY);
+    if (diag > 0) {
+      return diag / Math.sqrt(coords.length);
+    }
+  }
+
+  return 10;
+}
+
+function planJitter(nodeId, spacing) {
+  let hash = 0;
+  for (let i = 0; i < nodeId.length; i += 1) {
+    hash = (hash * 31 + nodeId.charCodeAt(i)) | 0;
+  }
+  const normalized = Math.abs(hash % 360);
+  const angle = (normalized / 360) * Math.PI * 2;
+  const radius = spacing * 0.08;
+  return { x: Math.cos(angle) * radius, y: Math.sin(angle) * radius };
+}
+
+function inferMissingPositions(nodes, conduits, positions, missingIds) {
+  const adjacency = new Map();
+  nodes.forEach((node) => {
+    adjacency.set(node.id, new Set());
+  });
+  conduits.forEach((conduit) => {
+    if (!adjacency.has(conduit.fromNode) || !adjacency.has(conduit.toNode)) {
+      return;
+    }
+    adjacency.get(conduit.fromNode).add(conduit.toNode);
+    adjacency.get(conduit.toNode).add(conduit.fromNode);
+  });
+
+  const spacing = Math.max(estimatePlanSpacing(conduits, positions), 1);
+  const remaining = new Set(missingIds);
+  let progress = true;
+  let passes = 0;
+  while (remaining.size && progress && passes < nodes.length) {
+    progress = false;
+    passes += 1;
+    for (const nodeId of Array.from(remaining)) {
+      const neighbors = Array.from(adjacency.get(nodeId) || []);
+      const neighborPositions = neighbors
+        .map((neighborId) => positions.get(neighborId))
+        .filter(Boolean);
+      if (!neighborPositions.length) {
+        continue;
+      }
+      const sum = neighborPositions.reduce(
+        (acc, pos) => ({ x: acc.x + pos.x, y: acc.y + pos.y }),
+        { x: 0, y: 0 }
+      );
+      const avg = {
+        x: sum.x / neighborPositions.length,
+        y: sum.y / neighborPositions.length
+      };
+      const jitter = planJitter(nodeId, spacing);
+      positions.set(nodeId, { x: avg.x + jitter.x, y: avg.y + jitter.y });
+      remaining.delete(nodeId);
+      progress = true;
+    }
+  }
+
+  if (!remaining.size) {
+    return 0;
+  }
+
+  const coords = Array.from(positions.values());
+  let baseX = 0;
+  let baseY = 0;
+  if (coords.length) {
+    const xs = coords.map((pos) => pos.x);
+    const ys = coords.map((pos) => pos.y);
+    baseX = Math.min(...xs) - spacing;
+    baseY = Math.min(...ys) - spacing;
+  }
+  const gridSize = Math.ceil(Math.sqrt(remaining.size));
+  let index = 0;
+  remaining.forEach((nodeId) => {
+    const col = index % gridSize;
+    const row = Math.floor(index / gridSize);
+    positions.set(nodeId, { x: baseX + col * spacing, y: baseY + row * spacing });
+    index += 1;
+  });
+  return remaining.size;
+}
+
+function buildCoordinateMap(nodes, conduits) {
+  const positions = new Map();
+  const missing = [];
+  nodes.forEach((node) => {
+    const x = node.coordinates ? node.coordinates.x : undefined;
+    const y = node.coordinates ? node.coordinates.y : undefined;
+    if (Number.isFinite(x) && Number.isFinite(y)) {
+      positions.set(node.id, { x, y });
+    } else {
+      missing.push(node.id);
+    }
+  });
+
+  if (!positions.size) {
+    const autoPositions = computeAutoLayout(nodes, conduits);
+    return { positions: autoPositions, usedAutoLayout: true, inferredCoords: false };
+  }
+
+  if (!missing.length) {
+    return { positions, usedAutoLayout: false, inferredCoords: false };
+  }
+
+  inferMissingPositions(nodes, conduits, positions, missing);
+  return {
+    positions,
+    usedAutoLayout: false,
+    inferredCoords: true,
+    missingCount: missing.length
+  };
 }
 
 function colorScale(value, min, max) {
@@ -1890,11 +2249,18 @@ function renderPlanView() {
   const nodes = network.nodes;
   const conduits = network.conduits;
 
-  const { positions, usedAutoLayout } = buildCoordinateMap(nodes, conduits);
-  updatePlanStatus(
-    usedAutoLayout ? "No coordinates found. Using auto layout." : "Plan view ready.",
-    false
+  const { positions, usedAutoLayout, inferredCoords, missingCount } = buildCoordinateMap(
+    nodes,
+    conduits
   );
+  let planStatus = "Plan view ready.";
+  if (usedAutoLayout) {
+    planStatus = "No coordinates found. Using auto layout.";
+  } else if (inferredCoords) {
+    const count = missingCount || 0;
+    planStatus = `Missing coordinates for ${count} node${count === 1 ? "" : "s"}. Using estimated positions.`;
+  }
+  updatePlanStatus(planStatus, false);
 
   const { nodeResults, conduitResults } = getAnalysisData(resultState.result);
   const metricKey = planMetricSelect ? planMetricSelect.value : "hgl";
@@ -2334,6 +2700,9 @@ function summarizeCsvState() {
   if (csvState.areas) {
     parts.push(`areas: ${csvState.areas.records.length}`);
   }
+  if (csvState.idf) {
+    parts.push(`idf: ${csvState.idf.records.length}`);
+  }
   if (!parts.length) {
     return "No CSV files loaded.";
   }
@@ -2424,6 +2793,20 @@ function validateAreasRow(record, mapping) {
   return missing;
 }
 
+function validateIdfRow(record, mapping) {
+  const missing = [];
+  if (getNumber(record, ["return_period", "returnperiod", "return_period_years"], mapping) === null) {
+    missing.push("return_period");
+  }
+  if (getNumber(record, ["duration", "duration_min", "minutes"], mapping) === null) {
+    missing.push("duration");
+  }
+  if (getNumber(record, ["intensity", "intensity_in"], mapping) === null) {
+    missing.push("intensity");
+  }
+  return missing;
+}
+
 const CSV_SCHEMAS = {
   nodes: {
     label: "Nodes",
@@ -2454,6 +2837,15 @@ const CSV_SCHEMAS = {
       { keys: ["outlet_node", "outlet"], label: "outlet_node" }
     ],
     validateRow: validateAreasRow
+  },
+  idf: {
+    label: "IDF curves",
+    required: [
+      { keys: ["return_period", "returnperiod", "return_period_years"], label: "return_period" },
+      { keys: ["duration", "duration_min", "minutes"], label: "duration" },
+      { keys: ["intensity", "intensity_in"], label: "intensity" }
+    ],
+    validateRow: validateIdfRow
   }
 };
 
@@ -2643,6 +3035,7 @@ function renderCsvPreview() {
   renderCsvPreviewCard(csvPreview, "nodes", csvState.nodes);
   renderCsvPreviewCard(csvPreview, "conduits", csvState.conduits);
   renderCsvPreviewCard(csvPreview, "areas", csvState.areas);
+  renderCsvPreviewCard(csvPreview, "idf", csvState.idf);
 }
 
 async function handleCsvInput(event, key, label) {
@@ -2698,6 +3091,12 @@ areasCsvInput.addEventListener("change", (event) => {
   handleCsvInput(event, "areas", "Drainage areas");
 });
 
+if (idfCsvInput) {
+  idfCsvInput.addEventListener("change", (event) => {
+    handleCsvInput(event, "idf", "IDF curves");
+  });
+}
+
 if (csvPreview) {
   csvPreview.addEventListener("change", (event) => {
     const target = event.target;
@@ -2717,6 +3116,12 @@ if (csvPreview) {
     }
     updateCsvStatus(summarizeCsvState());
     renderCsvPreview();
+  });
+}
+
+if (unitSelect) {
+  unitSelect.addEventListener("change", () => {
+    applyCriteriaDefaults(unitSelect.value);
   });
 }
 
@@ -2933,9 +3338,18 @@ downloadTemplatesButton.addEventListener("click", () => {
     ["DA-1", "1.2", "0.85", "10", "N-1", "Residential"].join(",")
   ].join("\n");
 
+  const idfTemplate = [
+    ["return_period", "duration", "intensity"].join(","),
+    ["10", "5", "8.5"].join(","),
+    ["10", "10", "5.2"].join(","),
+    ["10", "15", "4.1"].join(","),
+    ["25", "10", "6.1"].join(",")
+  ].join("\n");
+
   downloadCsv("nodes_template.csv", nodesTemplate);
   downloadCsv("conduits_template.csv", conduitsTemplate);
   downloadCsv("areas_template.csv", areasTemplate);
+  downloadCsv("idf_template.csv", idfTemplate);
   updateCsvStatus("Downloaded CSV templates.");
 });
 
@@ -2948,6 +3362,19 @@ runButton.addEventListener("click", async () => {
     parsed.intensity = Number(intensityInput.value || parsed.intensity || 0);
     parsed.unit_system = unitSelect.value || parsed.unit_system;
     parsed.use_inlet_interception = interceptionToggle.checked;
+    if (!parsed.design_criteria && !parsed.designCriteria) {
+      parsed.design_criteria = buildDesignCriteriaFromInputs();
+    }
+    if (!parsed.rainfall && csvState.idf) {
+      const curves = parseIdfCsv(csvState.idf.records, csvState.idf.mapping);
+      parsed.rainfall = { idfCurves: curves };
+    }
+    if (parsed.return_period === undefined && parsed.returnPeriod === undefined && returnPeriodInput) {
+      const returnPeriod = Number(returnPeriodInput.value || "");
+      if (isNumber(returnPeriod)) {
+        parsed.return_period = returnPeriod;
+      }
+    }
     lastRequest = parsed;
     const response = await callSolver(JSON.stringify(parsed));
     lastResult = JSON.parse(response);
@@ -2988,6 +3415,7 @@ updateCsvStatus(summarizeCsvState());
 renderCsvPreview();
 updateExportStatus("No results yet.");
 validateJsonInput();
+applyCriteriaDefaults(unitSelect ? unitSelect.value : "US");
 
 requestEl.addEventListener("input", () => {
   lastRequest = null;

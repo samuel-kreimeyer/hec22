@@ -108,7 +108,7 @@ fn test_simple_linear_network() {
 
     let mut pipe2 = conduit::Conduit::new_pipe(
         "P-002".to_string(),
-        "IN-002".to_string(), // from midpoint inlet
+        "IN-002".to_string(),  // from midpoint inlet
         "OUT-001".to_string(), // to outfall
         250.0,                 // length (ft)
         conduit::PipeProperties {
@@ -216,8 +216,8 @@ fn test_simple_linear_network() {
     );
 
     // Route flows through network
-    let conduit_flows = solver::route_flows(&network, &node_inflows)
-        .expect("Flow routing should succeed");
+    let conduit_flows =
+        solver::route_flows(&network, &node_inflows).expect("Flow routing should succeed");
 
     // Verify conduit flows
     assert!(
@@ -251,14 +251,16 @@ fn test_simple_linear_network() {
     let hgl_solver = solver::HglSolver::new(config);
 
     let analysis = hgl_solver
-        .solve(&network, &conduit_flows, &[], "integration-test".to_string())
+        .solve(
+            &network,
+            &conduit_flows,
+            &[],
+            "integration-test".to_string(),
+        )
         .expect("HGL solver should succeed");
 
     // Verify analysis results structure
-    assert!(
-        analysis.node_results.is_some(),
-        "Should have node results"
-    );
+    assert!(analysis.node_results.is_some(), "Should have node results");
     assert!(
         analysis.conduit_results.is_some(),
         "Should have conduit results"
@@ -268,12 +270,7 @@ fn test_simple_linear_network() {
     let node_results = analysis.node_results.clone().unwrap();
     let conduit_results = analysis.conduit_results.clone().unwrap();
 
-
-    assert_eq!(
-        node_results.len(),
-        3,
-        "Should have results for all 3 nodes"
-    );
+    assert_eq!(node_results.len(), 3, "Should have results for all 3 nodes");
     assert_eq!(
         conduit_results.len(),
         2,
@@ -445,8 +442,14 @@ fn test_simple_linear_network() {
     println!("✓ Simple linear network integration test passed");
     println!("  Network: 2 inlets → 1 outfall");
     println!("  Node results: {} nodes analyzed", node_results.len());
-    println!("  Conduit results: {} conduits analyzed", conduit_results.len());
-    println!("  HGL gradient verified: {:.2} → {:.2} → {:.2} ft", hgl_in001, hgl_in002, hgl_out001);
+    println!(
+        "  Conduit results: {} conduits analyzed",
+        conduit_results.len()
+    );
+    println!(
+        "  HGL gradient verified: {:.2} → {:.2} → {:.2} ft",
+        hgl_in001, hgl_in002, hgl_out001
+    );
 }
 
 /// Test a branching network with two branches converging at a junction
@@ -816,10 +819,14 @@ fn test_branching_network() {
     );
 
     // Route flows
-    let conduit_flows = solver::route_flows(&network, &node_inflows)
-        .expect("Flow routing should succeed");
+    let conduit_flows =
+        solver::route_flows(&network, &node_inflows).expect("Flow routing should succeed");
 
-    assert_eq!(conduit_flows.len(), 5, "Should have flows in all 5 conduits");
+    assert_eq!(
+        conduit_flows.len(),
+        5,
+        "Should have flows in all 5 conduits"
+    );
 
     // Verify flow accumulation through branches
     // North branch
@@ -954,9 +961,18 @@ fn test_branching_network() {
     println!("✓ Branching network integration test passed");
     println!("  Network: 2 branches (4 inlets) → 1 junction → 1 outfall");
     println!("  Expected total flow: {:.2} cfs", q_total);
-    println!("  North branch: {:.2} cfs, South branch: {:.2} cfs", conduit_flows["P-102"], conduit_flows["P-202"]);
-    println!("  Trunk flow: {:.2} cfs (affected by routing bug)", trunk_flow);
-    println!("  Junction HGL: {:.2} ft, Outfall HGL: {:.2} ft", hgl_junction, hgl_outfall);
+    println!(
+        "  North branch: {:.2} cfs, South branch: {:.2} cfs",
+        conduit_flows["P-102"], conduit_flows["P-202"]
+    );
+    println!(
+        "  Trunk flow: {:.2} cfs (affected by routing bug)",
+        trunk_flow
+    );
+    println!(
+        "  Junction HGL: {:.2} ft, Outfall HGL: {:.2} ft",
+        hgl_junction, hgl_outfall
+    );
 }
 
 /// Test an unbalanced branching network with different branch lengths
@@ -1325,10 +1341,14 @@ fn test_unbalanced_branching_network() {
     );
 
     // Route flows through network
-    let conduit_flows = solver::route_flows(&network, &node_inflows)
-        .expect("Flow routing should succeed");
+    let conduit_flows =
+        solver::route_flows(&network, &node_inflows).expect("Flow routing should succeed");
 
-    assert_eq!(conduit_flows.len(), 5, "Should have flows in all 5 conduits");
+    assert_eq!(
+        conduit_flows.len(),
+        5,
+        "Should have flows in all 5 conduits"
+    );
 
     // Verify flow accumulation through branches
     // Branch 1 (short): single pipe carries single inlet flow

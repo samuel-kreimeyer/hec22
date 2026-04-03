@@ -308,9 +308,7 @@ impl Conduit {
     /// Calculate slope from invert elevations
     pub fn calculate_slope(&self) -> Option<f64> {
         match (self.upstream_invert, self.downstream_invert) {
-            (Some(up), Some(down)) if self.length > 0.0 => {
-                Some((up - down) / self.length)
-            }
+            (Some(up), Some(down)) if self.length > 0.0 => Some((up - down) / self.length),
             _ => None,
         }
     }

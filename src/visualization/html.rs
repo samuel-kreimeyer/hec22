@@ -493,7 +493,7 @@ impl<'a> HtmlViewer<'a> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::node::{Node, InletProperties, InletType, InletLocation};
+    use crate::node::{InletLocation, InletProperties, InletType, Node};
 
     #[test]
     fn test_html_viewer_basic() {

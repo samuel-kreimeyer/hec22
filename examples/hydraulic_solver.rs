@@ -25,8 +25,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Create nodes
     let inlet = node::Node::new_inlet(
         "IN-001".to_string(),
-        124.5,  // invert elevation
-        128.0,  // rim elevation
+        124.5, // invert elevation
+        128.0, // rim elevation
         node::InletProperties {
             inlet_type: node::InletType::Combination,
             location: node::InletLocation::OnGrade,
@@ -40,8 +40,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let junction = node::Node::new_junction(
         "MH-001".to_string(),
-        118.5,  // invert elevation
-        125.0,  // rim elevation
+        118.5, // invert elevation
+        125.0, // rim elevation
         node::JunctionProperties {
             diameter: Some(4.0),
             sump_depth: Some(0.5),
@@ -53,7 +53,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let outfall = node::Node::new_outfall(
         "OUT-001".to_string(),
-        115.0,  // invert elevation
+        115.0, // invert elevation
         node::OutfallProperties {
             boundary_condition: node::BoundaryCondition::NormalDepth,
             tailwater_elevation: Some(116.5),
@@ -66,10 +66,10 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         "P-101".to_string(),
         "IN-001".to_string(),
         "MH-001".to_string(),
-        150.0,  // length
+        150.0, // length
         conduit::PipeProperties {
             shape: conduit::PipeShape::Circular,
-            diameter: Some(18.0),  // inches
+            diameter: Some(18.0), // inches
             width: None,
             height: None,
             material: Some(conduit::PipeMaterial::RCP),
@@ -88,10 +88,10 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         "P-102".to_string(),
         "MH-001".to_string(),
         "OUT-001".to_string(),
-        180.0,  // length
+        180.0, // length
         conduit::PipeProperties {
             shape: conduit::PipeShape::Circular,
-            diameter: Some(24.0),  // inches
+            diameter: Some(24.0), // inches
             width: None,
             height: None,
             material: Some(conduit::PipeMaterial::RCP),
@@ -123,7 +123,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let drainage_area = drainage::DrainageArea {
         id: "DA-001".to_string(),
         name: Some("Contributing Area".to_string()),
-        area: 1.25,  // acres
+        area: 1.25, // acres
         outlet: "IN-001".to_string(),
         land_use: Some(drainage::LandUse {
             primary: Some(drainage::LandUseType::Commercial),
@@ -142,7 +142,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("\n--- Hydrologic Analysis ---");
     println!("Design intensity: {:.1} in/hr", intensity);
 
-    let node_inflows = solver::compute_rational_flows(&[drainage_area.clone()], intensity);
+    let node_inflows =
+        solver::compute_rational_flows(std::slice::from_ref(&drainage_area), intensity);
 
     for (node_id, flow) in &node_inflows {
         println!("  Node {} inflow: {:.2} cfs", node_id, flow);
@@ -162,16 +163,15 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let config = solver::SolverConfig::us_customary();
     let hgl_solver = solver::HglSolver::new(config);
 
-    let analysis_result = hgl_solver.solve(
-        &network,
-        &conduit_flows,
-        &[],
-        "10-year-storm".to_string(),
-    )?;
+    let analysis_result =
+        hgl_solver.solve(&network, &conduit_flows, &[], "10-year-storm".to_string())?;
 
     // 5. Display results
     println!("\nNode Results:");
-    println!("{:<10} {:>10} {:>10} {:>10} {:>10}", "Node", "HGL (ft)", "EGL (ft)", "Depth (ft)", "Flooding");
+    println!(
+        "{:<10} {:>10} {:>10} {:>10} {:>10}",
+        "Node", "HGL (ft)", "EGL (ft)", "Depth (ft)", "Flooding"
+    );
     println!("{}", "-".repeat(55));
 
     if let Some(ref node_results) = analysis_result.node_results {
@@ -179,7 +179,11 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             let hgl = result.hgl.unwrap_or(0.0);
             let egl = result.egl.unwrap_or(0.0);
             let depth = result.depth.unwrap_or(0.0);
-            let flooding = if result.flooding.unwrap_or(false) { "YES" } else { "No" };
+            let flooding = if result.flooding.unwrap_or(false) {
+                "YES"
+            } else {
+                "No"
+            };
 
             println!(
                 "{:<10} {:>10.2} {:>10.2} {:>10.2} {:>10}",
@@ -189,7 +193,10 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     }
 
     println!("\nConduit Results:");
-    println!("{:<10} {:>10} {:>10} {:>10} {:>12}", "Conduit", "Flow (cfs)", "Vel (ft/s)", "Depth (ft)", "Capacity (%)");
+    println!(
+        "{:<10} {:>10} {:>10} {:>10} {:>12}",
+        "Conduit", "Flow (cfs)", "Vel (ft/s)", "Depth (ft)", "Capacity (%)"
+    );
     println!("{}", "-".repeat(60));
 
     if let Some(ref conduit_results) = analysis_result.conduit_results {
@@ -234,9 +241,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             for violation in violations {
                 println!(
                     "  [{:?}] {}: {}",
-                    violation.severity,
-                    violation.element_id,
-                    violation.message
+                    violation.severity, violation.element_id, violation.message
                 );
             }
         }

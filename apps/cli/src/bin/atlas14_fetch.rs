@@ -68,7 +68,10 @@ fn main() -> Result<(), Box<dyn Error>> {
         return Err("Longitude must be between -180 and 180 degrees".into());
     }
 
-    println!("Fetching NOAA ATLAS14 data for coordinates: {}, {}", cli.lat, cli.lon);
+    println!(
+        "Fetching NOAA ATLAS14 data for coordinates: {}, {}",
+        cli.lat, cli.lon
+    );
     println!("This may take a moment...\n");
 
     // Parse return periods and durations
@@ -91,10 +94,12 @@ fn main() -> Result<(), Box<dyn Error>> {
     write_idf_csv(&cli.output, &idf_data)?;
 
     println!("✓ IDF curve data written to: {}", cli.output.display());
-    println!("  {} return periods × {} durations = {} data points",
-             return_periods.len(),
-             durations.len(),
-             idf_data.len());
+    println!(
+        "  {} return periods × {} durations = {} data points",
+        return_periods.len(),
+        durations.len(),
+        idf_data.len()
+    );
 
     Ok(())
 }
@@ -199,7 +204,10 @@ fn parse_noaa_csv(
     }
 
     if idf_entries.is_empty() {
-        return Err("No data extracted from NOAA response. Check lat/lon coordinates and parameters.".into());
+        return Err(
+            "No data extracted from NOAA response. Check lat/lon coordinates and parameters."
+                .into(),
+        );
     }
 
     Ok(idf_entries)
@@ -246,7 +254,8 @@ fn parse_return_period(s: &str) -> Result<f64, Box<dyn Error>> {
         .filter(|c| c.is_numeric() || *c == '.')
         .collect();
 
-    num_str.parse::<f64>()
+    num_str
+        .parse::<f64>()
         .map_err(|e| format!("Failed to parse return period from '{}': {}", s, e).into())
 }
 
@@ -270,9 +279,7 @@ fn write_idf_csv(path: &PathBuf, data: &[IdfEntry]) -> Result<(), Box<dyn Error>
         writeln!(
             file,
             "{},{},{:.2}",
-            entry.return_period as i32,
-            entry.duration as i32,
-            entry.intensity
+            entry.return_period as i32, entry.duration as i32, entry.intensity
         )?;
     }
 

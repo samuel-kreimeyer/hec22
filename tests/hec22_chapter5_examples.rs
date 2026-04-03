@@ -6,7 +6,7 @@
 use hec22::gutter::{CompositeGutter, UniformGutter, GUTTER_K_US};
 
 const TOLERANCE_SPREAD: f64 = 0.1; // 0.1 ft tolerance for spread
-const TOLERANCE_FLOW: f64 = 0.1;    // 0.1 cfs tolerance for flow
+const TOLERANCE_FLOW: f64 = 0.1; // 0.1 cfs tolerance for flow
 
 /// HEC-22 Chapter 5, Example 5.1: Computation of triangular gutter flow
 ///
@@ -37,7 +37,10 @@ fn test_example_5_1_triangular_gutter() {
     println!("  Given: Q = {:.1} cfs", q_part_a);
     println!("  Computed spread: {:.2} ft", computed_spread_a);
     println!("  Expected spread: {:.1} ft", expected_spread_a);
-    println!("  Error: {:.2} ft\n", (computed_spread_a - expected_spread_a).abs());
+    println!(
+        "  Error: {:.2} ft\n",
+        (computed_spread_a - expected_spread_a).abs()
+    );
 
     assert!(
         (computed_spread_a - expected_spread_a).abs() < TOLERANCE_SPREAD,
@@ -55,7 +58,10 @@ fn test_example_5_1_triangular_gutter() {
     println!("  Given: T = {:.1} ft", t_part_b);
     println!("  Computed flow: {:.2} cfs", computed_flow_b);
     println!("  Expected flow: {:.1} cfs", expected_flow_b);
-    println!("  Error: {:.2} cfs", (computed_flow_b - expected_flow_b).abs());
+    println!(
+        "  Error: {:.2} cfs",
+        (computed_flow_b - expected_flow_b).abs()
+    );
 
     assert!(
         (computed_flow_b - expected_flow_b).abs() < TOLERANCE_FLOW,
@@ -98,7 +104,10 @@ fn test_example_5_2_composite_gutter() {
     println!("  Given: T = {:.1} ft", t_part_a);
     println!("  Computed flow: {:.2} cfs", computed_flow_a);
     println!("  Expected flow: {:.1} cfs", expected_flow_a);
-    println!("  Error: {:.2} cfs\n", (computed_flow_a - expected_flow_a).abs());
+    println!(
+        "  Error: {:.2} cfs\n",
+        (computed_flow_a - expected_flow_a).abs()
+    );
 
     assert!(
         (computed_flow_a - expected_flow_a).abs() < TOLERANCE_FLOW,
@@ -116,11 +125,17 @@ fn test_example_5_2_composite_gutter() {
     println!("  Given: Q = {:.1} cfs", q_part_b);
     println!("  Computed spread: {:.2} ft", computed_spread_b);
     println!("  Expected spread: {:.1} ft", expected_spread_b);
-    println!("  Error: {:.2} ft", (computed_spread_b - expected_spread_b).abs());
+    println!(
+        "  Error: {:.2} ft",
+        (computed_spread_b - expected_spread_b).abs()
+    );
 
     // Verification: check that computed spread gives approximately the input flow
     let verification_flow = gutter.flow_capacity(computed_spread_b, GUTTER_K_US);
-    println!("  Verification: Q at T={:.2} is {:.2} cfs", computed_spread_b, verification_flow);
+    println!(
+        "  Verification: Q at T={:.2} is {:.2} cfs",
+        computed_spread_b, verification_flow
+    );
 
     assert!(
         (computed_spread_b - expected_spread_b).abs() < TOLERANCE_SPREAD * 2.0, // Allow slightly larger tolerance for iterative
@@ -259,12 +274,10 @@ fn test_composite_vs_uniform_capacity() {
 
     // Composite gutter with depression
     let composite = CompositeGutter::new(
-        n,
-        sx,   // roadway slope
-        sx,   // gutter slope (before depression)
-        sl,
-        2.0,  // 2 ft gutter width
-        2.0,  // 2 inch depression
+        n, sx, // roadway slope
+        sx, // gutter slope (before depression)
+        sl, 2.0, // 2 ft gutter width
+        2.0, // 2 inch depression
     );
     let q_composite = composite.flow_capacity(spread, GUTTER_K_US);
 
@@ -274,7 +287,8 @@ fn test_composite_vs_uniform_capacity() {
     println!("\nComposite gutter (W=2ft, a=2in):");
     println!("  Q = {:.2} cfs", q_composite);
     println!("\nEnhancement:");
-    println!("  Increase: {:.2} cfs ({:.1}%)",
+    println!(
+        "  Increase: {:.2} cfs ({:.1}%)",
         q_composite - q_uniform,
         ((q_composite / q_uniform) - 1.0) * 100.0
     );
@@ -312,14 +326,7 @@ fn test_roundtrip_uniform_gutter() {
 fn test_roundtrip_composite_gutter() {
     println!("\n=== Roundtrip Test: Composite Gutter ===\n");
 
-    let gutter = CompositeGutter::new(
-        0.016,
-        0.02,
-        0.02,
-        0.01,
-        2.0,
-        2.0,
-    );
+    let gutter = CompositeGutter::new(0.016, 0.02, 0.02, 0.01, 2.0, 2.0);
 
     let original_flow = 4.0;
     let spread = gutter.spread_for_flow(original_flow, GUTTER_K_US);

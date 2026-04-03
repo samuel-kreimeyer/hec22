@@ -25,7 +25,9 @@ fn test_multi_level_tributary_flow_isolation() {
     // Create project
     let _project = project::Project {
         name: "Multi-Level Tributary Flow Test".to_string(),
-        description: Some("Verify tributary flow isolation in complex multi-level networks".to_string()),
+        description: Some(
+            "Verify tributary flow isolation in complex multi-level networks".to_string(),
+        ),
         location: None,
         units: project::Units::us_customary(),
         author: Some("Test Suite".to_string()),
@@ -429,8 +431,8 @@ fn test_multi_level_tributary_flow_isolation() {
     }
 
     // Route flows
-    let conduit_flows = solver::route_flows(&network, &node_inflows)
-        .expect("Flow routing should succeed");
+    let conduit_flows =
+        solver::route_flows(&network, &node_inflows).expect("Flow routing should succeed");
 
     println!("\n=== Conduit Flows ===");
     for (conduit_id, flow) in &conduit_flows {
@@ -496,27 +498,65 @@ fn test_multi_level_tributary_flow_isolation() {
     let hgl_solver = solver::HglSolver::new(config);
 
     let analysis = hgl_solver
-        .solve(&network, &conduit_flows, &[], "multi-level-test".to_string())
+        .solve(
+            &network,
+            &conduit_flows,
+            &[],
+            "multi-level-test".to_string(),
+        )
         .expect("HGL solver should succeed");
 
     assert!(analysis.node_results.is_some(), "Should have node results");
-    assert!(analysis.conduit_results.is_some(), "Should have conduit results");
+    assert!(
+        analysis.conduit_results.is_some(),
+        "Should have conduit results"
+    );
 
     println!("\n=== TEST RESULTS ===");
     println!("✓ Multi-level tributary flow isolation verified:");
     println!("  Sub-branch A:");
-    println!("    - Pipe-A1a: {:.2} cfs (Inlet-A1 tributary)", conduit_flows["Pipe-A1a"]);
-    println!("    - Pipe-A2a: {:.2} cfs (Inlet-A2 tributary)", conduit_flows["Pipe-A2a"]);
-    println!("    - Conduit-A: {:.2} cfs (combined sub-branch A)", conduit_flows["Conduit-A"]);
+    println!(
+        "    - Pipe-A1a: {:.2} cfs (Inlet-A1 tributary)",
+        conduit_flows["Pipe-A1a"]
+    );
+    println!(
+        "    - Pipe-A2a: {:.2} cfs (Inlet-A2 tributary)",
+        conduit_flows["Pipe-A2a"]
+    );
+    println!(
+        "    - Conduit-A: {:.2} cfs (combined sub-branch A)",
+        conduit_flows["Conduit-A"]
+    );
     println!("  Sub-branch B:");
-    println!("    - Pipe-B1b: {:.2} cfs (Inlet-B1 tributary)", conduit_flows["Pipe-B1b"]);
-    println!("    - Pipe-B2b: {:.2} cfs (Inlet-B2 tributary)", conduit_flows["Pipe-B2b"]);
-    println!("    - Conduit-B: {:.2} cfs (combined sub-branch B)", conduit_flows["Conduit-B"]);
+    println!(
+        "    - Pipe-B1b: {:.2} cfs (Inlet-B1 tributary)",
+        conduit_flows["Pipe-B1b"]
+    );
+    println!(
+        "    - Pipe-B2b: {:.2} cfs (Inlet-B2 tributary)",
+        conduit_flows["Pipe-B2b"]
+    );
+    println!(
+        "    - Conduit-B: {:.2} cfs (combined sub-branch B)",
+        conduit_flows["Conduit-B"]
+    );
     println!("  Main trunk:");
-    println!("    - Trunk: {:.2} cfs (total combined flow)", conduit_flows["Trunk"]);
+    println!(
+        "    - Trunk: {:.2} cfs (total combined flow)",
+        conduit_flows["Trunk"]
+    );
     println!("\n✓ Flow accumulation verified at all levels:");
-    println!("    {:.2} + {:.2} = {:.2} cfs (Branch A)", flow_a1, flow_a2, flow_branch_a);
-    println!("    {:.2} + {:.2} = {:.2} cfs (Branch B)", flow_b1, flow_b2, flow_branch_b);
-    println!("    {:.2} + {:.2} = {:.2} cfs (Total)", flow_branch_a, flow_branch_b, flow_total);
+    println!(
+        "    {:.2} + {:.2} = {:.2} cfs (Branch A)",
+        flow_a1, flow_a2, flow_branch_a
+    );
+    println!(
+        "    {:.2} + {:.2} = {:.2} cfs (Branch B)",
+        flow_b1, flow_b2, flow_branch_b
+    );
+    println!(
+        "    {:.2} + {:.2} = {:.2} cfs (Total)",
+        flow_branch_a, flow_branch_b, flow_total
+    );
     println!("\n✓ TEST PASSED: Multi-level tributary flows correctly isolated and accumulated");
 }

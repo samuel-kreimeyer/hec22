@@ -315,11 +315,7 @@ impl Node {
     }
 
     /// Create a new outfall node
-    pub fn new_outfall(
-        id: String,
-        invert_elevation: f64,
-        properties: OutfallProperties,
-    ) -> Self {
+    pub fn new_outfall(id: String, invert_elevation: f64, properties: OutfallProperties) -> Self {
         Self {
             id,
             node_type: NodeType::Outfall,
@@ -391,7 +387,10 @@ mod tests {
 
         assert_eq!(node.id, "IN-001");
         assert!(node.is_inlet());
-        assert_eq!(node.inlet.as_ref().unwrap().inlet_type, InletType::Combination);
+        assert_eq!(
+            node.inlet.as_ref().unwrap().inlet_type,
+            InletType::Combination
+        );
     }
 
     #[test]

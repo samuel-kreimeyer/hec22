@@ -60,7 +60,10 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         }
 
         if let Some(ref outfall_props) = node.outfall {
-            println!("  Boundary condition: {:?}", outfall_props.boundary_condition);
+            println!(
+                "  Boundary condition: {:?}",
+                outfall_props.boundary_condition
+            );
         }
     }
 
@@ -82,13 +85,19 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 println!("  Diameter: {:.0} inches", diameter);
             }
             if let Some(material) = pipe_props.material {
-                println!("  Material: {:?} (n = {:.3})", material, pipe_props.manning_n);
+                println!(
+                    "  Material: {:?} (n = {:.3})",
+                    material, pipe_props.manning_n
+                );
             }
         }
 
         if let Some(ref gutter_props) = conduit.gutter {
             println!("  Cross slope: {:.3}", gutter_props.cross_slope);
-            println!("  Longitudinal slope: {:.3}", gutter_props.longitudinal_slope);
+            println!(
+                "  Longitudinal slope: {:.3}",
+                gutter_props.longitudinal_slope
+            );
         }
     }
 
@@ -180,9 +189,10 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         }
 
         if let Some(ref velocity_criteria) = criteria.velocity {
-            if let (Some(min), Some(max)) =
-                (velocity_criteria.min_velocity, velocity_criteria.max_velocity)
-            {
+            if let (Some(min), Some(max)) = (
+                velocity_criteria.min_velocity,
+                velocity_criteria.max_velocity,
+            ) {
                 println!("Velocity range: {:.1} - {:.1} ft/s", min, max);
             }
         }

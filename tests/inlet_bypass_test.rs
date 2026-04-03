@@ -47,12 +47,12 @@ fn test_inlet_bypass_in_series() {
         location: node::InletLocation::OnGrade,
         grate: None,
         curb_opening: Some(node::CurbOpeningProperties {
-            length: Some(4.0),    // 4 ft opening
-            height: Some(4.0/12.0), // 4 inches = 0.333 ft
+            length: Some(4.0),        // 4 ft opening
+            height: Some(4.0 / 12.0), // 4 inches = 0.333 ft
             throat_type: Some(node::ThroatType::Horizontal),
         }),
-        local_depression: Some(2.0/12.0), // 2 inches = 0.167 ft
-        clogging_factor: Some(0.0), // No clogging for clear test results
+        local_depression: Some(2.0 / 12.0), // 2 inches = 0.167 ft
+        clogging_factor: Some(0.0),         // No clogging for clear test results
         bypass_to: None,
     };
 
@@ -98,10 +98,10 @@ fn test_inlet_bypass_in_series() {
     // ========== GUTTER SECTIONS ==========
     // Gutter properties: uniform triangular section
     let gutter_props = conduit::GutterProperties {
-        cross_slope: 0.04,           // 4% cross slope (Sx)
-        longitudinal_slope: 0.02,    // 2% longitudinal slope (Sw)
+        cross_slope: 0.04,        // 4% cross slope (Sx)
+        longitudinal_slope: 0.02, // 2% longitudinal slope (Sw)
         manning_n: 0.016,
-        width: Some(10.0),           // 10 ft gutter width
+        width: Some(10.0), // 10 ft gutter width
     };
 
     // Gutter 1-2: Inlet 1 → Inlet 2 (sag)
@@ -265,10 +265,10 @@ fn test_inlet_bypass_in_series() {
 
     // Inlet 1: On-grade curb opening
     let inlet_1_curb = inlet::CurbOpeningInletOnGrade::new(
-        4.0,                // length (ft)
-        4.0 / 12.0,         // height (in → ft)
+        4.0,        // length (ft)
+        4.0 / 12.0, // height (in → ft)
         inlet::ThroatType::Horizontal,
-        0.0,                // clogging factor
+        0.0, // clogging factor
     );
 
     // Calculate gutter flow at Inlet 1
@@ -296,12 +296,8 @@ fn test_inlet_bypass_in_series() {
     println!();
 
     // Inlet 3: On-grade curb opening
-    let inlet_3_curb = inlet::CurbOpeningInletOnGrade::new(
-        4.0,
-        4.0 / 12.0,
-        inlet::ThroatType::Horizontal,
-        0.0,
-    );
+    let inlet_3_curb =
+        inlet::CurbOpeningInletOnGrade::new(4.0, 4.0 / 12.0, inlet::ThroatType::Horizontal, 0.0);
 
     // Approach flow to Inlet 3 = local inflow only (independent branch)
     let approach_flow_3 = expected_flow_3; // 8.0 cfs
@@ -328,18 +324,24 @@ fn test_inlet_bypass_in_series() {
 
     // Inlet 2: Sag curb opening (CANNOT bypass - water has no escape!)
     let inlet_2_curb = inlet::CurbOpeningInletSag::new(
-        4.0,                // length (ft)
-        4.0 / 12.0,         // height (in → ft)
+        4.0,        // length (ft)
+        4.0 / 12.0, // height (in → ft)
         inlet::ThroatType::Horizontal,
-        0.0,                // clogging factor
+        0.0, // clogging factor
     );
 
     // Approach flow to Inlet 2 = bypass from Inlet 1 + bypass from Inlet 3 + local inflow
     let approach_flow_2 = interception_1.bypass_flow + interception_3.bypass_flow + expected_flow_2;
 
     println!("=== Inlet 2 Analysis (Sag Curb Opening) ===");
-    println!("  Bypass from Inlet 1: {:.2} cfs", interception_1.bypass_flow);
-    println!("  Bypass from Inlet 3: {:.2} cfs", interception_3.bypass_flow);
+    println!(
+        "  Bypass from Inlet 1: {:.2} cfs",
+        interception_1.bypass_flow
+    );
+    println!(
+        "  Bypass from Inlet 3: {:.2} cfs",
+        interception_3.bypass_flow
+    );
     println!("  Local inflow: {:.2} cfs", expected_flow_2);
     println!("  Total approach flow: {:.2} cfs", approach_flow_2);
 
@@ -380,21 +382,40 @@ fn test_inlet_bypass_in_series() {
     let intercepted_2 = approach_flow_2;
     let bypass_2 = 0.0; // SAG INLETS DO NOT BYPASS!
 
-    println!("  Intercepted: {:.2} cfs (100% - sag cannot bypass)", intercepted_2);
-    println!("  Bypass: {:.2} cfs (ZERO - water has no escape from sag)", bypass_2);
+    println!(
+        "  Intercepted: {:.2} cfs (100% - sag cannot bypass)",
+        intercepted_2
+    );
+    println!(
+        "  Bypass: {:.2} cfs (ZERO - water has no escape from sag)",
+        bypass_2
+    );
     println!();
 
     // ========== VERIFY BYPASS BEHAVIOR ==========
     println!("=== Bypass Flow Summary ===");
-    println!("  Inlet 1 bypass: {:.2} cfs → to Inlet 2 (sag)", interception_1.bypass_flow);
-    println!("  Inlet 3 bypass: {:.2} cfs → to Inlet 2 (sag)", interception_3.bypass_flow);
-    println!("  Inlet 2 bypass: {:.2} cfs (ZERO - sag cannot bypass!)", bypass_2);
+    println!(
+        "  Inlet 1 bypass: {:.2} cfs → to Inlet 2 (sag)",
+        interception_1.bypass_flow
+    );
+    println!(
+        "  Inlet 3 bypass: {:.2} cfs → to Inlet 2 (sag)",
+        interception_3.bypass_flow
+    );
+    println!(
+        "  Inlet 2 bypass: {:.2} cfs (ZERO - sag cannot bypass!)",
+        bypass_2
+    );
     println!();
 
     // Total intercepted flow
-    let total_intercepted = interception_1.intercepted_flow + intercepted_2 + interception_3.intercepted_flow;
+    let total_intercepted =
+        interception_1.intercepted_flow + intercepted_2 + interception_3.intercepted_flow;
 
-    println!("  Total intercepted by inlets: {:.2} cfs", total_intercepted);
+    println!(
+        "  Total intercepted by inlets: {:.2} cfs",
+        total_intercepted
+    );
     println!("  Total system inflow: {:.2} cfs", expected_total);
     println!();
 
@@ -416,7 +437,8 @@ fn test_inlet_bypass_in_series() {
     );
 
     // Verify Inlet 2 received bypass from both Inlet 1 and Inlet 3
-    let expected_approach_2 = interception_1.bypass_flow + interception_3.bypass_flow + expected_flow_2;
+    let expected_approach_2 =
+        interception_1.bypass_flow + interception_3.bypass_flow + expected_flow_2;
     assert!(
         (approach_flow_2 - expected_approach_2).abs() < 0.01,
         "Inlet 2 should receive bypass from Inlet 1 and 3 plus local inflow"
@@ -424,7 +446,10 @@ fn test_inlet_bypass_in_series() {
 
     // Note: If ponding depth exceeds curb height, inlet operates in orifice regime
     if ponding_depth > curb_height {
-        println!("  NOTE: Inlet 2 operates in orifice regime (depth {:.2} ft > curb height {:.2} ft)", ponding_depth, curb_height);
+        println!(
+            "  NOTE: Inlet 2 operates in orifice regime (depth {:.2} ft > curb height {:.2} ft)",
+            ponding_depth, curb_height
+        );
     }
 
     println!("✓ CRITICAL BEHAVIORS VERIFIED:");
@@ -433,12 +458,15 @@ fn test_inlet_bypass_in_series() {
     if ponding_depth > curb_height {
         println!("  ✓ Inlet 2 operates in orifice regime when flooded (depth {:.2} ft > curb height {:.2} ft)", ponding_depth, curb_height);
     }
-    println!("  ✓ Flow conservation maintained: {:.2} cfs in = {:.2} cfs captured", expected_total, total_intercepted);
+    println!(
+        "  ✓ Flow conservation maintained: {:.2} cfs in = {:.2} cfs captured",
+        expected_total, total_intercepted
+    );
     println!();
 
     // Route flows through network
-    let conduit_flows = solver::route_flows(&network, &node_inflows)
-        .expect("Flow routing should succeed");
+    let conduit_flows =
+        solver::route_flows(&network, &node_inflows).expect("Flow routing should succeed");
 
     println!("=== Conduit Flows ===");
     for (conduit_id, flow) in &conduit_flows {
@@ -481,7 +509,7 @@ fn test_curb_inlet_efficiency_example() {
     println!();
 
     // Gutter properties
-    let cross_slope = 0.04;  // 4% roadway cross slope
+    let cross_slope = 0.04; // 4% roadway cross slope
     let gutter_slope = 0.04; // 4% gutter cross slope (same as roadway for uniform section)
     let running_slope = 0.02; // 2% longitudinal slope
     let manning_n = 0.016;
@@ -492,11 +520,11 @@ fn test_curb_inlet_efficiency_example() {
     // This matches HEC-22 Example 7.2 methodology
     let gutter = gutter::CompositeGutter::new(
         manning_n,
-        gutter_slope,     // Gutter cross slope Sw
-        cross_slope,      // Roadway cross slope Sx
-        running_slope,    // Longitudinal slope SL
-        gutter_width,     // Gutter width W
-        depression,       // Local depression depth a
+        gutter_slope,  // Gutter cross slope Sw
+        cross_slope,   // Roadway cross slope Sx
+        running_slope, // Longitudinal slope SL
+        gutter_width,  // Gutter width W
+        depression,    // Local depression depth a
     );
 
     // Curb inlet properties
@@ -525,13 +553,8 @@ fn test_curb_inlet_efficiency_example() {
     println!("  Velocity: {:.2} ft/s", gutter_result.velocity);
     println!();
 
-    let interception = inlet.interception(
-        flow,
-        &gutter_result,
-        manning_n,
-        cross_slope,
-        running_slope,
-    );
+    let interception =
+        inlet.interception(flow, &gutter_result, manning_n, cross_slope, running_slope);
 
     println!("Inlet performance:");
     println!("  Intercepted: {:.2} cfs", interception.intercepted_flow);
@@ -562,6 +585,9 @@ fn test_curb_inlet_efficiency_example() {
     println!("  ✓ Flow conservation verified");
     println!();
     println!("NOTE: User stated 28% efficiency expected for 4ft curb, 4% cross slope,");
-    println!("      2% running slope, 2in depression at 8cfs. Actual calculated: {:.1}%", interception.efficiency * 100.0);
+    println!(
+        "      2% running slope, 2in depression at 8cfs. Actual calculated: {:.1}%",
+        interception.efficiency * 100.0
+    );
     println!("      This difference may require review of HEC-22 interception equations.");
 }

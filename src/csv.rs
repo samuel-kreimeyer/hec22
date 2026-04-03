@@ -22,7 +22,10 @@
 
 use crate::conduit::{Conduit, GutterProperties, PipeMaterial, PipeProperties, PipeShape};
 use crate::drainage::{DrainageArea, LandUse, LandUseType};
-use crate::node::{BoundaryCondition, Coordinates, InletLocation, InletProperties, InletType, JunctionProperties, Node, OutfallProperties};
+use crate::node::{
+    BoundaryCondition, Coordinates, InletLocation, InletProperties, InletType, JunctionProperties,
+    Node, OutfallProperties,
+};
 use csv::ReaderBuilder;
 use serde::Deserialize;
 use std::error::Error;
@@ -132,22 +135,23 @@ impl NodeCsvRecord {
                 };
 
                 // Parse curb opening properties if curb dimensions are provided
-                let curb_opening = if self.curb_opening_length.is_some() || self.curb_opening_height.is_some() {
-                    let throat = match self.throat_type.as_deref() {
-                        Some("horizontal") => Some(crate::node::ThroatType::Horizontal),
-                        Some("inclined") => Some(crate::node::ThroatType::Inclined),
-                        Some("vertical") => Some(crate::node::ThroatType::Vertical),
-                        _ => None,
-                    };
+                let curb_opening =
+                    if self.curb_opening_length.is_some() || self.curb_opening_height.is_some() {
+                        let throat = match self.throat_type.as_deref() {
+                            Some("horizontal") => Some(crate::node::ThroatType::Horizontal),
+                            Some("inclined") => Some(crate::node::ThroatType::Inclined),
+                            Some("vertical") => Some(crate::node::ThroatType::Vertical),
+                            _ => None,
+                        };
 
-                    Some(crate::node::CurbOpeningProperties {
-                        length: self.curb_opening_length,
-                        height: self.curb_opening_height,
-                        throat_type: throat,
-                    })
-                } else {
-                    None
-                };
+                        Some(crate::node::CurbOpeningProperties {
+                            length: self.curb_opening_length,
+                            height: self.curb_opening_height,
+                            throat_type: throat,
+                        })
+                    } else {
+                        None
+                    };
 
                 let mut node = Node::new_inlet(
                     self.id.clone(),
@@ -219,9 +223,9 @@ pub fn parse_nodes_csv<P: AsRef<Path>>(path: P) -> Result<Vec<Node>, Box<dyn Err
     let mut nodes = Vec::new();
 
     for (line_num, result) in reader.deserialize().enumerate() {
-        let record: NodeCsvRecord = result
-            .map_err(|e| format!("Line {}: {}", line_num + 2, e))?; // +2 for header + 1-based
-        let node = record.to_node()
+        let record: NodeCsvRecord = result.map_err(|e| format!("Line {}: {}", line_num + 2, e))?; // +2 for header + 1-based
+        let node = record
+            .to_node()
             .map_err(|e| format!("Line {} (node {}): {}", line_num + 2, record.id, e))?;
         nodes.push(node);
     }
@@ -280,7 +284,10 @@ impl ConduitCsvRecord {
 
                 // Use material's typical n value if not specified
                 let manning_n = self.manning_n.unwrap_or_else(|| {
-                    material.as_ref().map(|m| m.typical_manning_n()).unwrap_or(0.013)
+                    material
+                        .as_ref()
+                        .map(|m| m.typical_manning_n())
+                        .unwrap_or(0.013)
                 });
 
                 Ok(Conduit::new_pipe(
@@ -303,7 +310,10 @@ impl ConduitCsvRecord {
             }
             "gutter" => {
                 let cross_slope = self.cross_slope.ok_or("cross_slope required for gutters")?;
-                let long_slope = self.long_slope.or(self.slope).ok_or("long_slope or slope required for gutters")?;
+                let long_slope = self
+                    .long_slope
+                    .or(self.slope)
+                    .ok_or("long_slope or slope required for gutters")?;
                 let manning_n = self.manning_n.unwrap_or(0.016); // default for concrete gutter
 
                 Ok(Conduit::new_gutter(
@@ -327,16 +337,15 @@ impl ConduitCsvRecord {
 /// Parse conduits from CSV file
 pub fn parse_conduits_csv<P: AsRef<Path>>(path: P) -> Result<Vec<Conduit>, Box<dyn Error>> {
     let file = File::open(path)?;
-    let mut reader = ReaderBuilder::new()
-        .flexible(true)
-        .from_reader(file);
+    let mut reader = ReaderBuilder::new().flexible(true).from_reader(file);
 
     let mut conduits = Vec::new();
 
     for (line_num, result) in reader.deserialize().enumerate() {
-        let record: ConduitCsvRecord = result
-            .map_err(|e| format!("Line {}: {}", line_num + 2, e))?;
-        let conduit = record.to_conduit()
+        let record: ConduitCsvRecord =
+            result.map_err(|e| format!("Line {}: {}", line_num + 2, e))?;
+        let conduit = record
+            .to_conduit()
             .map_err(|e| format!("Line {} (conduit {}): {}", line_num + 2, record.id, e))?;
         conduits.push(conduit);
     }
@@ -404,17 +413,17 @@ impl DrainageAreaCsvRecord {
 }
 
 /// Parse drainage areas from CSV file
-pub fn parse_drainage_areas_csv<P: AsRef<Path>>(path: P) -> Result<Vec<DrainageArea>, Box<dyn Error>> {
+pub fn parse_drainage_areas_csv<P: AsRef<Path>>(
+    path: P,
+) -> Result<Vec<DrainageArea>, Box<dyn Error>> {
     let file = File::open(path)?;
-    let mut reader = ReaderBuilder::new()
-        .flexible(true)
-        .from_reader(file);
+    let mut reader = ReaderBuilder::new().flexible(true).from_reader(file);
 
     let mut areas = Vec::new();
 
     for (line_num, result) in reader.deserialize().enumerate() {
-        let record: DrainageAreaCsvRecord = result
-            .map_err(|e| format!("Line {}: {}", line_num + 2, e))?;
+        let record: DrainageAreaCsvRecord =
+            result.map_err(|e| format!("Line {}: {}", line_num + 2, e))?;
         areas.push(record.to_drainage_area());
     }
 
@@ -441,15 +450,13 @@ pub struct IdfCurveCsvRecord {
 /// Parse IDF curves from CSV file and organize by return period
 pub fn parse_idf_curves_csv<P: AsRef<Path>>(path: P) -> Result<Vec<IdfCurve>, Box<dyn Error>> {
     let file = File::open(path)?;
-    let mut reader = ReaderBuilder::new()
-        .flexible(true)
-        .from_reader(file);
+    let mut reader = ReaderBuilder::new().flexible(true).from_reader(file);
 
     let mut records = Vec::new();
 
     for (line_num, result) in reader.deserialize().enumerate() {
-        let record: IdfCurveCsvRecord = result
-            .map_err(|e| format!("Line {}: {}", line_num + 2, e))?;
+        let record: IdfCurveCsvRecord =
+            result.map_err(|e| format!("Line {}: {}", line_num + 2, e))?;
         records.push(record);
     }
 
@@ -511,11 +518,11 @@ pub struct GutterParametersCsvRecord {
 }
 
 /// Parse gutter parameters from CSV file
-pub fn parse_gutter_parameters_csv<P: AsRef<Path>>(path: P) -> Result<Vec<GutterParametersCsvRecord>, Box<dyn Error>> {
+pub fn parse_gutter_parameters_csv<P: AsRef<Path>>(
+    path: P,
+) -> Result<Vec<GutterParametersCsvRecord>, Box<dyn Error>> {
     let file = File::open(path)?;
-    let mut reader = ReaderBuilder::new()
-        .flexible(true)
-        .from_reader(file);
+    let mut reader = ReaderBuilder::new().flexible(true).from_reader(file);
 
     let mut params = Vec::new();
 

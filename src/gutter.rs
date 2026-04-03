@@ -558,7 +558,7 @@ impl ParabolicCrown {
 }
 
 /// Unit constants for gutter equations
-pub const GUTTER_K_US: f64 = 0.56;  // US customary units
+pub const GUTTER_K_US: f64 = 0.56; // US customary units
 pub const GUTTER_K_SI: f64 = 0.376; // SI metric units
 
 #[cfg(test)]
@@ -570,9 +570,9 @@ mod tests {
     #[test]
     fn test_uniform_gutter_flow_capacity() {
         let gutter = UniformGutter::new(
-            0.016,  // Manning's n
-            0.02,   // 2% cross slope
-            0.01,   // 1% longitudinal slope
+            0.016, // Manning's n
+            0.02,  // 2% cross slope
+            0.01,  // 1% longitudinal slope
             None,
         );
 
@@ -589,12 +589,7 @@ mod tests {
 
     #[test]
     fn test_uniform_gutter_spread_for_flow() {
-        let gutter = UniformGutter::new(
-            0.016,
-            0.02,
-            0.01,
-            None,
-        );
+        let gutter = UniformGutter::new(0.016, 0.02, 0.01, None);
 
         // Calculate spread for 3 cfs
         let result = gutter.result_for_flow(3.0, GUTTER_K_US);
@@ -607,12 +602,12 @@ mod tests {
     #[test]
     fn test_composite_gutter() {
         let gutter = CompositeGutter::new(
-            0.016,  // Manning's n
-            0.04,   // 4% gutter slope
-            0.02,   // 2% roadway slope
-            0.01,   // 1% longitudinal slope
-            2.0,    // 2 ft gutter width
-            2.0,    // 2 inch local depression
+            0.016, // Manning's n
+            0.04,  // 4% gutter slope
+            0.02,  // 2% roadway slope
+            0.01,  // 1% longitudinal slope
+            2.0,   // 2 ft gutter width
+            2.0,   // 2 inch local depression
         );
 
         let result = gutter.flow_result(10.0, GUTTER_K_US);
@@ -634,10 +629,10 @@ mod tests {
     #[test]
     fn test_parabolic_crown() {
         let crown = ParabolicCrown::new(
-            0.016,  // Manning's n
-            0.10,   // 0.10 ft crown height
-            12.0,   // 12 ft width to crown
-            0.01,   // 1% longitudinal slope
+            0.016, // Manning's n
+            0.10,  // 0.10 ft crown height
+            12.0,  // 12 ft width to crown
+            0.01,  // 1% longitudinal slope
         );
 
         let result = crown.flow_result(8.0, GUTTER_K_US);
@@ -648,14 +643,7 @@ mod tests {
 
     #[test]
     fn test_composite_gutter_spread_for_flow() {
-        let gutter = CompositeGutter::new(
-            0.016,
-            0.04,
-            0.02,
-            0.01,
-            2.0,
-            2.0,
-        );
+        let gutter = CompositeGutter::new(0.016, 0.04, 0.02, 0.01, 2.0, 2.0);
 
         // Calculate spread for given flow
         let target_flow = 4.0;
@@ -663,7 +651,11 @@ mod tests {
 
         // Verify the computed spread produces approximately the target flow
         let check = gutter.flow_capacity(result.spread, GUTTER_K_US);
-        assert!((check - target_flow).abs() < 0.1,
-            "Expected flow {}, got {}", target_flow, check);
+        assert!(
+            (check - target_flow).abs() < 0.1,
+            "Expected flow {}, got {}",
+            target_flow,
+            check
+        );
     }
 }

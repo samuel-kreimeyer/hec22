@@ -33,17 +33,37 @@ impl SvgBuilder {
     }
 
     /// Add a circle
-    pub fn circle(&mut self, cx: f64, cy: f64, r: f64, fill: &str, stroke: &str, stroke_width: f64) {
+    pub fn circle(
+        &mut self,
+        cx: f64,
+        cy: f64,
+        r: f64,
+        fill: &str,
+        stroke: &str,
+        stroke_width: f64,
+    ) {
         let mut elem = String::new();
-        write!(&mut elem,
+        write!(
+            &mut elem,
             r#"<circle cx="{}" cy="{}" r="{}" fill="{}" stroke="{}" stroke-width="{}"/>"#,
             cx, cy, r, fill, stroke, stroke_width
-        ).unwrap();
+        )
+        .unwrap();
         self.elements.push(elem);
     }
 
     /// Add a rectangle
-    pub fn rect(&mut self, x: f64, y: f64, width: f64, height: f64, fill: &str, stroke: &str, stroke_width: f64) {
+    #[allow(clippy::too_many_arguments)]
+    pub fn rect(
+        &mut self,
+        x: f64,
+        y: f64,
+        width: f64,
+        height: f64,
+        fill: &str,
+        stroke: &str,
+        stroke_width: f64,
+    ) {
         let mut elem = String::new();
         write!(&mut elem,
             r#"<rect x="{}" y="{}" width="{}" height="{}" fill="{}" stroke="{}" stroke-width="{}"/>"#,
@@ -55,10 +75,12 @@ impl SvgBuilder {
     /// Add a line
     pub fn line(&mut self, x1: f64, y1: f64, x2: f64, y2: f64, stroke: &str, stroke_width: f64) {
         let mut elem = String::new();
-        write!(&mut elem,
+        write!(
+            &mut elem,
             r#"<line x1="{}" y1="{}" x2="{}" y2="{}" stroke="{}" stroke-width="{}"/>"#,
             x1, y1, x2, y2, stroke, stroke_width
-        ).unwrap();
+        )
+        .unwrap();
         self.elements.push(elem);
     }
 
@@ -73,15 +95,25 @@ impl SvgBuilder {
         }
 
         let mut elem = String::new();
-        write!(&mut elem,
+        write!(
+            &mut elem,
             r#"<polyline points="{}" fill="{}" stroke="{}" stroke-width="{}"/>"#,
             points_str, fill, stroke, stroke_width
-        ).unwrap();
+        )
+        .unwrap();
         self.elements.push(elem);
     }
 
     /// Add text
-    pub fn text(&mut self, x: f64, y: f64, content: &str, font_size: f64, anchor: &str, fill: &str) {
+    pub fn text(
+        &mut self,
+        x: f64,
+        y: f64,
+        content: &str,
+        font_size: f64,
+        anchor: &str,
+        fill: &str,
+    ) {
         let mut elem = String::new();
         write!(&mut elem,
             r#"<text x="{}" y="{}" font-size="{}" text-anchor="{}" fill="{}" font-family="Arial, sans-serif">{}</text>"#,
@@ -93,10 +125,12 @@ impl SvgBuilder {
     /// Add a path
     pub fn path(&mut self, d: &str, fill: &str, stroke: &str, stroke_width: f64) {
         let mut elem = String::new();
-        write!(&mut elem,
+        write!(
+            &mut elem,
             r#"<path d="{}" fill="{}" stroke="{}" stroke-width="{}"/>"#,
             d, fill, stroke, stroke_width
-        ).unwrap();
+        )
+        .unwrap();
         self.elements.push(elem);
     }
 
@@ -131,15 +165,35 @@ impl SvgBuilder {
 
         // Add style section
         writeln!(&mut svg, r#"<style>"#).unwrap();
-        writeln!(&mut svg, r#"  .node-label {{ font: 12px Arial, sans-serif; }}"#).unwrap();
+        writeln!(
+            &mut svg,
+            r#"  .node-label {{ font: 12px Arial, sans-serif; }}"#
+        )
+        .unwrap();
         writeln!(&mut svg, r#"  .inlet {{ fill: #4CAF50; }}"#).unwrap();
         writeln!(&mut svg, r#"  .junction {{ fill: #2196F3; }}"#).unwrap();
         writeln!(&mut svg, r#"  .outfall {{ fill: #F44336; }}"#).unwrap();
         writeln!(&mut svg, r#"  .conduit {{ stroke: #666; fill: none; }}"#).unwrap();
-        writeln!(&mut svg, r#"  .hgl-line {{ stroke: #2196F3; stroke-width: 2; fill: none; }}"#).unwrap();
-        writeln!(&mut svg, r#"  .egl-line {{ stroke: #FF9800; stroke-width: 2; fill: none; }}"#).unwrap();
-        writeln!(&mut svg, r#"  .ground-line {{ stroke: #8B4513; stroke-width: 2; fill: none; }}"#).unwrap();
-        writeln!(&mut svg, r#"  .pipe-line {{ stroke: #000; stroke-width: 3; fill: none; }}"#).unwrap();
+        writeln!(
+            &mut svg,
+            r#"  .hgl-line {{ stroke: #2196F3; stroke-width: 2; fill: none; }}"#
+        )
+        .unwrap();
+        writeln!(
+            &mut svg,
+            r#"  .egl-line {{ stroke: #FF9800; stroke-width: 2; fill: none; }}"#
+        )
+        .unwrap();
+        writeln!(
+            &mut svg,
+            r#"  .ground-line {{ stroke: #8B4513; stroke-width: 2; fill: none; }}"#
+        )
+        .unwrap();
+        writeln!(
+            &mut svg,
+            r#"  .pipe-line {{ stroke: #000; stroke-width: 3; fill: none; }}"#
+        )
+        .unwrap();
         writeln!(&mut svg, r#"</style>"#).unwrap();
 
         // Add all elements

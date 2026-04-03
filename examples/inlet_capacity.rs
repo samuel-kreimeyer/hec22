@@ -82,10 +82,10 @@ fn example_2_curb_opening_on_grade() {
     println!("  Velocity: {:.2} ft/s", gutter_result.velocity);
 
     let inlet = CurbOpeningInletOnGrade::new(
-        5.0,                  // 5 ft length
-        0.5,                  // 6 inch height
+        5.0, // 5 ft length
+        0.5, // 6 inch height
         ThroatType::Horizontal,
-        0.10,                 // 10% clogging
+        0.10, // 10% clogging
     );
 
     let result = inlet.interception(
@@ -126,13 +126,7 @@ fn example_3_combination_inlet() {
     println!("  Velocity: {:.2} ft/s", gutter_result.velocity);
 
     // Grate component
-    let grate = GrateInletOnGrade::new(
-        3.0,
-        2.0,
-        BarConfiguration::Perpendicular,
-        0.15,
-        2.0,
-    );
+    let grate = GrateInletOnGrade::new(3.0, 2.0, BarConfiguration::Perpendicular, 0.15, 2.0);
 
     // Curb opening component
     let curb = CurbOpeningInletOnGrade::new(5.0, 0.5, ThroatType::Horizontal, 0.10);
@@ -177,18 +171,15 @@ fn example_4_series_with_bypass() {
     println!("Gutter configuration:");
     println!("  Manning's n: {}", gutter.manning_n);
     println!("  Cross slope: {:.1}%", gutter.cross_slope * 100.0);
-    println!("  Longitudinal slope: {:.1}%", gutter.longitudinal_slope * 100.0);
+    println!(
+        "  Longitudinal slope: {:.1}%",
+        gutter.longitudinal_slope * 100.0
+    );
     println!();
 
     // Inlet 1: First inlet captures some flow
     println!("Inlet 1 (Station 0+00):");
-    let inlet1 = GrateInletOnGrade::new(
-        3.0,
-        2.0,
-        BarConfiguration::Perpendicular,
-        0.15,
-        2.0,
-    );
+    let inlet1 = GrateInletOnGrade::new(3.0, 2.0, BarConfiguration::Perpendicular, 0.15, 2.0);
     let gutter1 = gutter.result_for_flow(initial_flow, GUTTER_K_US);
     let result1 = inlet1.interception(initial_flow, &gutter1, 0.02);
 
@@ -237,11 +228,19 @@ fn example_4_series_with_bypass() {
     // Check if inlet can handle flow without flooding
     let rim_elevation = 100.0;
     let invert_elevation = 95.0;
-    let (flooding, depth) = sag_inlet.check_flooding(approach_flow_3, rim_elevation, invert_elevation);
+    let (flooding, depth) =
+        sag_inlet.check_flooding(approach_flow_3, rim_elevation, invert_elevation);
 
     println!("  Sag inlet capacity check:");
     println!("    Ponding depth: {:.2} ft", depth);
-    println!("    Flooding: {}", if flooding { "YES - INCREASE SIZE" } else { "No" });
+    println!(
+        "    Flooding: {}",
+        if flooding {
+            "YES - INCREASE SIZE"
+        } else {
+            "No"
+        }
+    );
     println!("    Intercepted: {:.2} cfs (100%)", approach_flow_3);
     println!("    Bypass: 0.00 cfs");
     println!();
@@ -252,7 +251,10 @@ fn example_4_series_with_bypass() {
     let total_input = initial_flow + additional_flow_2 + additional_flow_3;
     println!("  Total drainage area flow: {:.2} cfs", total_input);
     println!("  Total intercepted: {:.2} cfs", total_intercepted);
-    println!("  Overall system efficiency: {:.1}%", (total_intercepted / total_input) * 100.0);
+    println!(
+        "  Overall system efficiency: {:.1}%",
+        (total_intercepted / total_input) * 100.0
+    );
     println!();
 }
 
@@ -265,7 +267,10 @@ fn example_5_sag_inlet() {
     let invert_elevation = 95.0;
 
     println!("Design flow: {:.2} cfs", design_flow);
-    println!("Available depth: {:.1} ft\n", rim_elevation - invert_elevation);
+    println!(
+        "Available depth: {:.1} ft\n",
+        rim_elevation - invert_elevation
+    );
 
     // Option 1: Single large grate
     println!("Option 1: Single 4×3 ft grate");
@@ -296,7 +301,10 @@ fn example_5_sag_inlet() {
     // Test at various depths
     for test_depth in [0.5, 1.0, 1.5, 2.0] {
         let capacity = curb.capacity(test_depth);
-        println!("  At {:.1} ft depth: {:.2} cfs capacity", test_depth, capacity);
+        println!(
+            "  At {:.1} ft depth: {:.2} cfs capacity",
+            test_depth, capacity
+        );
         if capacity >= design_flow {
             println!("    → Adequate capacity at {:.2} ft depth", test_depth);
             break;
@@ -316,7 +324,10 @@ fn example_6_total_interception() {
     let sx = 0.02; // Cross slope 2%
 
     println!("Conditions: n = {}, Sx = {:.1}%\n", n, sx * 100.0);
-    println!("{:<12} {:>10} {:>10} {:>10}", "Flow (cfs)", "0.5% slope", "1.0% slope", "2.0% slope");
+    println!(
+        "{:<12} {:>10} {:>10} {:>10}",
+        "Flow (cfs)", "0.5% slope", "1.0% slope", "2.0% slope"
+    );
     println!("{}", "-".repeat(45));
 
     for flow in flows {

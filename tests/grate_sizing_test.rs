@@ -41,9 +41,11 @@ fn test_sag_grate_sizing() {
     println!("  Manning's n: {}", manning_n);
     println!("  Design flow (Q): {:.2} cfs", design_flow);
     println!("  Allowable spread (T): {:.2} ft", allowable_spread);
-    println!("  Grate type: {} ({}% open - HEC-22 Table 7.5)",
-             grate_type.designation(),
-             (grate_type.opening_ratio() * 100.0) as i32);
+    println!(
+        "  Grate type: {} ({}% open - HEC-22 Table 7.5)",
+        grate_type.designation(),
+        (grate_type.opening_ratio() * 100.0) as i32
+    );
     println!("  Grate width: {:.1} ft", grate_width);
     println!("  Clogging factor: {:.0}%\n", clogging_factor * 100.0);
 
@@ -55,11 +57,15 @@ fn test_sag_grate_sizing() {
     let avg_depth_over_grate = depth_at_curb - (grate_width / 2.0) * sw;
 
     println!("Calculated Values:");
-    println!("  Depth at curb: d₂ = T × Sx = {:.2} × {:.3} = {:.3} ft",
-             allowable_spread, sx, depth_at_curb);
+    println!(
+        "  Depth at curb: d₂ = T × Sx = {:.2} × {:.3} = {:.3} ft",
+        allowable_spread, sx, depth_at_curb
+    );
     println!("  Average depth over grate: d = d₂ - (W/2) × Sw");
-    println!("    d = {:.3} - ({:.1}/2) × {:.3} = {:.2} ft\n",
-             depth_at_curb, grate_width, sw, avg_depth_over_grate);
+    println!(
+        "    d = {:.3} - ({:.1}/2) × {:.3} = {:.2} ft\n",
+        depth_at_curb, grate_width, sw, avg_depth_over_grate
+    );
 
     let max_ponding_depth = avg_depth_over_grate;
 
@@ -75,24 +81,29 @@ fn test_sag_grate_sizing() {
     let opening_ratio = grate_type.opening_ratio();
 
     println!("Design Result:");
-    println!("  Grate configuration: {} grates of {} x {} ft",
-             count, grate_width, length);
-    println!("  Total gross area: {} sq ft", count as f64 * grate_width * length);
-    println!("  Effective open area: {:.1} sq ft (after {}% opening)",
-             count as f64 * grate_width * length * opening_ratio,
-             (opening_ratio * 100.0) as i32);
-    println!("  Net area: {:.1} sq ft (after clogging)\n",
-             count as f64 * grate_width * length * opening_ratio * (1.0 - clogging_factor));
-
-    // Verify the design
-    let designed_grate = inlet::GrateInletSag::new(
-        length,
-        grate_width,
-        count,
-        clogging_factor,
+    println!(
+        "  Grate configuration: {} grates of {} x {} ft",
+        count, grate_width, length
+    );
+    println!(
+        "  Total gross area: {} sq ft",
+        count as f64 * grate_width * length
+    );
+    println!(
+        "  Effective open area: {:.1} sq ft (after {}% opening)",
+        count as f64 * grate_width * length * opening_ratio,
+        (opening_ratio * 100.0) as i32
+    );
+    println!(
+        "  Net area: {:.1} sq ft (after clogging)\n",
+        count as f64 * grate_width * length * opening_ratio * (1.0 - clogging_factor)
     );
 
-    let capacity = designed_grate.capacity_with_opening_ratio(max_ponding_depth, Some(opening_ratio));
+    // Verify the design
+    let designed_grate = inlet::GrateInletSag::new(length, grate_width, count, clogging_factor);
+
+    let capacity =
+        designed_grate.capacity_with_opening_ratio(max_ponding_depth, Some(opening_ratio));
 
     println!("Verification:");
     println!("  Grate capacity at max ponding depth: {:.2} cfs", capacity);
@@ -107,15 +118,12 @@ fn test_sag_grate_sizing() {
     // Both are valid; designers may prefer multiple smaller grates for practical reasons.
 
     // Verify grate width matches specification
-    assert_eq!(
-        grate_width, 2.0,
-        "Grate width should be 2 ft"
-    );
+    assert_eq!(grate_width, 2.0, "Grate width should be 2 ft");
 
     // Verify total area is reasonable
     let total_area = count as f64 * grate_width * length;
     assert!(
-        total_area >= 2.0 && total_area <= 20.0,
+        (2.0..=20.0).contains(&total_area),
         "Total area should be reasonable (2-20 sq ft), got {:.1} sq ft",
         total_area
     );
@@ -129,10 +137,14 @@ fn test_sag_grate_sizing() {
     //   - Maintenance access
     //   - Redundancy if one grate clogs
     println!("\nNote: User expected double 2x3 (12 sq ft)");
-    println!("      With HEC-22 Table 7.5 opening ratio ({}%):",
-             (opening_ratio * 100.0) as i32);
-    println!("      Algorithm found: {} x {}x{} ({:.0} sq ft)",
-             count, grate_width, length, total_area);
+    println!(
+        "      With HEC-22 Table 7.5 opening ratio ({}%):",
+        (opening_ratio * 100.0) as i32
+    );
+    println!(
+        "      Algorithm found: {} x {}x{} ({:.0} sq ft)",
+        count, grate_width, length, total_area
+    );
     println!("      Both solutions may be valid depending on design criteria.");
 
     // Verify capacity exceeds design flow
@@ -153,8 +165,10 @@ fn test_sag_grate_sizing() {
     );
 
     println!("✓ TEST PASSED: Grate sizing is correct");
-    println!("  Configuration: {} grates of {} x {} ft (double 2x3)",
-             count, grate_width, length);
+    println!(
+        "  Configuration: {} grates of {} x {} ft (double 2x3)",
+        count, grate_width, length
+    );
     println!("  Total area: {:.1} sq ft", total_area);
 }
 
@@ -174,16 +188,24 @@ fn test_sag_grate_capacity_calculation() {
     println!("Grate Configuration:");
     println!("  Count: {} grates", count);
     println!("  Individual grate size: {} x {} ft", width, length);
-    println!("  Total gross area: {:.1} sq ft", count as f64 * width * length);
+    println!(
+        "  Total gross area: {:.1} sq ft",
+        count as f64 * width * length
+    );
     println!("  Clogging factor: {:.0}%", clogging_factor * 100.0);
-    println!("  Net area: {:.1} sq ft\n",
-             count as f64 * width * length * (1.0 - clogging_factor));
+    println!(
+        "  Net area: {:.1} sq ft\n",
+        count as f64 * width * length * (1.0 - clogging_factor)
+    );
 
     // Test at different ponding depths
     let test_depths: Vec<f64> = vec![0.1, 0.2, 0.3, 0.4, 0.5, 0.6];
 
     println!("Capacity vs. Ponding Depth:");
-    println!("{:<15} {:<15} {:<15} {:<15}", "Depth (ft)", "Q_weir (cfs)", "Q_orifice (cfs)", "Capacity (cfs)");
+    println!(
+        "{:<15} {:<15} {:<15} {:<15}",
+        "Depth (ft)", "Q_weir (cfs)", "Q_orifice (cfs)", "Capacity (cfs)"
+    );
     println!("{}", "-".repeat(60));
 
     for &depth in &test_depths {
@@ -201,8 +223,10 @@ fn test_sag_grate_capacity_calculation() {
 
         let capacity = grate.capacity(depth);
 
-        println!("{:<15.2} {:<15.2} {:<15.2} {:<15.2}",
-                 depth, q_weir, q_orifice, capacity);
+        println!(
+            "{:<15.2} {:<15.2} {:<15.2} {:<15.2}",
+            depth, q_weir, q_orifice, capacity
+        );
 
         // Verify capacity is minimum of weir and orifice
         assert!(
@@ -285,8 +309,11 @@ fn test_complete_sag_inlet_design_workflow() {
     println!("  Flow: {:.2} cfs", design_flow);
     println!("  Allowable spread: {:.2} ft", allowable_spread);
     println!("  Gutter: Sx={:.3}, Sw={:.3}, n={}", sx, sw, manning_n);
-    println!("  Grate width: {:.1} ft, Clogging: {:.0}%\n",
-             grate_width, clogging_factor * 100.0);
+    println!(
+        "  Grate width: {:.1} ft, Clogging: {:.0}%\n",
+        grate_width,
+        clogging_factor * 100.0
+    );
 
     // Step 2: Calculate gutter spread for design flow
     let k = gutter::GUTTER_K_US;
@@ -294,17 +321,28 @@ fn test_complete_sag_inlet_design_workflow() {
     let gutter_result = gutter.result_for_flow(design_flow, k);
 
     println!("STEP 2: Gutter Flow Calculation");
-    println!("  Spread for {:.2} cfs: {:.2} ft", design_flow, gutter_result.spread);
+    println!(
+        "  Spread for {:.2} cfs: {:.2} ft",
+        design_flow, gutter_result.spread
+    );
     println!("  Ponding depth: {:.3} ft", gutter_result.depth_at_curb);
-    println!("  Within allowable spread? {}\n",
-             if gutter_result.spread <= allowable_spread { "Yes ✓" } else { "No ✗" });
+    println!(
+        "  Within allowable spread? {}\n",
+        if gutter_result.spread <= allowable_spread {
+            "Yes ✓"
+        } else {
+            "No ✗"
+        }
+    );
 
     // Step 3: Calculate max ponding depth at allowable spread
     let max_ponding_depth = allowable_spread * sx;
 
     println!("STEP 3: Maximum Ponding Depth");
-    println!("  d_max = T_allow × Sx = {:.2} × {:.3} = {:.3} ft\n",
-             allowable_spread, sx, max_ponding_depth);
+    println!(
+        "  d_max = T_allow × Sx = {:.2} × {:.3} = {:.3} ft\n",
+        allowable_spread, sx, max_ponding_depth
+    );
 
     // Step 4: Size the grate using P-1-7/8-4 from HEC-22 Table 7.5
     let grate_type = inlet::GrateType::P1_7_8_4; // 80% open
@@ -317,17 +355,25 @@ fn test_complete_sag_inlet_design_workflow() {
     );
 
     println!("STEP 4: Grate Sizing");
-    println!("  Grate type: {} ({}% open)",
-             grate_type.designation(),
-             (grate_type.opening_ratio() * 100.0) as i32);
-    println!("  Configuration: {} grates of {} x {} ft",
-             count, grate_width, length);
-    println!("  Total area: {:.1} sq ft", count as f64 * grate_width * length);
+    println!(
+        "  Grate type: {} ({}% open)",
+        grate_type.designation(),
+        (grate_type.opening_ratio() * 100.0) as i32
+    );
+    println!(
+        "  Configuration: {} grates of {} x {} ft",
+        count, grate_width, length
+    );
+    println!(
+        "  Total area: {:.1} sq ft",
+        count as f64 * grate_width * length
+    );
     println!("  Description: Double 2x3\n");
 
     // Step 5: Verify capacity
     let grate = inlet::GrateInletSag::new(length, grate_width, count, clogging_factor);
-    let capacity = grate.capacity_with_opening_ratio(max_ponding_depth, Some(grate_type.opening_ratio()));
+    let capacity =
+        grate.capacity_with_opening_ratio(max_ponding_depth, Some(grate_type.opening_ratio()));
 
     println!("STEP 5: Capacity Verification");
     println!("  Grate capacity: {:.2} cfs", capacity);
@@ -342,13 +388,15 @@ fn test_complete_sag_inlet_design_workflow() {
     // With correct HEC-22 Table 7.5 opening ratios, may be quite small
     let total_area = count as f64 * grate_width * length;
     assert!(
-        total_area >= 2.0 && total_area <= 20.0,
+        (2.0..=20.0).contains(&total_area),
         "Total area should be reasonable (2-20 sq ft), got {:.1} sq ft",
         total_area
     );
 
     println!("✓ COMPLETE WORKFLOW PASSED");
-    println!("  Final design: {} grates of {} x {} ft ({:.0} sq ft total)",
-             count, grate_width, length, total_area);
+    println!(
+        "  Final design: {} grates of {} x {} ft ({:.0} sq ft total)",
+        count, grate_width, length, total_area
+    );
     println!("  Note: Common design choice is double 2x3 (12 sq ft)");
 }

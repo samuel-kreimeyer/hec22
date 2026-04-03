@@ -8,28 +8,27 @@
 //! 2. Estimate HGL/EGL at downstream end of each pipe
 //! 3. Estimate HGL/EGL at upstream end of pipe
 //! 4. Calculate EGL/HGL at each structure
-//! 5-8. Repeat for all pipes and structures working upstream
+//!    5-8. Repeat for all pipes and structures working upstream
 //! 9. Compare EGL elevations to ground surface
 //!
 //! The procedure starts at the outfall and works upstream through the network.
 
 use crate::analysis::{
-    Analysis, AnalysisMethod, ConduitResult, HeadLoss, NodeResult, FlowRegime,
-    Violation, Severity,
+    Analysis, AnalysisMethod, ConduitResult, DesignCriteria, FlowRegime, GutterSpreadCriteria,
+    HeadLoss, NodeResult, Severity, Violation,
 };
 use crate::conduit::{Conduit, ConduitType};
 use crate::drainage::DrainageArea;
-use crate::gutter::{UniformGutter, GUTTER_K_US, GUTTER_K_SI};
+use crate::gutter::{UniformGutter, GUTTER_K_SI, GUTTER_K_US};
 use crate::hydraulics::{
-    EnergyLoss, ManningsEquation,
-    FhwaAccessHoleMethod, InflowPipe, BenchingType,
+    BenchingType, EnergyLoss, FhwaAccessHoleMethod, InflowPipe, ManningsEquation,
 };
 use crate::inlet::{
     BarConfiguration as InletBarConfig, CombinationInletOnGrade, CurbOpeningInletOnGrade,
     GrateInletOnGrade, InletInterceptionResult, ThroatType as InletThroatType,
 };
 use crate::network::Network;
-use crate::node::{BoundaryCondition, Node, InletLocation};
+use crate::node::{BoundaryCondition, InletLocation, Node};
 use crate::project::UnitSystem;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
@@ -83,9 +82,15 @@ pub struct HglSolver {
 impl HglSolver {
     /// Create a new solver with the given configuration
     pub fn new(config: SolverConfig) -> Self {
-        let mannings = ManningsEquation { k: config.manning_k };
-        let energy_loss = EnergyLoss { gravity: config.gravity };
-        let fhwa_access_hole = FhwaAccessHoleMethod { gravity: config.gravity };
+        let mannings = ManningsEquation {
+            k: config.manning_k,
+        };
+        let energy_loss = EnergyLoss {
+            gravity: config.gravity,
+        };
+        let fhwa_access_hole = FhwaAccessHoleMethod {
+            gravity: config.gravity,
+        };
 
         Self {
             config,
@@ -158,7 +163,7 @@ impl HglSolver {
         // Process each conduit in order
         for conduit_id in &traversal_order {
             let conduit = network
-                .find_conduit(&conduit_id)
+                .find_conduit(conduit_id)
                 .ok_or_else(|| format!("Conduit {} not found", conduit_id))?;
 
             // Get flow in this conduit
@@ -173,13 +178,8 @@ impl HglSolver {
                 .ok_or_else(|| format!("EGL not computed for node {}", conduit.to_node))?;
 
             // Solve for upstream HGL/EGL
-            let (upstream_hgl, upstream_egl, conduit_result) = self.solve_conduit(
-                conduit,
-                flow,
-                *downstream_hgl,
-                *downstream_egl,
-                network,
-            )?;
+            let (upstream_hgl, upstream_egl, conduit_result) =
+                self.solve_conduit(conduit, flow, *downstream_hgl, *downstream_egl, network)?;
 
             // Store results
             node_hgls.insert(conduit.from_node.clone(), upstream_hgl);
@@ -271,7 +271,6 @@ impl HglSolver {
 
             // Store junction loss for this node
             node_junction_losses.insert(node.id.clone(), junction_head_loss);
-
         }
 
         // Snapshot structure grade lines (loss-adjusted) for downstream boundaries
@@ -296,7 +295,7 @@ impl HglSolver {
 
         for conduit_id in &traversal_order {
             let conduit = network
-                .find_conduit(&conduit_id)
+                .find_conduit(conduit_id)
                 .ok_or_else(|| format!("Conduit {} not found", conduit_id))?;
 
             let flow = flows.get(&conduit.id).cloned().unwrap_or(0.0);
@@ -308,13 +307,8 @@ impl HglSolver {
                 .get(&conduit.to_node)
                 .ok_or_else(|| format!("EGL not computed for node {}", conduit.to_node))?;
 
-            let (upstream_hgl, upstream_egl, conduit_result) = self.solve_conduit(
-                conduit,
-                flow,
-                *downstream_hgl,
-                *downstream_egl,
-                network,
-            )?;
+            let (upstream_hgl, upstream_egl, conduit_result) =
+                self.solve_conduit(conduit, flow, *downstream_hgl, *downstream_egl, network)?;
 
             endpoint_hgls.insert(conduit.from_node.clone(), upstream_hgl);
             endpoint_egls.insert(conduit.from_node.clone(), upstream_egl);
@@ -373,7 +367,7 @@ impl HglSolver {
                     hgl: Some(hgl),
                     egl: Some(egl),
                     depth: Some(depth),
-                    velocity: None,  // Node velocity calculation omitted per user request
+                    velocity: None, // Node velocity calculation omitted per user request
                     flooding: Some(flooding),
                     pressure_head: Some(hgl - node.invert_elevation),
                     junction_loss: node_junction_losses.get(&node.id).copied(),
@@ -383,12 +377,8 @@ impl HglSolver {
                 // Check for HGL violations
                 if let Some(rim) = node.rim_elevation {
                     if hgl > rim {
-                        let violation = Violation::hgl_violation(
-                            node.id.clone(),
-                            hgl,
-                            rim,
-                            Severity::Error,
-                        );
+                        let violation =
+                            Violation::hgl_violation(node.id.clone(), hgl, rim, Severity::Error);
                         analysis.add_violation(violation);
                     }
                 }
@@ -416,9 +406,13 @@ impl HglSolver {
             BoundaryCondition::Free => {
                 // Free outfall: tailwater depth = average of (critical depth, pipe diameter)
                 // Find the conduit connecting to this outfall
-                let outfall_conduit = network.conduits.iter()
+                let outfall_conduit = network
+                    .conduits
+                    .iter()
                     .find(|c| c.to_node == outfall.id)
-                    .ok_or_else(|| format!("No conduit found connecting to outfall {}", outfall.id))?;
+                    .ok_or_else(|| {
+                        format!("No conduit found connecting to outfall {}", outfall.id)
+                    })?;
 
                 // Get pipe diameter (convert from inches to feet if US units)
                 let diameter = if let Some(pipe_props) = &outfall_conduit.pipe {
@@ -432,7 +426,8 @@ impl HglSolver {
 
                 // Calculate critical depth
                 let critical_depth = if flow > 0.0 {
-                    self.mannings.critical_depth(flow, diameter, self.config.gravity)
+                    self.mannings
+                        .critical_depth(flow, diameter, self.config.gravity)
                         .unwrap_or(diameter / 2.0) // Default to half-diameter if calculation fails
                 } else {
                     diameter / 2.0 // No flow: use half-diameter
@@ -447,9 +442,7 @@ impl HglSolver {
                     .tailwater_elevation
                     .map(|tw| (tw - outfall.invert_elevation).max(0.0))
                     .unwrap_or(0.0);
-                let tailwater_depth = average_depth
-                    .max(critical_depth)
-                    .max(specified_stage_depth);
+                let tailwater_depth = average_depth.max(critical_depth).max(specified_stage_depth);
 
                 // Return invert elevation + tailwater depth
                 Ok(outfall.invert_elevation + tailwater_depth)
@@ -483,6 +476,7 @@ impl HglSolver {
     /// - Benching configuration
     /// - Angled inflows
     /// - Plunging flows
+    #[allow(clippy::too_many_arguments)]
     fn calculate_access_hole_loss(
         &self,
         node: &Node,
@@ -507,7 +501,10 @@ impl HglSolver {
         let a_outlet = std::f64::consts::PI * d_outlet * d_outlet / 4.0;
 
         // Get outflow EGL at the junction
-        let outflow_egl = node_egls.get(&node.id).cloned().unwrap_or(node.invert_elevation);
+        let outflow_egl = node_egls
+            .get(&node.id)
+            .cloned()
+            .unwrap_or(node.invert_elevation);
         let outflow_invert = node.invert_elevation;
 
         // Build inflow pipe configurations
@@ -526,7 +523,7 @@ impl HglSolver {
 
             let angle = self
                 .inflow_angle_deg(node, conduit, outlet_conduit, network)
-                .unwrap_or_else(|| if idx == 0 { 180.0 } else { 90.0 });
+                .unwrap_or(if idx == 0 { 180.0 } else { 90.0 });
 
             // Calculate invert offset (elevation difference from access hole invert)
             let invert_offset = conduit
@@ -550,16 +547,18 @@ impl HglSolver {
 
         // Perform FHWA access hole analysis
         let outflow_hgl = outflow_egl - (v_outlet.powi(2) / (2.0 * self.config.gravity));
-        let yc = self.mannings
+        let yc = self
+            .mannings
             .critical_depth(q_outlet, d_outlet, self.config.gravity)
             .unwrap_or(d_outlet / 3.0);
         let condition_d = outflow_hgl <= outflow_invert + yc;
 
-        let outlet_control_override = if condition_d || matches!(outflow_regime, Some(FlowRegime::Supercritical)) {
-            Some(0.0)
-        } else {
-            None
-        };
+        let outlet_control_override =
+            if condition_d || matches!(outflow_regime, Some(FlowRegime::Supercritical)) {
+                Some(0.0)
+            } else {
+                None
+            };
 
         let result = self.fhwa_access_hole.analyze_access_hole(
             outflow_egl,
@@ -590,13 +589,17 @@ impl HglSolver {
         let node_x = node_coords.x?;
         let node_y = node_coords.y?;
 
-        let upstream_node = network.nodes.iter()
+        let upstream_node = network
+            .nodes
+            .iter()
             .find(|n| n.id == inflow_conduit.from_node)?;
         let upstream_coords = upstream_node.coordinates.as_ref()?;
         let upstream_x = upstream_coords.x?;
         let upstream_y = upstream_coords.y?;
 
-        let downstream_node = network.nodes.iter()
+        let downstream_node = network
+            .nodes
+            .iter()
             .find(|n| n.id == outlet_conduit.to_node)?;
         let downstream_coords = downstream_node.coordinates.as_ref()?;
         let downstream_x = downstream_coords.x?;
@@ -650,7 +653,9 @@ impl HglSolver {
         inlet_conduits.sort_by(|a, b| {
             let flow_a = flows.get(&a.id).cloned().unwrap_or(0.0);
             let flow_b = flows.get(&b.id).cloned().unwrap_or(0.0);
-            flow_b.partial_cmp(&flow_a).unwrap_or(std::cmp::Ordering::Equal)
+            flow_b
+                .partial_cmp(&flow_a)
+                .unwrap_or(std::cmp::Ordering::Equal)
         });
 
         // Main inlet (highest flow)
@@ -674,15 +679,7 @@ impl HglSolver {
 
         // Calculate junction loss using HEC-22 Equation 9.9
         self.energy_loss.junction_loss(
-            q_outlet,
-            q_inlet,
-            q_lateral,
-            v_outlet,
-            v_inlet,
-            v_lateral,
-            a_outlet,
-            a_inlet,
-            theta_j,
+            q_outlet, q_inlet, q_lateral, v_outlet, v_inlet, v_lateral, a_outlet, a_inlet, theta_j,
         )
     }
 
@@ -696,14 +693,24 @@ impl HglSolver {
         network: &Network,
     ) -> Result<(f64, f64, ConduitResult), String> {
         match conduit.conduit_type {
-            ConduitType::Pipe => self.solve_pipe(conduit, flow, downstream_hgl, downstream_egl, network),
+            ConduitType::Pipe => {
+                self.solve_pipe(conduit, flow, downstream_hgl, downstream_egl, network)
+            }
             ConduitType::Gutter => {
                 // For now, simplified gutter solution
-                Ok((downstream_hgl, downstream_egl, self.default_conduit_result(conduit, flow)))
+                Ok((
+                    downstream_hgl,
+                    downstream_egl,
+                    self.default_conduit_result(conduit, flow),
+                ))
             }
             ConduitType::Channel => {
                 // For now, simplified channel solution
-                Ok((downstream_hgl, downstream_egl, self.default_conduit_result(conduit, flow)))
+                Ok((
+                    downstream_hgl,
+                    downstream_egl,
+                    self.default_conduit_result(conduit, flow),
+                ))
             }
         }
     }
@@ -753,23 +760,27 @@ impl HglSolver {
         }
 
         // Calculate pipe capacity and depths
-        let _q_full = self.mannings.full_pipe_capacity(diameter, slope, pipe_props.manning_n);
+        let _q_full = self
+            .mannings
+            .full_pipe_capacity(diameter, slope, pipe_props.manning_n);
 
         // Calculate normal depth (yn) - HEC-22 Table 9.7 requires this
-        let yn = self.mannings.normal_depth(
-            flow,
-            diameter,
-            slope,
-            pipe_props.manning_n,
-            self.config.gravity,
-        ).unwrap_or(diameter / 2.0); // Default to half-full if calculation fails
+        let yn = self
+            .mannings
+            .normal_depth(
+                flow,
+                diameter,
+                slope,
+                pipe_props.manning_n,
+                self.config.gravity,
+            )
+            .unwrap_or(diameter / 2.0); // Default to half-full if calculation fails
 
         // Calculate critical depth (yc) - HEC-22 Table 9.7 requires this
-        let yc = self.mannings.critical_depth(
-            flow,
-            diameter,
-            self.config.gravity,
-        ).unwrap_or(diameter / 3.0); // Default to 1/3 diameter if calculation fails
+        let yc = self
+            .mannings
+            .critical_depth(flow, diameter, self.config.gravity)
+            .unwrap_or(diameter / 3.0); // Default to 1/3 diameter if calculation fails
 
         // Flow properties at normal depth (open channel) and full flow (surcharged)
         let flow_result_normal = self.mannings.partial_pipe_flow(
@@ -802,7 +813,7 @@ impl HglSolver {
         let top_width = if yn < diameter {
             2.0 * (radius.powi(2) - (radius - yn).powi(2)).sqrt().max(0.0)
         } else {
-            diameter  // Full flow, top width = diameter
+            diameter // Full flow, top width = diameter
         };
 
         let froude = self.mannings.froude_number(
@@ -838,7 +849,11 @@ impl HglSolver {
             // Case C: between BOC+yn and BOC+yc
             let candidate = downstream_egl + exit_loss;
             let normal_depth_level = boc_o + yn + flow_result_normal.velocity_head;
-            if candidate > normal_depth_level { candidate } else { normal_depth_level }
+            if candidate > normal_depth_level {
+                candidate
+            } else {
+                normal_depth_level
+            }
         } else if boc_o + yc >= downstream_egl && downstream_egl > boc_o {
             // Case D: between BOC+yc and BOC
             boc_o + yn + flow_result_normal.velocity_head
@@ -893,8 +908,8 @@ impl HglSolver {
         let total_loss_full = friction_loss_full + entrance_loss_full + bend_loss_full;
 
         // HEC-22 Table 9.7: Classify flow condition at upstream end using provisional HGL
-        let boc_i = upstream_invert;  // Bottom of conduit at upstream end
-        let toc_i = upstream_invert + diameter;  // Top of conduit at upstream end
+        let boc_i = upstream_invert; // Bottom of conduit at upstream end
+        let toc_i = upstream_invert + diameter; // Top of conduit at upstream end
 
         // Provisional upstream HGL from energy equation (used for classification)
         let provisional_upstream_egl = downstream_egl_inside + total_loss_normal;
@@ -903,7 +918,15 @@ impl HglSolver {
         let full_upstream_egl = downstream_egl_inside + total_loss_full;
         let full_upstream_hgl = full_upstream_egl - flow_result_full.velocity_head;
 
-        let (upstream_hgl, upstream_egl, flow_result_used, friction_loss, entrance_loss, bend_loss, total_loss) = if provisional_upstream_hgl >= toc_i {
+        let (
+            upstream_hgl,
+            upstream_egl,
+            flow_result_used,
+            friction_loss,
+            entrance_loss,
+            bend_loss,
+            total_loss,
+        ) = if provisional_upstream_hgl >= toc_i {
             // Condition A: surcharge/full
             if full_upstream_hgl < toc_i && froude > 1.0 {
                 let hgl = boc_i + yn;
@@ -975,12 +998,20 @@ impl HglSolver {
             flow: Some(flow),
             velocity: Some(flow_result_used.velocity),
             depth: Some(flow_result_used.depth),
-            capacity_used: Some(flow / self.mannings.full_pipe_capacity(diameter, slope, pipe_props.manning_n)),
+            capacity_used: Some(
+                flow / self
+                    .mannings
+                    .full_pipe_capacity(diameter, slope, pipe_props.manning_n),
+            ),
             froude_number: Some(froude),
             flow_regime: Some(match regime {
-                crate::hydraulics::FlowRegime::Subcritical => crate::analysis::FlowRegime::Subcritical,
+                crate::hydraulics::FlowRegime::Subcritical => {
+                    crate::analysis::FlowRegime::Subcritical
+                }
                 crate::hydraulics::FlowRegime::Critical => crate::analysis::FlowRegime::Critical,
-                crate::hydraulics::FlowRegime::Supercritical => crate::analysis::FlowRegime::Supercritical,
+                crate::hydraulics::FlowRegime::Supercritical => {
+                    crate::analysis::FlowRegime::Supercritical
+                }
             }),
             headloss: Some(HeadLoss {
                 friction: Some(friction_loss),
@@ -1082,13 +1113,7 @@ impl HglSolver {
         let upstream_conduits = network.upstream_conduits(node_id);
         for conduit in upstream_conduits {
             // First visit the upstream node recursively
-            self.visit_node(
-                &conduit.from_node,
-                network,
-                visited,
-                visiting,
-                result,
-            )?;
+            self.visit_node(&conduit.from_node, network, visited, visiting, result)?;
             // Then add this conduit (after upstream node is processed)
             result.push(conduit.id.clone());
         }
@@ -1240,7 +1265,6 @@ pub fn route_flows_with_inlets(
 
     // Process nodes in topological order
     for node_id in sorted_nodes {
-
         // Find the node
         let node = network
             .nodes
@@ -1257,29 +1281,26 @@ pub fn route_flows_with_inlets(
         let bypass_inflow = bypass_flows.get(&node_id).cloned().unwrap_or(0.0);
         let surface_inflow = direct_inflow + bypass_inflow;
 
-        let (surface_captured, surface_bypass, interception_result) =
-            if let Some(ref inlet_props) = node.inlet {
-                // This is an inlet - calculate interception for surface flow only.
-                // Get drainage area for this node (if it exists)
-                let drainage_area = node_inflows.get(&node_id).copied();
-                let gutter_context = resolve_gutter_context(
-                    network,
-                    &node_id,
-                    inlet_props,
-                    gutter_params.get(&node_id),
-                );
-                calculate_inlet_interception(
-                    node,
-                    inlet_props,
-                    surface_inflow,
-                    k,
-                    drainage_area,
-                    &gutter_context,
-                )?
-            } else {
-                // Not an inlet - all surface flow enters system
-                (surface_inflow, 0.0, None)
-            };
+        let (surface_captured, surface_bypass, interception_result) = if let Some(ref inlet_props) =
+            node.inlet
+        {
+            // This is an inlet - calculate interception for surface flow only.
+            // Get drainage area for this node (if it exists)
+            let drainage_area = node_inflows.get(&node_id).copied();
+            let gutter_context =
+                resolve_gutter_context(network, &node_id, inlet_props, gutter_params.get(&node_id));
+            calculate_inlet_interception(
+                node,
+                inlet_props,
+                surface_inflow,
+                k,
+                drainage_area,
+                &gutter_context,
+            )?
+        } else {
+            // Not an inlet - all surface flow enters system
+            (surface_inflow, 0.0, None)
+        };
 
         // Store inlet interception result
         if let Some(result) = interception_result {
@@ -1299,9 +1320,8 @@ pub fn route_flows_with_inlets(
 
                 // Add bypass flow to the downstream gutter
                 if surface_bypass > 0.0 {
-                    let downstream_bypass = bypass_flows
-                        .entry(conduit.to_node.clone())
-                        .or_insert(0.0);
+                    let downstream_bypass =
+                        bypass_flows.entry(conduit.to_node.clone()).or_insert(0.0);
                     *downstream_bypass += surface_bypass;
                 }
             }
@@ -1309,6 +1329,463 @@ pub fn route_flows_with_inlets(
     }
 
     Ok((conduit_flows, inlet_results))
+}
+
+/// Apply design criteria to analysis results and record violations.
+///
+/// Cover checks approximate ground elevation using node rim elevation.
+pub fn apply_design_criteria(
+    analysis: &mut Analysis,
+    network: &Network,
+    criteria: &DesignCriteria,
+    unit_system: UnitSystem,
+) {
+    let DesignCriteria {
+        gutter_spread,
+        hgl_criteria,
+        velocity,
+        cover,
+        capacity,
+    } = merge_design_criteria(criteria, unit_system);
+    let empty_node_results = Vec::new();
+    let node_results = analysis
+        .node_results
+        .as_ref()
+        .unwrap_or(&empty_node_results);
+    let empty_conduit_results = Vec::new();
+    let conduit_results = analysis
+        .conduit_results
+        .as_ref()
+        .unwrap_or(&empty_conduit_results);
+
+    let node_map: HashMap<&str, &NodeResult> = node_results
+        .iter()
+        .map(|result| (result.node_id.as_str(), result))
+        .collect();
+    let conduit_map: HashMap<&str, &ConduitResult> = conduit_results
+        .iter()
+        .map(|result| (result.conduit_id.as_str(), result))
+        .collect();
+
+    let mut violations = Vec::new();
+
+    if let Some(hgl_criteria) = hgl_criteria {
+        let max_below_rim = hgl_criteria.max_hgl_below_rim.unwrap_or(0.0);
+        if max_below_rim > 0.0 {
+            for node in &network.nodes {
+                let rim = match node.rim_elevation {
+                    Some(value) => value,
+                    None => continue,
+                };
+                let hgl = match node_map.get(node.id.as_str()).and_then(|result| result.hgl) {
+                    Some(value) => value,
+                    None => continue,
+                };
+                let limit = rim - max_below_rim;
+                if hgl > limit && hgl <= rim {
+                    violations.push(Violation {
+                        violation_type: crate::analysis::ViolationType::Hgl,
+                        severity: Severity::Warning,
+                        element_id: node.id.clone(),
+                        message: format!(
+                            "HGL at {:.2} is within {:.2} of rim elevation {:.2}",
+                            hgl, max_below_rim, rim
+                        ),
+                        value: Some(hgl),
+                        limit: Some(limit),
+                    });
+                }
+            }
+        }
+
+        let allow_surcharge = hgl_criteria.allow_surcharge.unwrap_or(false);
+        if !allow_surcharge {
+            for conduit in &network.conduits {
+                if conduit.conduit_type != ConduitType::Pipe {
+                    continue;
+                }
+                let pipe_height = match pipe_height_in_length(conduit, unit_system) {
+                    Some(value) => value,
+                    None => continue,
+                };
+                if let Some(hgl) = node_map
+                    .get(conduit.from_node.as_str())
+                    .and_then(|result| result.hgl)
+                {
+                    let upstream_invert = conduit.upstream_invert.or_else(|| {
+                        network
+                            .find_node(&conduit.from_node)
+                            .map(|n| n.invert_elevation)
+                    });
+                    let crown = match upstream_invert {
+                        Some(value) => value + pipe_height,
+                        None => continue,
+                    };
+                    if hgl > crown {
+                        violations.push(Violation {
+                            violation_type: crate::analysis::ViolationType::Hgl,
+                            severity: Severity::Warning,
+                            element_id: format!("{}:{}", conduit.id, conduit.from_node),
+                            message: format!(
+                                "HGL {:.2} exceeds pipe crown {:.2} at upstream node",
+                                hgl, crown
+                            ),
+                            value: Some(hgl),
+                            limit: Some(crown),
+                        });
+                    }
+                }
+                if let Some(hgl) = node_map
+                    .get(conduit.to_node.as_str())
+                    .and_then(|result| result.hgl)
+                {
+                    let downstream_invert = conduit.downstream_invert.or_else(|| {
+                        network
+                            .find_node(&conduit.to_node)
+                            .map(|n| n.invert_elevation)
+                    });
+                    let crown = match downstream_invert {
+                        Some(value) => value + pipe_height,
+                        None => continue,
+                    };
+                    if hgl > crown {
+                        violations.push(Violation {
+                            violation_type: crate::analysis::ViolationType::Hgl,
+                            severity: Severity::Warning,
+                            element_id: format!("{}:{}", conduit.id, conduit.to_node),
+                            message: format!(
+                                "HGL {:.2} exceeds pipe crown {:.2} at downstream node",
+                                hgl, crown
+                            ),
+                            value: Some(hgl),
+                            limit: Some(crown),
+                        });
+                    }
+                }
+            }
+        }
+    }
+
+    if let Some(velocity_criteria) = velocity {
+        let min_velocity = velocity_criteria.min_velocity.unwrap_or(0.0);
+        let max_velocity = velocity_criteria.max_velocity.unwrap_or(f64::INFINITY);
+        for result in conduit_map.values() {
+            let velocity = match result.velocity {
+                Some(value) => value,
+                None => continue,
+            };
+            if velocity < min_velocity {
+                violations.push(Violation {
+                    violation_type: crate::analysis::ViolationType::Velocity,
+                    severity: Severity::Warning,
+                    element_id: result.conduit_id.clone(),
+                    message: format!(
+                        "Velocity {:.2} is below minimum {:.2}",
+                        velocity, min_velocity
+                    ),
+                    value: Some(velocity),
+                    limit: Some(min_velocity),
+                });
+            }
+            if velocity > max_velocity {
+                violations.push(Violation {
+                    violation_type: crate::analysis::ViolationType::Velocity,
+                    severity: Severity::Error,
+                    element_id: result.conduit_id.clone(),
+                    message: format!(
+                        "Velocity {:.2} exceeds maximum {:.2}",
+                        velocity, max_velocity
+                    ),
+                    value: Some(velocity),
+                    limit: Some(max_velocity),
+                });
+            }
+        }
+    }
+
+    if let Some(capacity_criteria) = capacity {
+        let min_ratio = capacity_criteria.min_capacity_ratio.unwrap_or(1.0);
+        if min_ratio > 0.0 {
+            for result in conduit_map.values() {
+                let capacity_used = match result.capacity_used {
+                    Some(value) if value > 0.0 => value,
+                    _ => continue,
+                };
+                let capacity_ratio = 1.0 / capacity_used;
+                if capacity_ratio < min_ratio {
+                    violations.push(Violation {
+                        violation_type: crate::analysis::ViolationType::Capacity,
+                        severity: Severity::Warning,
+                        element_id: result.conduit_id.clone(),
+                        message: format!(
+                            "Capacity ratio {:.2} is below minimum {:.2}",
+                            capacity_ratio, min_ratio
+                        ),
+                        value: Some(capacity_ratio),
+                        limit: Some(min_ratio),
+                    });
+                }
+            }
+        }
+    }
+
+    if let Some(cover_criteria) = cover {
+        let min_cover = cover_criteria.min_cover.unwrap_or(0.0);
+        if min_cover > 0.0 {
+            for conduit in &network.conduits {
+                if conduit.conduit_type != ConduitType::Pipe {
+                    continue;
+                }
+                let pipe_height = match pipe_height_in_length(conduit, unit_system) {
+                    Some(value) => value,
+                    None => continue,
+                };
+                let upstream_node = match network.find_node(&conduit.from_node) {
+                    Some(node) => node,
+                    None => continue,
+                };
+                let downstream_node = match network.find_node(&conduit.to_node) {
+                    Some(node) => node,
+                    None => continue,
+                };
+
+                let upstream_cover = upstream_node
+                    .rim_elevation
+                    .map(|rim| rim - upstream_node.invert_elevation - pipe_height);
+                let downstream_cover = downstream_node
+                    .rim_elevation
+                    .map(|rim| rim - downstream_node.invert_elevation - pipe_height);
+
+                if let Some(cover) = upstream_cover {
+                    if cover < min_cover {
+                        violations.push(Violation {
+                            violation_type: crate::analysis::ViolationType::Cover,
+                            severity: Severity::Warning,
+                            element_id: format!("{}:{}", conduit.id, conduit.from_node),
+                            message: format!(
+                                "Cover {:.2} is below minimum {:.2} at upstream node",
+                                cover, min_cover
+                            ),
+                            value: Some(cover),
+                            limit: Some(min_cover),
+                        });
+                    }
+                }
+                if let Some(cover) = downstream_cover {
+                    if cover < min_cover {
+                        violations.push(Violation {
+                            violation_type: crate::analysis::ViolationType::Cover,
+                            severity: Severity::Warning,
+                            element_id: format!("{}:{}", conduit.id, conduit.to_node),
+                            message: format!(
+                                "Cover {:.2} is below minimum {:.2} at downstream node",
+                                cover, min_cover
+                            ),
+                            value: Some(cover),
+                            limit: Some(min_cover),
+                        });
+                    }
+                }
+            }
+        }
+    }
+
+    if let Some(gutter_criteria) = gutter_spread {
+        let max_spread = resolve_max_spread(&gutter_criteria);
+        if max_spread > 0.0 {
+            for result in node_results {
+                let spread = match result.gutter_spread {
+                    Some(value) => value,
+                    None => continue,
+                };
+                if spread > max_spread {
+                    violations.push(Violation::spread_violation(
+                        result.node_id.clone(),
+                        spread,
+                        max_spread,
+                        Severity::Warning,
+                    ));
+                }
+            }
+        }
+    }
+
+    for violation in violations {
+        analysis.add_violation(violation);
+    }
+}
+
+fn merge_design_criteria(criteria: &DesignCriteria, unit_system: UnitSystem) -> DesignCriteria {
+    let defaults = default_design_criteria(unit_system);
+    DesignCriteria {
+        gutter_spread: criteria.gutter_spread.as_ref().map(|_| {
+            merge_gutter_criteria(
+                criteria.gutter_spread.as_ref(),
+                defaults.gutter_spread.as_ref(),
+            )
+        }),
+        hgl_criteria: criteria.hgl_criteria.as_ref().map(|_| {
+            merge_hgl_criteria(
+                criteria.hgl_criteria.as_ref(),
+                defaults.hgl_criteria.as_ref(),
+            )
+        }),
+        velocity: criteria.velocity.as_ref().map(|_| {
+            merge_velocity_criteria(criteria.velocity.as_ref(), defaults.velocity.as_ref())
+        }),
+        cover: criteria
+            .cover
+            .as_ref()
+            .map(|_| merge_cover_criteria(criteria.cover.as_ref(), defaults.cover.as_ref())),
+        capacity: criteria.capacity.as_ref().map(|_| {
+            merge_capacity_criteria(criteria.capacity.as_ref(), defaults.capacity.as_ref())
+        }),
+    }
+}
+
+fn merge_gutter_criteria(
+    criteria: Option<&GutterSpreadCriteria>,
+    defaults: Option<&GutterSpreadCriteria>,
+) -> GutterSpreadCriteria {
+    let default = defaults.cloned().unwrap_or(GutterSpreadCriteria {
+        max_spread: None,
+        max_spread_local_street: None,
+        max_spread_collector_street: None,
+        max_spread_arterial_street: None,
+    });
+    let criteria = criteria.cloned().unwrap_or_else(|| default.clone());
+    GutterSpreadCriteria {
+        max_spread: criteria.max_spread.or(default.max_spread),
+        max_spread_local_street: criteria
+            .max_spread_local_street
+            .or(default.max_spread_local_street),
+        max_spread_collector_street: criteria
+            .max_spread_collector_street
+            .or(default.max_spread_collector_street),
+        max_spread_arterial_street: criteria
+            .max_spread_arterial_street
+            .or(default.max_spread_arterial_street),
+    }
+}
+
+fn merge_hgl_criteria(
+    criteria: Option<&crate::analysis::HglCriteria>,
+    defaults: Option<&crate::analysis::HglCriteria>,
+) -> crate::analysis::HglCriteria {
+    let default = defaults.cloned().unwrap_or(crate::analysis::HglCriteria {
+        max_hgl_below_rim: None,
+        allow_surcharge: None,
+    });
+    let criteria = criteria.cloned().unwrap_or_else(|| default.clone());
+    crate::analysis::HglCriteria {
+        max_hgl_below_rim: criteria.max_hgl_below_rim.or(default.max_hgl_below_rim),
+        allow_surcharge: criteria.allow_surcharge.or(default.allow_surcharge),
+    }
+}
+
+fn merge_velocity_criteria(
+    criteria: Option<&crate::analysis::VelocityCriteria>,
+    defaults: Option<&crate::analysis::VelocityCriteria>,
+) -> crate::analysis::VelocityCriteria {
+    let default = defaults
+        .cloned()
+        .unwrap_or(crate::analysis::VelocityCriteria {
+            min_velocity: None,
+            max_velocity: None,
+        });
+    let criteria = criteria.cloned().unwrap_or_else(|| default.clone());
+    crate::analysis::VelocityCriteria {
+        min_velocity: criteria.min_velocity.or(default.min_velocity),
+        max_velocity: criteria.max_velocity.or(default.max_velocity),
+    }
+}
+
+fn merge_cover_criteria(
+    criteria: Option<&crate::analysis::CoverCriteria>,
+    defaults: Option<&crate::analysis::CoverCriteria>,
+) -> crate::analysis::CoverCriteria {
+    let default = defaults
+        .cloned()
+        .unwrap_or(crate::analysis::CoverCriteria { min_cover: None });
+    let criteria = criteria.cloned().unwrap_or_else(|| default.clone());
+    crate::analysis::CoverCriteria {
+        min_cover: criteria.min_cover.or(default.min_cover),
+    }
+}
+
+fn merge_capacity_criteria(
+    criteria: Option<&crate::analysis::CapacityCriteria>,
+    defaults: Option<&crate::analysis::CapacityCriteria>,
+) -> crate::analysis::CapacityCriteria {
+    let default = defaults
+        .cloned()
+        .unwrap_or(crate::analysis::CapacityCriteria {
+            min_capacity_ratio: None,
+        });
+    let criteria = criteria.cloned().unwrap_or_else(|| default.clone());
+    crate::analysis::CapacityCriteria {
+        min_capacity_ratio: criteria.min_capacity_ratio.or(default.min_capacity_ratio),
+    }
+}
+
+fn resolve_max_spread(criteria: &GutterSpreadCriteria) -> f64 {
+    if let Some(max_spread) = criteria.max_spread {
+        return max_spread;
+    }
+    let mut values = Vec::new();
+    if let Some(value) = criteria.max_spread_local_street {
+        values.push(value);
+    }
+    if let Some(value) = criteria.max_spread_collector_street {
+        values.push(value);
+    }
+    if let Some(value) = criteria.max_spread_arterial_street {
+        values.push(value);
+    }
+    values.into_iter().fold(
+        0.0,
+        |acc, value| if acc == 0.0 { value } else { acc.min(value) },
+    )
+}
+
+fn pipe_height_in_length(conduit: &Conduit, unit_system: UnitSystem) -> Option<f64> {
+    let pipe = conduit.pipe.as_ref()?;
+    let raw_height = pipe.height.or(pipe.diameter)?;
+    let height = match unit_system {
+        UnitSystem::US => raw_height / 12.0,
+        UnitSystem::SI => raw_height / 1000.0,
+    };
+    Some(height)
+}
+
+fn default_design_criteria(unit_system: UnitSystem) -> DesignCriteria {
+    let (length_factor, velocity_factor) = match unit_system {
+        UnitSystem::US => (1.0, 1.0),
+        UnitSystem::SI => (0.3048, 0.3048),
+    };
+
+    DesignCriteria {
+        gutter_spread: Some(GutterSpreadCriteria {
+            max_spread: Some(10.0 * length_factor),
+            max_spread_local_street: None,
+            max_spread_collector_street: None,
+            max_spread_arterial_street: None,
+        }),
+        hgl_criteria: Some(crate::analysis::HglCriteria {
+            max_hgl_below_rim: Some(0.5 * length_factor),
+            allow_surcharge: Some(false),
+        }),
+        velocity: Some(crate::analysis::VelocityCriteria {
+            min_velocity: Some(2.5 * velocity_factor),
+            max_velocity: Some(15.0 * velocity_factor),
+        }),
+        cover: Some(crate::analysis::CoverCriteria {
+            min_cover: Some(2.0 * length_factor),
+        }),
+        capacity: Some(crate::analysis::CapacityCriteria {
+            min_capacity_ratio: Some(1.0),
+        }),
+    }
 }
 
 struct GutterContext {
@@ -1399,7 +1876,7 @@ fn calculate_inlet_interception(
             intercepted_flow: approach_flow,
             bypass_flow: 0.0,
             efficiency: 1.0,
-            spread: 0.0, // Ponded at sag
+            spread: 0.0,          // Ponded at sag
             bypass_to_node: None, // Sag inlets don't bypass
             drainage_area,
         };
@@ -1478,21 +1955,42 @@ fn calculate_inlet_interception(
                     CurbOpeningInletOnGrade::new(length, height, throat_type, clogging_factor)
                 };
 
-                inlet.interception(approach_flow, &gutter_result, manning_n, cross_slope, longitudinal_slope)
+                inlet.interception(
+                    approach_flow,
+                    &gutter_result,
+                    manning_n,
+                    cross_slope,
+                    longitudinal_slope,
+                )
             } else {
                 // Default curb opening
-                let inlet = CurbOpeningInletOnGrade::new(5.0, 0.5, InletThroatType::Horizontal, 0.10);
-                inlet.interception(approach_flow, &gutter_result, manning_n, cross_slope, longitudinal_slope)
+                let inlet =
+                    CurbOpeningInletOnGrade::new(5.0, 0.5, InletThroatType::Horizontal, 0.10);
+                inlet.interception(
+                    approach_flow,
+                    &gutter_result,
+                    manning_n,
+                    cross_slope,
+                    longitudinal_slope,
+                )
             }
         }
 
         crate::node::InletType::Combination => {
             // Combination inlet with both grate and curb opening
-            let grate_length = inlet_props.grate.as_ref()
-                .and_then(|g| g.length).unwrap_or(3.0);
-            let grate_width = inlet_props.grate.as_ref()
-                .and_then(|g| g.width).unwrap_or(2.0);
-            let bar_config = inlet_props.grate.as_ref()
+            let grate_length = inlet_props
+                .grate
+                .as_ref()
+                .and_then(|g| g.length)
+                .unwrap_or(3.0);
+            let grate_width = inlet_props
+                .grate
+                .as_ref()
+                .and_then(|g| g.width)
+                .unwrap_or(2.0);
+            let bar_config = inlet_props
+                .grate
+                .as_ref()
                 .and_then(|g| g.bar_configuration)
                 .map(|bc| match bc {
                     crate::node::BarConfiguration::Parallel => InletBarConfig::Parallel,
@@ -1500,11 +1998,19 @@ fn calculate_inlet_interception(
                 })
                 .unwrap_or(InletBarConfig::Perpendicular);
 
-            let curb_length = inlet_props.curb_opening.as_ref()
-                .and_then(|c| c.length).unwrap_or(5.0);
-            let curb_height = inlet_props.curb_opening.as_ref()
-                .and_then(|c| c.height).unwrap_or(0.5);
-            let curb_throat = inlet_props.curb_opening.as_ref()
+            let curb_length = inlet_props
+                .curb_opening
+                .as_ref()
+                .and_then(|c| c.length)
+                .unwrap_or(5.0);
+            let curb_height = inlet_props
+                .curb_opening
+                .as_ref()
+                .and_then(|c| c.height)
+                .unwrap_or(0.5);
+            let curb_throat = inlet_props
+                .curb_opening
+                .as_ref()
                 .and_then(|c| c.throat_type)
                 .map(|tt| match tt {
                     crate::node::ThroatType::Inclined => InletThroatType::Inclined,
@@ -1537,7 +2043,13 @@ fn calculate_inlet_interception(
             };
 
             let combo = CombinationInletOnGrade::new(grate, curb);
-            combo.interception(approach_flow, &gutter_result, manning_n, cross_slope, longitudinal_slope)
+            combo.interception(
+                approach_flow,
+                &gutter_result,
+                manning_n,
+                cross_slope,
+                longitudinal_slope,
+            )
         }
 
         crate::node::InletType::Slotted => {
@@ -1564,12 +2076,7 @@ fn calculate_inlet_interception(
                     )
                 } else {
                     // Slotted drain without depression
-                    CurbOpeningInletOnGrade::new(
-                        length,
-                        height,
-                        throat_type,
-                        clogging_factor,
-                    )
+                    CurbOpeningInletOnGrade::new(length, height, throat_type, clogging_factor)
                 };
 
                 inlet.interception(
@@ -1611,7 +2118,11 @@ fn calculate_inlet_interception(
         drainage_area,
     };
 
-    Ok((interception.intercepted_flow, interception.bypass_flow, Some(result)))
+    Ok((
+        interception.intercepted_flow,
+        interception.bypass_flow,
+        Some(result),
+    ))
 }
 
 /// Perform an upstream-to-downstream topological sort of the network nodes.
@@ -1626,9 +2137,7 @@ fn calculate_inlet_interception(
 /// # Returns
 /// A `Vec<String>` containing the node IDs in topologically sorted order,
 /// or an error if a cycle is detected.
-fn topological_sort_upstream_to_downstream(
-    network: &Network,
-) -> Result<Vec<String>, String> {
+fn topological_sort_upstream_to_downstream(network: &Network) -> Result<Vec<String>, String> {
     let mut in_degree: HashMap<String, usize> = HashMap::new();
     let mut queue: Vec<String> = Vec::new();
     let mut sorted_nodes: Vec<String> = Vec::new();
@@ -1664,7 +2173,6 @@ fn topological_sort_upstream_to_downstream(
     }
 }
 
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -1682,20 +2190,18 @@ mod tests {
 
     #[test]
     fn test_compute_rational_flows() {
-        let areas = vec![
-            DrainageArea {
-                id: "DA-001".to_string(),
-                name: None,
-                area: 1.0,
-                outlet: "IN-001".to_string(),
-                land_use: None,
-                runoff_coefficient: Some(0.8),
-                time_of_concentration: Some(10.0),
-                tc_calculation: None,
-                curve_number: None,
-                geometry: None,
-            },
-        ];
+        let areas = vec![DrainageArea {
+            id: "DA-001".to_string(),
+            name: None,
+            area: 1.0,
+            outlet: "IN-001".to_string(),
+            land_use: None,
+            runoff_coefficient: Some(0.8),
+            time_of_concentration: Some(10.0),
+            tc_calculation: None,
+            curve_number: None,
+            geometry: None,
+        }];
 
         let flows = compute_rational_flows(&areas, 4.0);
 
@@ -1721,11 +2227,19 @@ mod tests {
         let pipe_props = conduit.pipe.as_ref().expect("Pipe properties required");
         let diameter = pipe_props.diameter.expect("Pipe diameter required") / 12.0;
         let slope = conduit.effective_slope().expect("Pipe slope required");
-        let downstream_invert = conduit.downstream_invert.expect("Downstream invert required");
+        let downstream_invert = conduit
+            .downstream_invert
+            .expect("Downstream invert required");
 
         let yn = solver
             .mannings
-            .normal_depth(flow, diameter, slope, pipe_props.manning_n, solver.config.gravity)
+            .normal_depth(
+                flow,
+                diameter,
+                slope,
+                pipe_props.manning_n,
+                solver.config.gravity,
+            )
             .unwrap_or(diameter / 2.0);
         let yc = solver
             .mannings
@@ -1752,11 +2266,10 @@ mod tests {
         } else {
             flow_result_normal.velocity
         };
-        let exit_loss = solver.energy_loss.exit_loss(
-            exit_velocity,
-            0.0,
-            pipe_props.exit_loss.unwrap_or(1.0),
-        );
+        let exit_loss =
+            solver
+                .energy_loss
+                .exit_loss(exit_velocity, 0.0, pipe_props.exit_loss.unwrap_or(1.0));
 
         let downstream_egl_inside = if downstream_egl >= toc_o {
             downstream_egl + exit_loss
@@ -1765,7 +2278,11 @@ mod tests {
         } else if boc_o + yn >= downstream_egl && downstream_egl > boc_o + yc {
             let candidate = downstream_egl + exit_loss;
             let normal_depth_level = boc_o + yn + flow_result_normal.velocity_head;
-            if candidate > normal_depth_level { candidate } else { normal_depth_level }
+            if candidate > normal_depth_level {
+                candidate
+            } else {
+                normal_depth_level
+            }
         } else {
             boc_o + yn + flow_result_normal.velocity_head
         };
@@ -1974,7 +2491,9 @@ mod tests {
         network.add_conduit(pipe_42_43);
         network.add_conduit(pipe_43_44);
 
-        network.validate_connectivity().expect("Example 9.2 network should be valid");
+        network
+            .validate_connectivity()
+            .expect("Example 9.2 network should be valid");
 
         let tol = 0.05;
         let tol_structure = 0.15;
@@ -2002,7 +2521,13 @@ mod tests {
         assert_close("42-43 downstream EGL", egl_42_43_down, 345.72, tol);
 
         let (hgl_42_43_up, egl_42_43_up, _) = solver
-            .solve_pipe(pipe_42_43, 6.75, structure_43_egl, structure_43_egl, &network)
+            .solve_pipe(
+                pipe_42_43,
+                6.75,
+                structure_43_egl,
+                structure_43_egl,
+                &network,
+            )
             .expect("Pipe 42-43 should solve");
         assert_close("42-43 upstream HGL", hgl_42_43_up, 345.63, tol);
         assert_close("42-43 upstream EGL", egl_42_43_up, 345.73, tol);
@@ -2016,7 +2541,13 @@ mod tests {
         assert_close("41-42 downstream EGL", egl_41_42_down, 345.86, tol);
 
         let (hgl_41_42_up, egl_41_42_up, _) = solver
-            .solve_pipe(pipe_41_42, 5.10, structure_42_egl, structure_42_egl, &network)
+            .solve_pipe(
+                pipe_41_42,
+                5.10,
+                structure_42_egl,
+                structure_42_egl,
+                &network,
+            )
             .expect("Pipe 41-42 should solve");
         assert_close("41-42 upstream HGL", hgl_41_42_up, 354.63, tol);
         assert_close("41-42 upstream EGL", egl_41_42_up, 355.85, tol);
@@ -2030,7 +2561,13 @@ mod tests {
         assert_close("40-41 downstream EGL", egl_40_41_down, 355.62, tol);
 
         let (_hgl_40_41_up, egl_40_41_up, _) = solver
-            .solve_pipe(pipe_40_41, 3.30, structure_41_egl, structure_41_egl, &network)
+            .solve_pipe(
+                pipe_40_41,
+                3.30,
+                structure_41_egl,
+                structure_41_egl,
+                &network,
+            )
             .expect("Pipe 40-41 should solve");
         assert_close("40-41 upstream EGL", egl_40_41_up, 366.85, tol);
 
@@ -2044,7 +2581,10 @@ mod tests {
             .solve(&network, &flows, &[], "example-9-2".to_string())
             .expect("Example 9.2 network should solve");
 
-        let node_results = analysis.node_results.as_ref().expect("Node results expected");
+        let node_results = analysis
+            .node_results
+            .as_ref()
+            .expect("Node results expected");
 
         let node_43 = node_results.iter().find(|r| r.node_id == "43").unwrap();
         assert_close("43 HGL", node_43.hgl.unwrap(), 333.68, tol_structure);

@@ -5,13 +5,14 @@
 
 use hec22::*;
 
+const SCHEMA_ROOT: &str = "../../schemas/drainage/network";
+
 #[test]
 fn test_load_simple_network() {
-    let json = std::fs::read_to_string("schema/examples/simple-network.json")
+    let json = std::fs::read_to_string(format!("{SCHEMA_ROOT}/examples/simple-network.json"))
         .expect("Failed to read simple-network.json");
 
-    let network: DrainageNetwork =
-        serde_json::from_str(&json).expect("Failed to parse JSON");
+    let network: DrainageNetwork = serde_json::from_str(&json).expect("Failed to parse JSON");
 
     // Verify basic structure
     assert_eq!(network.version, "1.0.0");
@@ -48,14 +49,15 @@ fn test_load_simple_network() {
     // Verify analysis results
     assert!(network.analysis.is_some());
     let analysis = network.analysis.as_ref().unwrap();
-    assert_eq!(
-        analysis.method,
-        Some(analysis::AnalysisMethod::Rational)
-    );
+    assert_eq!(analysis.method, Some(analysis::AnalysisMethod::Rational));
 
     // Verify no violations in this example
     let violations = analysis.violations.as_ref().unwrap();
-    assert_eq!(violations.len(), 0, "Simple network should have no violations");
+    assert_eq!(
+        violations.len(),
+        0,
+        "Simple network should have no violations"
+    );
 
     // Validate connectivity
     network
@@ -66,11 +68,12 @@ fn test_load_simple_network() {
 
 #[test]
 fn test_load_network_with_violations() {
-    let json = std::fs::read_to_string("schema/examples/network-with-violations.json")
-        .expect("Failed to read network-with-violations.json");
+    let json = std::fs::read_to_string(format!(
+        "{SCHEMA_ROOT}/examples/network-with-violations.json"
+    ))
+    .expect("Failed to read network-with-violations.json");
 
-    let network: DrainageNetwork =
-        serde_json::from_str(&json).expect("Failed to parse JSON");
+    let network: DrainageNetwork = serde_json::from_str(&json).expect("Failed to parse JSON");
 
     // Verify basic structure
     assert_eq!(network.version, "1.0.0");
@@ -102,8 +105,14 @@ fn test_load_network_with_violations() {
         .collect();
 
     assert!(!hgl_violations.is_empty(), "Should have HGL violations");
-    assert!(!spread_violations.is_empty(), "Should have spread violations");
-    assert!(!flooding_violations.is_empty(), "Should have flooding violations");
+    assert!(
+        !spread_violations.is_empty(),
+        "Should have spread violations"
+    );
+    assert!(
+        !flooding_violations.is_empty(),
+        "Should have flooding violations"
+    );
 
     // Verify severity levels
     let errors: Vec<_> = violations
@@ -117,8 +126,9 @@ fn test_load_network_with_violations() {
 #[test]
 fn test_network_roundtrip() {
     // Load JSON
-    let original_json = std::fs::read_to_string("schema/examples/simple-network.json")
-        .expect("Failed to read file");
+    let original_json =
+        std::fs::read_to_string(format!("{SCHEMA_ROOT}/examples/simple-network.json"))
+            .expect("Failed to read file");
 
     let network: DrainageNetwork =
         serde_json::from_str(&original_json).expect("Failed to parse JSON");
@@ -142,7 +152,7 @@ fn test_network_roundtrip() {
 
 #[test]
 fn test_node_properties() {
-    let json = std::fs::read_to_string("schema/examples/simple-network.json")
+    let json = std::fs::read_to_string(format!("{SCHEMA_ROOT}/examples/simple-network.json"))
         .expect("Failed to read file");
 
     let network: DrainageNetwork = serde_json::from_str(&json).expect("Failed to parse");
@@ -188,7 +198,7 @@ fn test_node_properties() {
 
 #[test]
 fn test_conduit_properties() {
-    let json = std::fs::read_to_string("schema/examples/simple-network.json")
+    let json = std::fs::read_to_string(format!("{SCHEMA_ROOT}/examples/simple-network.json"))
         .expect("Failed to read file");
 
     let network: DrainageNetwork = serde_json::from_str(&json).expect("Failed to parse");
@@ -228,12 +238,15 @@ fn test_conduit_properties() {
 
 #[test]
 fn test_drainage_area_calculations() {
-    let json = std::fs::read_to_string("schema/examples/simple-network.json")
+    let json = std::fs::read_to_string(format!("{SCHEMA_ROOT}/examples/simple-network.json"))
         .expect("Failed to read file");
 
     let network: DrainageNetwork = serde_json::from_str(&json).expect("Failed to parse");
 
-    let areas = network.drainage_areas.as_ref().expect("Should have drainage areas");
+    let areas = network
+        .drainage_areas
+        .as_ref()
+        .expect("Should have drainage areas");
 
     for area in areas {
         // Verify required fields
@@ -263,8 +276,10 @@ fn test_drainage_area_calculations() {
 
 #[test]
 fn test_analysis_violation_filtering() {
-    let json = std::fs::read_to_string("schema/examples/network-with-violations.json")
-        .expect("Failed to read file");
+    let json = std::fs::read_to_string(format!(
+        "{SCHEMA_ROOT}/examples/network-with-violations.json"
+    ))
+    .expect("Failed to read file");
 
     let network: DrainageNetwork = serde_json::from_str(&json).expect("Failed to parse");
 
@@ -287,7 +302,7 @@ fn test_analysis_violation_filtering() {
 
 #[test]
 fn test_idf_curve_interpolation() {
-    let json = std::fs::read_to_string("schema/examples/simple-network.json")
+    let json = std::fs::read_to_string(format!("{SCHEMA_ROOT}/examples/simple-network.json"))
         .expect("Failed to read file");
 
     let network: DrainageNetwork = serde_json::from_str(&json).expect("Failed to parse");
@@ -325,7 +340,7 @@ fn test_idf_curve_interpolation() {
 
 #[test]
 fn test_upstream_downstream_queries() {
-    let json = std::fs::read_to_string("schema/examples/simple-network.json")
+    let json = std::fs::read_to_string(format!("{SCHEMA_ROOT}/examples/simple-network.json"))
         .expect("Failed to read file");
 
     let network: DrainageNetwork = serde_json::from_str(&json).expect("Failed to parse");
@@ -336,9 +351,15 @@ fn test_upstream_downstream_queries() {
 
     // Test downstream conduits
     let downstream = network.downstream_conduits("IN-101");
-    assert!(!downstream.is_empty(), "IN-101 should have downstream conduits");
+    assert!(
+        !downstream.is_empty(),
+        "IN-101 should have downstream conduits"
+    );
 
     // Outfall should have no downstream conduits
     let outfall_downstream = network.downstream_conduits("OUT-001");
-    assert!(outfall_downstream.is_empty(), "Outfall should have no downstream conduits");
+    assert!(
+        outfall_downstream.is_empty(),
+        "Outfall should have no downstream conduits"
+    );
 }

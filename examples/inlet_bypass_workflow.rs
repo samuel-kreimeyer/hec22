@@ -29,8 +29,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     // 2. Create nodes - series of 3 inlets draining to outfall
     let inlet1 = node::Node::new_inlet(
         "IN-001".to_string(),
-        100.0,  // invert elevation
-        104.0,  // rim elevation
+        100.0, // invert elevation
+        104.0, // rim elevation
         node::InletProperties {
             inlet_type: node::InletType::Grate,
             location: node::InletLocation::OnGrade,
@@ -75,7 +75,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         99.0,
         node::InletProperties {
             inlet_type: node::InletType::Grate,
-            location: node::InletLocation::Sag,  // Sag inlet captures 100%
+            location: node::InletLocation::Sag, // Sag inlet captures 100%
             grate: Some(node::GrateProperties {
                 length: Some(4.0),
                 width: Some(3.0),
@@ -214,7 +214,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         drainage::DrainageArea {
             id: "DA-001".to_string(),
             name: Some("Inlet 1 catchment".to_string()),
-            area: 0.8,  // acres
+            area: 0.8, // acres
             outlet: "IN-001".to_string(),
             land_use: Some(drainage::LandUse {
                 primary: Some(drainage::LandUseType::Residential),
@@ -287,18 +287,22 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     // Display inlet interception results
     println!("Inlet Performance:");
-    println!("{:<10} {:>10} {:>10} {:>10} {:>10} {:>10}",
-             "Inlet", "Approach", "Captured", "Bypass", "Efficiency", "Spread");
+    println!(
+        "{:<10} {:>10} {:>10} {:>10} {:>10} {:>10}",
+        "Inlet", "Approach", "Captured", "Bypass", "Efficiency", "Spread"
+    );
     println!("{}", "-".repeat(70));
 
     for result in &inlet_results {
-        println!("{:<10} {:>10.2} {:>10.2} {:>10.2} {:>9.1}% {:>10.2}",
-                 result.node_id,
-                 result.approach_flow,
-                 result.intercepted_flow,
-                 result.bypass_flow,
-                 result.efficiency * 100.0,
-                 result.spread);
+        println!(
+            "{:<10} {:>10.2} {:>10.2} {:>10.2} {:>9.1}% {:>10.2}",
+            result.node_id,
+            result.approach_flow,
+            result.intercepted_flow,
+            result.bypass_flow,
+            result.efficiency * 100.0,
+            result.spread
+        );
     }
     println!();
 
@@ -325,17 +329,14 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let config = solver::SolverConfig::us_customary();
     let hgl_solver = solver::HglSolver::new(config);
 
-    let analysis = hgl_solver.solve(
-        &network,
-        &conduit_flows,
-        &[],
-        "10-year-storm".to_string(),
-    )?;
+    let analysis = hgl_solver.solve(&network, &conduit_flows, &[], "10-year-storm".to_string())?;
 
     // Display results
     println!("Node Results:");
-    println!("{:<10} {:>10} {:>10} {:>10} {:>10}",
-             "Node", "HGL (ft)", "EGL (ft)", "Depth (ft)", "Flooding");
+    println!(
+        "{:<10} {:>10} {:>10} {:>10} {:>10}",
+        "Node", "HGL (ft)", "EGL (ft)", "Depth (ft)", "Flooding"
+    );
     println!("{}", "-".repeat(55));
 
     if let Some(ref node_results) = analysis.node_results {
@@ -343,17 +344,25 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             let hgl = result.hgl.unwrap_or(0.0);
             let egl = result.egl.unwrap_or(0.0);
             let depth = result.depth.unwrap_or(0.0);
-            let flooding = if result.flooding.unwrap_or(false) { "YES" } else { "No" };
+            let flooding = if result.flooding.unwrap_or(false) {
+                "YES"
+            } else {
+                "No"
+            };
 
-            println!("{:<10} {:>10.2} {:>10.2} {:>10.2} {:>10}",
-                     result.node_id, hgl, egl, depth, flooding);
+            println!(
+                "{:<10} {:>10.2} {:>10.2} {:>10.2} {:>10}",
+                result.node_id, hgl, egl, depth, flooding
+            );
         }
     }
     println!();
 
     println!("Conduit Results:");
-    println!("{:<10} {:>10} {:>10} {:>10} {:>12}",
-             "Conduit", "Flow", "Velocity", "Depth", "Capacity");
+    println!(
+        "{:<10} {:>10} {:>10} {:>10} {:>12}",
+        "Conduit", "Flow", "Velocity", "Depth", "Capacity"
+    );
     println!("{}", "-".repeat(60));
 
     if let Some(ref conduit_results) = analysis.conduit_results {
@@ -363,8 +372,10 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             let depth = result.depth.unwrap_or(0.0);
             let capacity = result.capacity_used.unwrap_or(0.0) * 100.0;
 
-            println!("{:<10} {:>10.2} {:>10.2} {:>10.2} {:>11.1}%",
-                     result.conduit_id, flow, velocity, depth, capacity);
+            println!(
+                "{:<10} {:>10.2} {:>10.2} {:>10.2} {:>11.1}%",
+                result.conduit_id, flow, velocity, depth, capacity
+            );
         }
     }
     println!();
@@ -378,10 +389,10 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         } else {
             println!("⚠ Found {} violation(s):", violations.len());
             for violation in violations {
-                println!("  [{:?}] {}: {}",
-                         violation.severity,
-                         violation.element_id,
-                         violation.message);
+                println!(
+                    "  [{:?}] {}: {}",
+                    violation.severity, violation.element_id, violation.message
+                );
             }
         }
     }
@@ -390,18 +401,16 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     // 10. Summary
     println!("--- Summary ---");
     let total_drainage_flow: f64 = node_inflows.values().sum();
-    let total_intercepted: f64 = inlet_results.iter()
-        .map(|r| r.intercepted_flow)
-        .sum();
-    let total_bypass: f64 = inlet_results.iter()
-        .map(|r| r.bypass_flow)
-        .sum();
+    let total_intercepted: f64 = inlet_results.iter().map(|r| r.intercepted_flow).sum();
+    let total_bypass: f64 = inlet_results.iter().map(|r| r.bypass_flow).sum();
 
     println!("Total drainage area runoff: {:.2} cfs", total_drainage_flow);
     println!("Total intercepted by inlets: {:.2} cfs", total_intercepted);
     println!("Total bypass flow: {:.2} cfs", total_bypass);
-    println!("System capture efficiency: {:.1}%",
-             (total_intercepted / total_drainage_flow) * 100.0);
+    println!(
+        "System capture efficiency: {:.1}%",
+        (total_intercepted / total_drainage_flow) * 100.0
+    );
 
     let outlet_flow = conduit_flows.get("P-104").unwrap_or(&0.0);
     println!("\nFlow at outfall: {:.2} cfs", outlet_flow);

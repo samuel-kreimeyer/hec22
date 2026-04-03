@@ -111,8 +111,8 @@ fn test_outfall_egl_matches_tailwater() {
     // Compute flows: Q = C × i × A = 0.8 × 5.0 × 1.25 = 5.0 cfs
     let intensity = 5.0; // in/hr
     let node_inflows = solver::compute_rational_flows(&[drainage_area], intensity);
-    let conduit_flows = solver::route_flows(&network, &node_inflows)
-        .expect("Flow routing should succeed");
+    let conduit_flows =
+        solver::route_flows(&network, &node_inflows).expect("Flow routing should succeed");
 
     let flow = conduit_flows.get("Discharge-Pipe").unwrap();
     println!("\n=== Flow Information ===");
@@ -123,12 +123,23 @@ fn test_outfall_egl_matches_tailwater() {
     let hgl_solver = solver::HglSolver::new(config);
 
     let analysis = hgl_solver
-        .solve(&network, &conduit_flows, &[], "outfall-egl-test".to_string())
+        .solve(
+            &network,
+            &conduit_flows,
+            &[],
+            "outfall-egl-test".to_string(),
+        )
         .expect("HGL solver should succeed");
 
     // Get results
-    let node_results = analysis.node_results.as_ref().expect("Should have node results");
-    let conduit_results = analysis.conduit_results.as_ref().expect("Should have conduit results");
+    let node_results = analysis
+        .node_results
+        .as_ref()
+        .expect("Should have node results");
+    let conduit_results = analysis
+        .conduit_results
+        .as_ref()
+        .expect("Should have conduit results");
 
     // Find outfall results
     let outfall_result = node_results
@@ -194,11 +205,7 @@ fn test_outfall_egl_matches_tailwater() {
 #[test]
 fn test_outfall_egl_with_varying_flows() {
     // Test with multiple flow rates to verify EGL remains at tailwater
-    let test_flows = vec![
-        (2.0, "Low flow"),
-        (5.0, "Medium flow"),
-        (10.0, "High flow"),
-    ];
+    let test_flows = vec![(2.0, "Low flow"), (5.0, "Medium flow"), (10.0, "High flow")];
 
     for (target_flow, description) in test_flows {
         println!("\n=== Testing {} ({:.1} cfs) ===", description, target_flow);
@@ -219,7 +226,7 @@ fn test_outfall_egl_with_varying_flows() {
                 curb_opening: None,
                 local_depression: Some(2.0),
                 clogging_factor: Some(0.10),
-            bypass_to: None,
+                bypass_to: None,
             },
         );
 
@@ -271,7 +278,10 @@ fn test_outfall_egl_with_varying_flows() {
 
         // Get results
         let node_results = analysis.node_results.as_ref().unwrap();
-        let outfall_result = node_results.iter().find(|r| r.node_id == "Outfall").unwrap();
+        let outfall_result = node_results
+            .iter()
+            .find(|r| r.node_id == "Outfall")
+            .unwrap();
 
         let hgl = outfall_result.hgl.unwrap();
         let egl = outfall_result.egl.unwrap();

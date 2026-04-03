@@ -32,16 +32,24 @@ fn test_hec22_example_7_2_without_depression() {
     println!("\n=== HEC-22 Example 7.2: Without Depression ===\n");
 
     // Example 7.2 parameters
-    let flow = 1.77;              // ft³/s
+    let flow = 1.77; // ft³/s
     let longitudinal_slope = 0.01; // 1%
-    let cross_slope = 0.02;        // 2%
+    let cross_slope = 0.02; // 2%
     let manning_n = 0.016;
-    let curb_length = 9.84;        // ft
+    let curb_length = 9.84; // ft
 
     println!("Given conditions:");
     println!("  Flow (Q): {:.2} ft³/s", flow);
-    println!("  Longitudinal slope (SL): {:.2} ft/ft ({}%)", longitudinal_slope, longitudinal_slope * 100.0);
-    println!("  Cross slope (Sx): {:.2} ft/ft ({}%)", cross_slope, cross_slope * 100.0);
+    println!(
+        "  Longitudinal slope (SL): {:.2} ft/ft ({}%)",
+        longitudinal_slope,
+        longitudinal_slope * 100.0
+    );
+    println!(
+        "  Cross slope (Sx): {:.2} ft/ft ({}%)",
+        cross_slope,
+        cross_slope * 100.0
+    );
     println!("  Manning's n: {:.3}", manning_n);
     println!("  Curb opening length (L): {:.2} ft", curb_length);
     println!();
@@ -49,9 +57,9 @@ fn test_hec22_example_7_2_without_depression() {
     // Create inlet without depression
     let inlet = inlet::CurbOpeningInletOnGrade::new(
         curb_length,
-        4.0 / 12.0,  // 4 inch curb height (typical)
+        4.0 / 12.0, // 4 inch curb height (typical)
         inlet::ThroatType::Horizontal,
-        0.0,  // no clogging factor for this example
+        0.0, // no clogging factor for this example
     );
 
     // Calculate required length for total interception (LT) using HEC-22 Equation 7.10
@@ -66,7 +74,7 @@ fn test_hec22_example_7_2_without_depression() {
     println!("  Required length for 100% interception (LT): {:.1} ft", lt);
 
     // Expected value from HEC-22 Example 7.2
-    let expected_lt = 23.9;  // ft
+    let expected_lt = 23.9; // ft
 
     // Allow 5% tolerance for minor rounding differences
     let lt_error = (lt - expected_lt).abs() / expected_lt;
@@ -77,7 +85,9 @@ fn test_hec22_example_7_2_without_depression() {
     assert!(
         lt_error < 0.05,
         "LT should match HEC-22 within 5%: expected {:.1}, got {:.1} ({:.1}% error)",
-        expected_lt, lt, lt_error * 100.0
+        expected_lt,
+        lt,
+        lt_error * 100.0
     );
 
     // Create gutter for flow analysis
@@ -85,10 +95,10 @@ fn test_hec22_example_7_2_without_depression() {
         manning_n,
         cross_slope,
         longitudinal_slope,
-        None,  // no specific width for uniform gutter
+        None, // no specific width for uniform gutter
     );
 
-    let k = 0.56;  // US customary units
+    let k = 0.56; // US customary units
     let gutter_result = gutter.result_for_flow(flow, k);
 
     println!("Gutter flow analysis:");
@@ -109,13 +119,16 @@ fn test_hec22_example_7_2_without_depression() {
     println!("Inlet performance:");
     println!("  L/LT ratio: {:.2}", curb_length / lt);
     println!("  Efficiency (E): {:.1}%", interception.efficiency * 100.0);
-    println!("  Intercepted flow (Qi): {:.2} ft³/s", interception.intercepted_flow);
+    println!(
+        "  Intercepted flow (Qi): {:.2} ft³/s",
+        interception.intercepted_flow
+    );
     println!("  Bypass flow: {:.2} ft³/s", interception.bypass_flow);
     println!();
 
     // Expected values from HEC-22 Example 7.2
-    let expected_efficiency = 0.61;  // 61%
-    let expected_intercepted = 1.08;  // ft³/s
+    let expected_efficiency = 0.61; // 61%
+    let expected_intercepted = 1.08; // ft³/s
 
     println!("Expected from HEC-22:");
     println!("  Efficiency: {:.1}%", expected_efficiency * 100.0);
@@ -123,18 +136,22 @@ fn test_hec22_example_7_2_without_depression() {
     println!();
 
     // Verify efficiency
-    let efficiency_error = (interception.efficiency - expected_efficiency).abs() / expected_efficiency;
+    let efficiency_error =
+        (interception.efficiency - expected_efficiency).abs() / expected_efficiency;
     println!("Verification:");
     println!("  Efficiency error: {:.1}%", efficiency_error * 100.0);
 
     assert!(
         efficiency_error < 0.05,
         "Efficiency should match HEC-22 within 5%: expected {:.1}%, got {:.1}% ({:.1}% error)",
-        expected_efficiency * 100.0, interception.efficiency * 100.0, efficiency_error * 100.0
+        expected_efficiency * 100.0,
+        interception.efficiency * 100.0,
+        efficiency_error * 100.0
     );
 
     // Verify intercepted flow
-    let flow_error = (interception.intercepted_flow - expected_intercepted).abs() / expected_intercepted;
+    let flow_error =
+        (interception.intercepted_flow - expected_intercepted).abs() / expected_intercepted;
     println!("  Intercepted flow error: {:.1}%", flow_error * 100.0);
 
     assert!(
@@ -152,30 +169,42 @@ fn test_hec22_example_7_2_with_depression() {
     println!("\n=== HEC-22 Example 7.2: With Depression ===\n");
 
     // Example 7.2 parameters
-    let flow = 1.77;              // ft³/s
+    let flow = 1.77; // ft³/s
     let longitudinal_slope = 0.01; // 1%
-    let cross_slope = 0.02;        // 2%
+    let cross_slope = 0.02; // 2%
     let manning_n = 0.016;
-    let curb_length = 9.84;        // ft
-    let gutter_width = 2.0;        // ft
-    let depression = 1.0 / 12.0;   // 1 inch = 0.083 ft
+    let curb_length = 9.84; // ft
+    let gutter_width = 2.0; // ft
+    let depression = 1.0 / 12.0; // 1 inch = 0.083 ft
 
     println!("Given conditions:");
     println!("  Flow (Q): {:.2} ft³/s", flow);
-    println!("  Longitudinal slope (SL): {:.2} ft/ft ({}%)", longitudinal_slope, longitudinal_slope * 100.0);
-    println!("  Cross slope (Sx): {:.2} ft/ft ({}%)", cross_slope, cross_slope * 100.0);
+    println!(
+        "  Longitudinal slope (SL): {:.2} ft/ft ({}%)",
+        longitudinal_slope,
+        longitudinal_slope * 100.0
+    );
+    println!(
+        "  Cross slope (Sx): {:.2} ft/ft ({}%)",
+        cross_slope,
+        cross_slope * 100.0
+    );
     println!("  Manning's n: {:.3}", manning_n);
     println!("  Curb opening length (L): {:.2} ft", curb_length);
     println!("  Gutter width (W): {:.2} ft", gutter_width);
-    println!("  Local depression (a): {:.3} ft ({} inch)", depression, depression * 12.0);
+    println!(
+        "  Local depression (a): {:.3} ft ({} inch)",
+        depression,
+        depression * 12.0
+    );
     println!();
 
     // Create inlet with depression
     let inlet = inlet::CurbOpeningInletOnGrade::new_with_depression(
         curb_length,
-        4.0 / 12.0,  // 4 inch curb height (typical)
+        4.0 / 12.0, // 4 inch curb height (typical)
         inlet::ThroatType::Horizontal,
-        0.0,  // no clogging factor for this example
+        0.0, // no clogging factor for this example
         depression,
         gutter_width,
     );
@@ -183,14 +212,14 @@ fn test_hec22_example_7_2_with_depression() {
     // Use CompositeGutter to properly calculate frontal flow for depression
     let gutter = gutter::CompositeGutter::new(
         manning_n,
-        cross_slope,      // Gutter cross slope (Sw) - same as roadway for this example
-        cross_slope,      // Roadway cross slope (Sx)
+        cross_slope,        // Gutter cross slope (Sw) - same as roadway for this example
+        cross_slope,        // Roadway cross slope (Sx)
         longitudinal_slope, // Longitudinal slope (SL)
-        gutter_width,     // Gutter width (W)
-        depression,       // Depression depth (a)
+        gutter_width,       // Gutter width (W)
+        depression,         // Depression depth (a)
     );
 
-    let k = 0.56;  // US customary units
+    let k = 0.56; // US customary units
     let gutter_result = gutter.result_for_flow(flow, k);
 
     println!("Gutter flow analysis:");
@@ -198,7 +227,10 @@ fn test_hec22_example_7_2_with_depression() {
     println!("  Depth at curb: {:.4} ft", gutter_result.depth_at_curb);
     println!("  Velocity: {:.2} ft/s", gutter_result.velocity);
     if let Some(frontal_flow) = gutter_result.frontal_flow {
-        println!("  Frontal flow (in depressed section): {:.3} ft³/s", frontal_flow);
+        println!(
+            "  Frontal flow (in depressed section): {:.3} ft³/s",
+            frontal_flow
+        );
         let eo = frontal_flow / flow;
         println!("  Frontal flow ratio (Eo): {:.3}", eo);
     }
@@ -217,13 +249,16 @@ fn test_hec22_example_7_2_with_depression() {
     // The inlet's interception method should handle this internally
     println!("Inlet performance with depression:");
     println!("  Efficiency (E): {:.1}%", interception.efficiency * 100.0);
-    println!("  Intercepted flow (Qi): {:.2} ft³/s", interception.intercepted_flow);
+    println!(
+        "  Intercepted flow (Qi): {:.2} ft³/s",
+        interception.intercepted_flow
+    );
     println!("  Bypass flow: {:.2} ft³/s", interception.bypass_flow);
     println!();
 
     // Expected values from HEC-22 Example 7.2
-    let expected_efficiency = 0.88;  // 88%
-    let expected_intercepted = 1.56;  // ft³/s
+    let expected_efficiency = 0.88; // 88%
+    let expected_intercepted = 1.56; // ft³/s
 
     println!("Expected from HEC-22:");
     println!("  Efficiency: {:.1}%", expected_efficiency * 100.0);
@@ -231,18 +266,22 @@ fn test_hec22_example_7_2_with_depression() {
     println!();
 
     // Verify efficiency
-    let efficiency_error = (interception.efficiency - expected_efficiency).abs() / expected_efficiency;
+    let efficiency_error =
+        (interception.efficiency - expected_efficiency).abs() / expected_efficiency;
     println!("Verification:");
     println!("  Efficiency error: {:.1}%", efficiency_error * 100.0);
 
     assert!(
-        efficiency_error < 0.10,  // Allow 10% tolerance for depression case (more complex)
+        efficiency_error < 0.10, // Allow 10% tolerance for depression case (more complex)
         "Efficiency should match HEC-22 within 10%: expected {:.1}%, got {:.1}% ({:.1}% error)",
-        expected_efficiency * 100.0, interception.efficiency * 100.0, efficiency_error * 100.0
+        expected_efficiency * 100.0,
+        interception.efficiency * 100.0,
+        efficiency_error * 100.0
     );
 
     // Verify intercepted flow
-    let flow_error = (interception.intercepted_flow - expected_intercepted).abs() / expected_intercepted;
+    let flow_error =
+        (interception.intercepted_flow - expected_intercepted).abs() / expected_intercepted;
     println!("  Intercepted flow error: {:.1}%", flow_error * 100.0);
 
     assert!(

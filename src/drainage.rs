@@ -214,8 +214,7 @@ impl DrainageArea {
     ///
     /// Returns flow in cfs (or cms if SI units)
     pub fn rational_method_runoff(&self, intensity: f64) -> Option<f64> {
-        self.runoff_coefficient
-            .map(|c| c * intensity * self.area)
+        self.runoff_coefficient.map(|c| c * intensity * self.area)
     }
 }
 
